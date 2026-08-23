@@ -27,6 +27,7 @@ try:
     from rich.syntax import Syntax
     from rich.table import Table
     from rich.text import Text
+    from rich.theme import Theme as _RichTheme
     HAVE_RICH = True
 except ImportError:                                        # pragma: no cover
     HAVE_RICH = False
@@ -51,11 +52,70 @@ DIFFICULTY_STYLE = {"easy": "green", "medium": "yellow", "hard": "red"}
 
 
 # ══════════════════════════════════════════════════════════════
+#  THEMES
+# ══════════════════════════════════════════════════════════════
+# "dark" is the tool's original palette (bright ANSI colours, rich's own
+# built-in colour names) — it needs no override table at all, so it is
+# the zero-risk default. "light" and "highcontrast" remap the same fixed
+# vocabulary of colour names used throughout this module (RED/GREEN/...
+# for ANSI, "red"/"green"/"bold red"/... for rich) so every existing
+# c(...) call and every rich markup tag renders correctly automatically,
+# with no call site touched individually.
+THEME_NAMES = ("dark", "light", "highcontrast")
+
+# ANSI 256-colour codes (\033[38;5;Nm / \033[48;5;Nm), one table per
+# non-default theme. Colours picked to stay readable on a light/white
+# terminal background ("light"), or to avoid a red/green pair entirely
+# for the most common forms of colour-vision deficiency ("highcontrast",
+# using the Okabe–Ito palette: blue/vermillion/orange/sky-blue).
+_ANSI_256 = {
+    "light": {
+        "RED": 160, "GREEN": 28, "YELLOW": 172, "CYAN": 30,
+        "WHITE": 236, "GRAY": 244, "MAGENTA": 127, "BLUE": 25,
+        "BG_RED": 217, "BG_GREEN": 150,
+    },
+    "highcontrast": {
+        "RED": 166, "GREEN": 27, "YELLOW": 208, "CYAN": 39,
+        "WHITE": 255, "GRAY": 246, "MAGENTA": 25, "BLUE": 27,
+        "BG_RED": 208, "BG_GREEN": 27,
+    },
+}
+
+# rich colours, one table per non-default theme, keyed by the exact style
+# string literal as it is written elsewhere in this module (verified:
+# rich's Console(theme=...) resolves an exact-string match — including
+# compound ones like "bold cyan" — before falling back to its own
+# built-in colour parsing, so registering every literal used below is
+# enough to re-theme the whole UI without editing a single call site).
+_RICH_THEMES = {
+    "light": {
+        "cyan": "#0a6e8c", "red": "#a4130f", "green": "#1c6b1c",
+        "yellow": "#8a5a00", "white": "#1c1c1c", "dim": "#5c5c5c",
+        "grey37": "#8a8a8a", "magenta": "#7a1f7a",
+        "bold cyan": "bold #0a6e8c", "bold red": "bold #a4130f",
+        "bold green": "bold #1c6b1c", "bold yellow": "bold #8a5a00",
+        "bold white": "bold #1c1c1c",
+        "on green": "on #1c6b1c", "on red": "on #a4130f",
+    },
+    "highcontrast": {
+        "cyan": "#56b4e9", "red": "#d55e00", "green": "#0072b2",
+        "yellow": "#e69f00", "white": "#f5f5f5", "dim": "#9a9a9a",
+        "grey37": "#8a8a8a", "magenta": "#0072b2",
+        "bold cyan": "bold #56b4e9", "bold red": "bold #d55e00",
+        "bold green": "bold #0072b2", "bold yellow": "bold #e69f00",
+        "bold white": "bold #f5f5f5",
+        "on green": "on #0072b2", "on red": "on #d55e00",
+    },
+}
+
+
+# ══════════════════════════════════════════════════════════════
 #  BACKEND STATE
 # ══════════════════════════════════════════════════════════════
 _rich = False
 _color = True
 _console = None
+_theme = "dark"
 
 
 def _auto_color():
@@ -66,17 +126,23 @@ def _auto_color():
     return sys.stdout.isatty()
 
 
-def configure(rich=None, color=None):
+def configure(rich=None, color=None, theme="dark"):
     """(Re)configure the backend. None means 'auto-detect'."""
-    global _rich, _color, _console
+    global _rich, _color, _console, _theme
     _color = _auto_color() if color is None else bool(color)
     want_rich = HAVE_RICH if rich is None else (bool(rich) and HAVE_RICH)
     _rich = want_rich and _color
-    _console = Console(highlight=False) if _rich else None
+    _theme = theme if theme in THEME_NAMES else "dark"
+    rich_theme = _RichTheme(_RICH_THEMES[_theme]) if (_rich and _theme in _RICH_THEMES) else None
+    _console = Console(highlight=False, theme=rich_theme) if _rich else None
 
 
 def using_rich():
     return _rich
+
+
+def current_theme():
+    return _theme
 
 
 def width():
@@ -96,7 +162,16 @@ def c(text, *styles):
     """Wrap `text` in ANSI styles (no-op when colour is off)."""
     if not _color or not styles:
         return text
-    return "".join(getattr(C, s) for s in styles) + text + C.RESET
+    table = _ANSI_256.get(_theme)
+    codes = []
+    for s in styles:
+        code = table.get(s) if table else None
+        if code is None:
+            codes.append(getattr(C, s))
+        else:
+            codes.append("\033[48;5;%dm" % code if s.startswith("BG_")
+                        else "\033[38;5;%dm" % code)
+    return "".join(codes) + text + C.RESET
 
 
 def _bar(done, total, width=16):
@@ -127,7 +202,7 @@ def ask(label):
         return input(c(label, "BOLD", "CYAN")).strip()
     except (EOFError, KeyboardInterrupt):
         print()
-        raise Abort()
+        raise Abort() from None
 
 
 def pause(label="  Press Enter to continue…"):
@@ -138,7 +213,7 @@ def pause(label="  Press Enter to continue…"):
             input(c(label, "GRAY"))
     except (EOFError, KeyboardInterrupt):
         print()
-        raise Abort()
+        raise Abort() from None
 
 
 def info(msg):

@@ -20,6 +20,8 @@ C_PKG       := c_exam
 SOURCES     := $(SRC_PKG)/__main__.py $(SRC_PKG)/examshell.py \
                $(SRC_PKG)/grader.py $(SRC_PKG)/ui.py $(SRC_PKG)/bank_common.py \
                $(SRC_PKG)/exam_bank.py $(SRC_PKG)/training_bank.py \
+               $(SRC_PKG)/settings.py $(SRC_PKG)/stats.py \
+               $(SRC_PKG)/session_store.py $(SRC_PKG)/report_export.py \
                $(C_PKG)/__main__.py $(C_PKG)/examshell.py $(C_PKG)/grader.py \
                $(C_PKG)/bank.py \
                $(wildcard tests/*.py)
@@ -44,10 +46,10 @@ OFF   := \033[0m
 
 .DEFAULT_GOAL := help
 .PHONY: help run exam practice list train list-training stub grade grade-all \
-        check unit test lint format install venv deps clean fclean re \
+        stats check unit test lint format install venv deps clean fclean re \
         rendu-clean status \
-        c-run c-exam c-practice c-list c-stub c-grade c-grade-all c-check \
-        c-unit c-test
+        c-run c-exam c-practice c-list c-stub c-grade c-grade-all c-stats \
+        c-check c-unit c-test
 
 # ── help ──────────────────────────────────────────────────────
 # Every "make X ..." row uses a real printf field width (%-21s) on the
@@ -72,6 +74,7 @@ help:
 	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)EX=py_inter$(OFF)\n" $(ROWW) "make grade" "grade one solution, no menu"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make grade-all" "grade every exam solution in $(RENDU)/, one overview"
 	@printf "                          $(DIM)(exam pool only — a training solution grades via 'make grade')$(OFF)\n"
+	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make stats" "your local practice history (attempts, pass rate, best time)"
 	@printf "  $(BOLD)Develop$(OFF)\n"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make unit" "fast unit tests for grader/ui/examshell logic"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make check" "self-test both exercise banks (content, not code)"
@@ -86,6 +89,7 @@ help:
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make re" "fclean + install + check"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make rendu-clean" "delete YOUR solutions in $(RENDU)/ (asks first)"
 	@printf "  $(DIM)Options: EX=<exercise>  SEED=<n>  RENDU=<dir>  FLAGS='--strict-imports'$(OFF)\n"
+	@printf "  $(DIM)Try: FLAGS='--theme highcontrast --save-config' (once, remembers your theme)$(OFF)\n"
 	@printf "  $(DIM)python: $(PY)$(OFF)\n"
 	@printf "\n$(BOLD)$(CYAN)▸ C$(OFF)  $(DIM)— Exam Rank 02, compile-based, separate $(C_RENDU)/$(OFF)\n"
 	@printf "  $(BOLD)Play$(OFF)\n"
@@ -96,6 +100,7 @@ help:
 	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)EX=ft_atoi$(OFF)\n" $(ROWW) "make c-stub" "create a solution stub (never overwrites)"
 	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)EX=ft_atoi$(OFF)\n" $(ROWW) "make c-grade" "grade one solution, no menu"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-grade-all" "grade every solution in $(C_RENDU)/, one overview"
+	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-stats" "your local practice history (attempts, pass rate, best time)"
 	@printf "  $(BOLD)Develop$(OFF)\n"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-unit" "fast unit tests for the C tester's own logic"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-check" "self-test the C exercise bank (real compiles)"
@@ -133,6 +138,9 @@ grade:
 grade-all:
 	@$(PY) -m $(SRC_PKG) --grade-all $(ARGS)
 
+stats:
+	@$(PY) -m $(SRC_PKG) --stats
+
 # ── play (C Rank 02) ─────────────────────────────────────────────
 c-run:
 	@$(PY) -m $(C_PKG) $(C_ARGS)
@@ -156,6 +164,9 @@ c-grade:
 
 c-grade-all:
 	@$(PY) -m $(C_PKG) --grade-all $(C_ARGS)
+
+c-stats:
+	@$(PY) -m $(C_PKG) --stats
 
 # ── develop ───────────────────────────────────────────────────
 unit:

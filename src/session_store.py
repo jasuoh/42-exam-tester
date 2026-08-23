@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+session_store.py  ·  exam progress save/resume, shared by both testers
+
+An in-progress exam (login, level, passed exercises, the exercise
+currently drawn, elapsed time, RNG state) can be saved to
+~/.examshell/saved_exam_<tool>.json when the student quits early, and
+restored the next time they start an exam — so a closed laptop or a
+`quit` by mistake doesn't cost the whole run.
+
+Best-effort like the rest of this package: a save/load failure is a
+missed convenience, never a reason to crash the exam.
+"""
+
+import json
+import os
+import random
+import time
+
+from .settings import DATA_DIR
+
+
+def _path(tool):
+    return os.path.join(DATA_DIR, "saved_exam_%s.json" % tool)
+
+
+def _rng_to_json(rng):
+    version, internal, gauss_next = rng.getstate()
+    return [version, list(internal), gauss_next]
+
+
+def _rng_from_json(data):
+    version, internal, gauss_next = data
+    return (version, tuple(internal), gauss_next)
+
+
+def save(tool, session, rng, current_ex, level_attempts=0):
+    """Persist enough state to resume exactly where the student left off."""
+    data = {
+        "login": session.login,
+        "level": session.level,
+        "current_ex": current_ex,
+        "passed": session.passed,
+        "attempts": session.attempts,
+        "history": session.history,
+        "level_attempts": level_attempts,
+        "elapsed_seconds": time.time() - session.start_time
+                          if session.start_time else 0,
+        "rng_state": _rng_to_json(rng),
+    }
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(_path(tool), "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+        return True
+    except OSError:
+        return False
+
+
+def load(tool):
+    """The saved dict, or None if there is nothing (or nothing usable)
+    to resume."""
+    try:
+        with open(_path(tool), encoding="utf-8") as fh:
+            data = json.load(fh)
+        # sanity-check the shape before handing it back — a hand-edited
+        # or half-written file should just look like "nothing saved".
+        required = ("login", "level", "current_ex", "passed", "attempts",
+                    "history", "elapsed_seconds", "rng_state")
+        if not isinstance(data, dict) or not all(k in data for k in required):
+            return None
+        return data
+    except (OSError, ValueError):
+        return None
+
+
+def clear(tool):
+    try:
+        os.remove(_path(tool))
+    except OSError:
+        pass
+
+
+def rng_from_saved(data):
+    rng = random.Random()
+    rng.setstate(_rng_from_json(data["rng_state"]))
+    return rng

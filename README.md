@@ -35,7 +35,9 @@ ANSI output, so it runs on any exam machine with nothing but Python 3.8+.
 
 **Jump to:** [Quick start](#quick-start) · [How the exam works](#how-the-exam-works)
 · [Exercise pool](#exercise-pool) · [Training pool](#training-pool-leetcode-style)
-· [How grading works](#how-grading-works) · [Make targets](#make-targets) ·
+· [How grading works](#how-grading-works) ·
+[Quality-of-life features](#quality-of-life-features-both-testers) ·
+[Make targets](#make-targets) ·
 [CLI](#cli) · [Testing](#testing-this-project) · [Layout](#layout) ·
 **[→ jump to the C tester](#c-exam-rank-02-tester)**
 
@@ -176,6 +178,99 @@ Beyond pass/fail, the grader tells you when:
 * you used an **import**, which the real exam forbids (a warning by
   default, a failure with `--strict-imports`).
 
+## 🎛️ Quality-of-life features (both testers)
+
+Everything below lives in `src/settings.py`, `src/stats.py`,
+`src/session_store.py` and `src/report_export.py` — one small shared layer
+used by **both** `python3 -m src` and `python3 -m c_exam`, so it works the
+same way and stores its files in the same place (`~/.examshell/`) no matter
+which tester you're using. None of it is required reading: the exam and
+practice flow work exactly as before if you never touch any of this.
+
+Everything here is **best-effort**: if `~/.examshell/` can't be created or
+written to (a locked-down exam machine, a read-only `$HOME`), these features
+just silently do nothing — they never make grading fail.
+
+### 🎨 Themes
+
+Three colour themes, picked with `--theme`:
+
+| Theme | For |
+|---|---|
+| `dark` (default) | the original palette — bright colours, dark terminal background |
+| `light` | a white/light terminal background (darker, more saturated colours so nothing washes out) |
+| `highcontrast` | colour-blind friendly — swaps the usual red/green pass-fail colours for the [Okabe–Ito](https://jfly.uni-koeln.de/color/) blue/vermillion/orange palette, which stays distinguishable under the common forms of colour-vision deficiency |
+
+```bash
+python3 -m src --theme highcontrast     # try it for one run
+python3 -m src --theme light --save-config   # remember it for every future run
+```
+
+`--save-config` writes `--theme` (and `--timeout`/`--fuzz`/`--show-fails`,
+`--cc` for the C tester) to `~/.examshell/config.json` and exits — no exam
+or practice session starts. From then on, any run that doesn't pass the
+flag explicitly picks up the saved value; an explicit flag on the command
+line always wins over the saved one.
+
+### 📊 Local stats
+
+Every `grademe` (in an exam or in practice) and every `--grade` appends one
+line to `~/.examshell/stats.jsonl` — purely local, never sent anywhere.
+
+```bash
+python3 -m src --stats      # or: make stats
+python3 -m c_exam --stats   # or: make c-stats
+```
+
+Shows your overall attempts and pass rate, your best full-exam completion
+time, and a per-exercise breakdown (`3/7 passed`, …) — a quick way to see
+which exercises you actually need more reps on.
+
+### 📄 Session reports
+
+Every exam run — passed or aborted — writes a small Markdown summary to
+`~/.examshell/reports/` (login, score, time, per-level attempts/time, any
+badges earned) and prints the path at the end. Nothing to configure; it's
+just a record you can keep, diff between attempts, or paste into a study
+log.
+
+### ⏸️ Resuming an aborted exam
+
+`quit` during an exam now saves your progress (level, passed exercises,
+the exercise currently drawn, attempts, elapsed time) to
+`~/.examshell/saved_exam_py.json` (`saved_exam_c.json` for the C tester).
+The next time you start an exam, you're asked whether to resume:
+
+```
+Resume saved exam for alice — level 3? [Y/n]:
+```
+
+Say no (or let the exam finish normally) and the save is discarded. This
+is a convenience for closed laptops and accidental `quit`s, not a way to
+game the real exam's rules — the real moulinette has no resume button
+either.
+
+### 🔎 Fuzzy search in the exercise picker
+
+Practice mode's and Training mode's exercise pickers accept `/text` as a
+quick filter — type `/` followed by part of an exercise or function name
+to narrow the list, `/` alone to clear it:
+
+```
+Selection (number, /text to filter, or 'b' to go back): /matrix
+```
+
+### 🏅 Achievements
+
+Shown at the end of a **passed** exam, in the summary panel and in the
+saved report: 🏅 *Flawless* (every level cleared on the first `grademe`),
+🎉 *First full clear!* (your first ever 100% run for that tester), and ⏱
+*New personal best time!* (faster than any previous completion) — bragging
+rights only, they don't affect scoring.
+
+**→ [TUTORIAL.md](TUTORIAL.md)** walks through all six of the above
+step by step, with real command output.
+
 ## 🛠️ Make targets
 
 | Target | What it does |
@@ -190,6 +285,7 @@ Beyond pass/fail, the grader tells you when:
 | `make stub EX=…` | create an empty solution file (never overwrites) |
 | `make grade EX=…` | grade one solution, no menu |
 | `make grade-all` | grade every **exam** solution in `rendu/` at once, one overview (training solutions: `make grade EX=…`) |
+| `make stats` | your local practice history — attempts, pass rate, best exam time |
 | `make unit` | fast unit tests for the tool's own logic |
 | `make check` | self-test both exercise banks' content |
 | `make test` | `unit` + `check` |
@@ -223,6 +319,8 @@ python3 -m src --train py_kth_largest  # …drill one training exercise directly
 python3 -m src --grade inter         # grade once (unique suffixes work)
 python3 -m src --grade-all           # grade every exam solution in rendu/
 python3 -m src --check               # validate both exercise banks
+python3 -m src --stats               # your local practice history
+python3 -m src --theme light --save-config   # remember a theme for next time
 python3 -m src --list
 python3 -m src --list-training
 python3 -m src --help
@@ -232,7 +330,10 @@ Run it from the repository root — `src/` is a package, not a standalone
 script, so `python3 src/examshell.py` will not work.
 
 Useful flags: `--rendu DIR`, `--timeout SEC`, `--fuzz N`, `--show-fails N`,
-`--strict-imports`, `--no-color`, `--no-rich`.
+`--strict-imports`, `--theme {dark,light,highcontrast}`, `--save-config`,
+`--no-color`, `--no-rich`. See
+[Quality-of-life features](#quality-of-life-features-both-testers) above
+for what `--theme`, `--save-config` and `--stats` actually do.
 
 ## ✅ Testing this project
 
@@ -265,6 +366,10 @@ things:
 | `src/bank_common.py` | tiny helpers shared by both exercise banks |
 | `src/exam_bank.py` | the 6-level exam bank ⚠ **contains the answers** |
 | `src/training_bank.py` | the LeetCode-style training bank ⚠ **contains the answers** |
+| `src/settings.py` | `~/.examshell/config.json` — theme/timeout/fuzz/show-fails, shared by both testers |
+| `src/stats.py` | `~/.examshell/stats.jsonl` — local grading history, shared by both testers |
+| `src/session_store.py` | exam save/resume state, shared by both testers |
+| `src/report_export.py` | Markdown session reports in `~/.examshell/reports/`, shared by both testers |
 | `tests/` | unit tests for the tool itself |
 | `rendu/` | your solutions (git-ignored) |
 
@@ -399,6 +504,7 @@ randomised fuzzing yet (unlike the Python tool's `--fuzz`).
 | `make c-stub EX=…` | create a solution stub (never overwrites) |
 | `make c-grade EX=…` | grade one solution, no menu |
 | `make c-grade-all` | grade every solution in `c_rendu/` at once, one overview |
+| `make c-stats` | your local practice history — attempts, pass rate, best exam time |
 | `make c-unit` | fast unit tests for the C tester's own logic |
 | `make c-check` | self-test the C exercise bank (every oracle, through the real sandbox) |
 | `make c-test` | `c-unit` + `c-check` |
@@ -415,12 +521,16 @@ python3 -m c_exam --practice ft_atoi    # drill one exercise
 python3 -m c_exam --grade atoi          # grade once (unique suffixes work)
 python3 -m c_exam --grade-all           # grade every solution in c_rendu/
 python3 -m c_exam --check               # validate the bank
+python3 -m c_exam --stats               # your local practice history
 python3 -m c_exam --list
 python3 -m c_exam --help
 ```
 
 Useful flags: `--rendu DIR`, `--cc COMPILER`, `--timeout SEC`, `--strict-norm`,
-`--show-fails N`, `--no-color`, `--no-rich`.
+`--show-fails N`, `--theme {dark,light,highcontrast}`, `--save-config`,
+`--no-color`, `--no-rich`. Same shared theme/config/stats/resume/report
+layer as the Python tester — see
+[Quality-of-life features](#quality-of-life-features-both-testers) up top.
 
 ## 🗂️ Layout
 
@@ -435,4 +545,7 @@ Useful flags: `--rendu DIR`, `--cc COMPILER`, `--timeout SEC`, `--strict-norm`,
 Rendering is **shared** with the Python tool — `c_exam/examshell.py` uses
 `src/ui.py` directly, unchanged in behavior. `src/grader.py`'s `Report` and
 `BankError` are reused too; only the grading mechanism itself
-(`c_exam/grader.py`) is new.
+(`c_exam/grader.py`) is new. Themes, saved config, local stats, exam
+save/resume and session reports (`src/settings.py`, `src/stats.py`,
+`src/session_store.py`, `src/report_export.py`) are shared the same way —
+see [Quality-of-life features](#quality-of-life-features-both-testers).

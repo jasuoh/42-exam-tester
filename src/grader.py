@@ -161,7 +161,7 @@ def build_tests(ex_name, ex, rng, fuzz=DEFAULT_FUZZ):
         except Exception as exc:
             if curated:
                 raise BankError("%s: oracle crashed on %r (%s: %s)"
-                                % (ex_name, args, type(exc).__name__, exc))
+                                % (ex_name, args, type(exc).__name__, exc)) from exc
             return
         seen.add(key)
         tests.append((list(args), expected))
@@ -173,7 +173,7 @@ def build_tests(ex_name, ex, rng, fuzz=DEFAULT_FUZZ):
             args = ex["fuzz"](rng)
         except Exception as exc:
             raise BankError("%s: fuzzer crashed (%s: %s)"
-                            % (ex_name, type(exc).__name__, exc))
+                            % (ex_name, type(exc).__name__, exc)) from exc
         add(args, False)
     return tests
 

@@ -25,12 +25,13 @@ import random
 import shlex
 import time
 
-from src import ui
+from src import report_export, session_store, settings, stats, ui
 
 from . import grader
 from .bank import EXERCISES, LEVELS, N_LEVELS
 
 RENDU_DIR = "c_rendu"
+TOOL = "c"               # tags saved config/stats/reports — "c" vs src's "py"
 
 
 def banner():
@@ -83,12 +84,14 @@ def fmt_duration(seconds):
 # ══════════════════════════════════════════════════════════════
 #  GRADING FRONT-END
 # ══════════════════════════════════════════════════════════════
-def grade_exercise(ex_name, cfg):
+def grade_exercise(ex_name, cfg, mode="practice"):
     ex = EXERCISES[ex_name]
     ui.note("Compiling & grading %s … (%d tests)" % (ex_name, len(ex["cases"])))
     report = grader.grade(ex_name, ex, cfg.rendu, cc=cfg.cc, timeout=cfg.timeout,
                           strict_norm=cfg.strict_norm)
     ui.report(report, cfg.show_fails)
+    stats.record(TOOL, ex_name, ex.get("level"), report.ok,
+                report.passed, report.total, mode)
     return report.ok
 
 
@@ -160,19 +163,47 @@ def exam_mode(cfg):
     ui.clear()
     banner()
     print()
-    try:
-        login = ui.ask("  Login (Enter = %s): " % session.login)
-    except ui.Abort:
-        return
-    if login:
-        session.login = login
-    session.start()
-    if cfg.seed is not None:
-        ui.note("seed %d — this exam is reproducible" % cfg.seed)
+
+    resumed = False
+    saved = session_store.load(TOOL)
+    if saved:
+        try:
+            ans = ui.ask("  Resume saved exam for %s — level %d? [Y/n]: "
+                         % (saved["login"], saved["level"])).lower()
+        except ui.Abort:
+            return
+        if ans in ("", "y", "yes"):
+            session.login = saved["login"]
+            session.level = saved["level"]
+            session.passed = saved["passed"]
+            session.attempts = saved["attempts"]
+            session.history = [tuple(row) for row in saved["history"]]
+            session.start_time = time.time() - saved["elapsed_seconds"]
+            session.current_ex = saved["current_ex"]
+            rng = session_store.rng_from_saved(saved)
+            resumed = True
+            ui.note("Resumed at level %d." % session.level)
+        else:
+            session_store.clear(TOOL)
+
+    if not resumed:
+        try:
+            login = ui.ask("  Login (Enter = %s): " % session.login)
+        except ui.Abort:
+            return
+        if login:
+            session.login = login
+        session.start()
+        if cfg.seed is not None:
+            ui.note("seed %d — this exam is reproducible" % cfg.seed)
+
+    level_started, level_attempts = time.time(), saved.get("level_attempts", 0) if resumed else 0
 
     while session.level <= N_LEVELS:
-        session.current_ex = draw(rng, LEVELS[session.level])
-        level_started, level_attempts = time.time(), 0
+        if not resumed or session.current_ex is None:
+            session.current_ex = draw(rng, LEVELS[session.level])
+            level_started, level_attempts = time.time(), 0
+        resumed = False
         show_subject(session.current_ex, cfg, session)
         ui.commands(EXAM_COMMANDS)
 
@@ -186,7 +217,7 @@ def exam_mode(cfg):
             if cmd in ("grademe", "g"):
                 session.attempts += 1
                 level_attempts += 1
-                if grade_exercise(session.current_ex, cfg):
+                if grade_exercise(session.current_ex, cfg, mode="exam"):
                     session.passed.append(session.current_ex)
                     session.history.append((session.level, session.current_ex,
                                             level_attempts, time.time() - level_started))
@@ -195,6 +226,7 @@ def exam_mode(cfg):
                     try:
                         ui.pause("  Press Enter for the next level…")
                     except ui.Abort:
+                        session_store.save(TOOL, session, rng, None, 0)
                         return
                     break
                 ui.info("Fix your solution and type 'grademe' again.")
@@ -212,6 +244,7 @@ def exam_mode(cfg):
             elif cmd == "stub":
                 make_stub(session.current_ex, cfg)
             elif cmd in ("quit", "q", "exit"):
+                session_store.save(TOOL, session, rng, session.current_ex, level_attempts)
                 exam_summary(session, passed=False)
                 return
             elif cmd == "":
@@ -220,7 +253,18 @@ def exam_mode(cfg):
                 ui.warn("unknown command — " +
                         " · ".join(name for name, _ in EXAM_COMMANDS))
 
+    session_store.clear(TOOL)
     exam_summary(session, passed=True)
+
+
+def _achievements(seconds):
+    badges = []
+    prior_best = stats.best_exam_time(TOOL)
+    if prior_best is None:
+        badges.append("🎉 First full clear!")
+    elif seconds < prior_best:
+        badges.append("⏱ New personal best time!")
+    return badges
 
 
 def exam_summary(session, passed):
@@ -234,9 +278,23 @@ def exam_summary(session, passed):
         rows.append(("Level %d" % level, "%s  (%d attempt%s, %s)"
                      % (name, attempts, "" if attempts == 1 else "s",
                         fmt_duration(seconds))))
+
+    achievements = []
+    if passed:
+        seconds = time.time() - session.start_time if session.start_time else 0
+        if session.history and all(a == 1 for _, _, a, _ in session.history):
+            achievements.append("🏅 Flawless — no retries")
+        achievements.extend(_achievements(seconds))
+        rows.append(("Badges", ", ".join(achievements) if achievements else "—"))
+        stats.record_exam_complete(TOOL, seconds, session.attempts, session.score())
+
     title = ("🎉  EXAM PASSED — all %d levels cleared!" % N_LEVELS if passed
              else "EXAM ABORTED — %d/%d levels cleared" % (len(session.passed), N_LEVELS))
     ui.summary(title, rows, passed)
+
+    report_path = report_export.write_exam_report(TOOL, session, N_LEVELS, passed, achievements)
+    if report_path:
+        ui.note("Session report saved to %s" % report_path)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -250,7 +308,7 @@ PRACTICE_COMMANDS = [
 ]
 
 
-def practice_one(ex_name, cfg):
+def practice_one(ex_name, cfg, mode="practice"):
     show_subject(ex_name, cfg)
     ui.commands(PRACTICE_COMMANDS)
     while True:
@@ -259,7 +317,7 @@ def practice_one(ex_name, cfg):
         except ui.Abort:
             return
         if cmd in ("grademe", "g"):
-            grade_exercise(ex_name, cfg)
+            grade_exercise(ex_name, cfg, mode=mode)
         elif cmd in ("subject", "s"):
             show_subject(ex_name, cfg)
             ui.commands(PRACTICE_COMMANDS)
@@ -274,27 +332,51 @@ def practice_one(ex_name, cfg):
                     " · ".join(name for name, _ in PRACTICE_COMMANDS))
 
 
+def _renumber(entries):
+    """Replace each entry's leading index with a fresh 1..N so a filtered
+    (shorter) list on screen always matches what you type."""
+    return [(i + 1,) + e[1:] for i, e in enumerate(entries)]
+
+
+def _filter_entries(entries, query, name_col, func_col):
+    if not query:
+        return entries
+    q = query.lower()
+    return [e for e in entries if q in e[name_col].lower() or q in e[func_col].lower()]
+
+
 def practice_mode(cfg, ex_name=None):
     if ex_name:
         practice_one(ex_name, cfg)
         return
-    entries = exercise_entries()
+    all_entries = exercise_entries()
+    query = ""
     while True:
         ui.clear()
         banner()
         print()
-        ui.exercise_table(entries, numbered=True)
+        shown = _renumber(_filter_entries(all_entries, query, 2, 3))
+        ui.exercise_table(shown, numbered=True)
+        if query:
+            ui.note("filter /%s — %d/%d shown  ('/' alone clears it)"
+                    % (query, len(shown), len(all_entries)))
+            if not shown:
+                ui.warn("no exercise matches %r" % query)
         try:
-            choice = ui.ask("\n  Selection (number, or 'b' to go back): ").lower()
+            choice = ui.ask("\n  Selection (number, /text to filter, "
+                            "or 'b' to go back): ").lower()
         except ui.Abort:
             return
         if choice in ("b", "back", "q", "quit", ""):
             return
-        if not choice.isdigit() or not 1 <= int(choice) <= len(entries):
-            ui.warn("pick a number between 1 and %d" % len(entries))
+        if choice.startswith("/"):
+            query = choice[1:].strip()
+            continue
+        if not choice.isdigit() or not 1 <= int(choice) <= len(shown):
+            ui.warn("pick a number between 1 and %d, or /text to filter" % len(shown))
             time.sleep(0.8)
             continue
-        practice_one(entries[int(choice) - 1][2], cfg)
+        practice_one(shown[int(choice) - 1][2], cfg)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -412,6 +494,27 @@ def make_stub(ex_name, cfg):
     return True
 
 
+def show_stats():
+    summary = stats.summarize(TOOL)
+    ui.clear()
+    banner()
+    print()
+    rows = [
+        ("Total attempts", summary["total_attempts"]),
+        ("Pass rate", "%d%%" % round(summary["pass_rate"] * 100)),
+        ("Exams completed", summary["exam_completions"]),
+    ]
+    if summary["best_seconds"] is not None:
+        rows.append(("Best exam time", fmt_duration(summary["best_seconds"])))
+    ui.summary("Your practice history", rows, passed=True)
+    if summary["per_exercise"]:
+        per_ex_rows = [(name, "%d/%d passed" % (row["passes"], row["attempts"]))
+                       for name, row in sorted(summary["per_exercise"].items())]
+        ui.commands(per_ex_rows)
+    else:
+        ui.note("no grading history yet — practice or grade something first")
+
+
 # ══════════════════════════════════════════════════════════════
 #  MAIN MENU
 # ══════════════════════════════════════════════════════════════
@@ -479,20 +582,30 @@ def build_parser():
                       help="create an empty solution file and exit")
     mode.add_argument("--check", action="store_true",
                       help="self-test the exercise bank and exit")
+    mode.add_argument("--stats", action="store_true",
+                      help="show your local practice history and exit")
 
     p.add_argument("--seed", type=int, default=None,
                    help="seed the RNG so a run is reproducible")
     p.add_argument("--rendu", default=RENDU_DIR, metavar="DIR",
                    help="where your solutions live (default: %(default)s)")
-    p.add_argument("--cc", default=grader.DEFAULT_CC, metavar="COMPILER",
-                   help="C compiler to use (default: %(default)s)")
-    p.add_argument("--timeout", type=int, default=grader.DEFAULT_TIMEOUT,
-                   metavar="SEC",
-                   help="seconds allowed per harness run (default: %(default)s)")
+    p.add_argument("--cc", default=None, metavar="COMPILER",
+                   help="C compiler to use (default: %s, or your saved "
+                        "--save-config value)" % grader.DEFAULT_CC)
+    p.add_argument("--timeout", type=int, default=None, metavar="SEC",
+                   help="seconds allowed per harness run (default: %d, or "
+                        "your saved --save-config value)" % grader.DEFAULT_TIMEOUT)
     p.add_argument("--strict-norm", action="store_true",
                    help="fail grading on any compiler warning (-Werror)")
-    p.add_argument("--show-fails", type=int, default=4, metavar="N",
-                   help="failing tests to display (default: %(default)s)")
+    p.add_argument("--show-fails", type=int, default=None, metavar="N",
+                   help="failing tests to display (default: 4, or your "
+                        "saved --save-config value)")
+    p.add_argument("--theme", choices=ui.THEME_NAMES, default=None,
+                   help="colour theme: dark (default), light, or highcontrast "
+                        "(colour-blind friendly)")
+    p.add_argument("--save-config", action="store_true",
+                   help="remember --theme/--timeout/--show-fails/--cc for "
+                        "next time, then exit")
     p.add_argument("--no-color", action="store_true",
                    help="disable colours (also honours NO_COLOR)")
     p.add_argument("--no-rich", action="store_true",
@@ -518,12 +631,33 @@ def resolve_exercise(name):
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    ui.configure(rich=not args.no_rich, color=False if args.no_color else None)
+    file_config = settings.load_config()
+    args.theme = settings.merged(args, file_config, "theme", "dark")
+    args.timeout = settings.merged(args, file_config, "timeout", grader.DEFAULT_TIMEOUT)
+    args.show_fails = settings.merged(args, file_config, "show_fails", 4)
+    args.cc = settings.merged(args, file_config, "cc", grader.DEFAULT_CC)
+    ui.configure(rich=not args.no_rich, color=False if args.no_color else None,
+                theme=args.theme)
     cfg = Config(args)
+
+    if args.save_config:
+        ok = settings.save_config({"theme": args.theme, "timeout": args.timeout,
+                                    "show_fails": args.show_fails, "cc": args.cc})
+        if ok:
+            ui.success("saved to %s — theme=%s timeout=%d show_fails=%d cc=%s"
+                      % (settings.CONFIG_PATH, args.theme, args.timeout,
+                         args.show_fails, args.cc))
+        else:
+            ui.error("could not write %s" % settings.CONFIG_PATH)
+        return 0 if ok else 1
 
     if args.timeout < 1:
         ui.error("--timeout must be >= 1")
         return 2
+
+    if args.stats:
+        show_stats()
+        return 0
 
     if args.check:
         ui.info("checking the C exercise bank …")
@@ -548,7 +682,7 @@ def main(argv=None):
         name = resolve_exercise(args.grade)
         if not name:
             return 2
-        return 0 if grade_exercise(name, cfg) else 1
+        return 0 if grade_exercise(name, cfg, mode="grade") else 1
 
     if args.grade_all:
         return 0 if grade_all(cfg) else 1
