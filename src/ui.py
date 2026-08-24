@@ -470,8 +470,9 @@ def menu(rows):
 
 def exercise_table(entries, numbered=False):
     """entries: [(index, level, name, function, standard), …]. `standard`
-    marks the 14 exercises a real `make exam` run can actually draw —
-    everything else is practice-only, shown with a dim ○ instead of ★."""
+    marks the exercises a real exam run can actually draw — everything
+    else is practice-only, shown with a dim ○ instead of ★. Shared by both
+    testers (src/exam_bank.py's Standard/Extra split and c_exam/bank.py's)."""
     if _rich:
         t = Table(title="[bold]Exercise pool[/bold]  "
                         "(★ = can appear in a real exam run)",

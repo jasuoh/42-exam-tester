@@ -27,8 +27,8 @@ ANSI output, so it runs on any exam machine with nothing but Python 3.8+.
 
 | | Python · Exam Rank 03 | C · Exam Rank 02 |
 |---|---|---|
-| Levels / exercises | 6 levels · 40 exercises | 4 levels · 56 exercises |
-| Extra practice | 🧠 Training pool (18, by difficulty) | — *(planned)* |
+| Levels / exercises | 6 levels · 44 exercises | 4 levels · 59 exercises |
+| Extra practice | 🧠 Training pool (20, by difficulty) | — *(planned)* |
 | Grading | in-process sandbox, `deep_eq` | compile + run + diff stdout |
 | Solutions live in | `rendu/` | `c_rendu/` |
 | Entry point | `make run` · `python3 -m src` | `make c-run` · `python3 -m c_exam` |
@@ -93,14 +93,14 @@ of edge cases and fuzz inputs these don't.
 
 ## 📚 Exercise pool
 
-40 exercises, but they are not all the same kind of exercise, and —
+44 exercises, but they are not all the same kind of exercise, and —
 important — **`make exam` only ever draws from the Standard 14**:
 
 * **Standard (14)** — the original pool, based on the publicly documented
   Rank-03 exercises. These are the ones that can plausibly show up on the
   *real* 42 exam, and the only ones a real `make exam` run can draw.
   Marked in **bold** below and with ★ in `--list`.
-* **Extra (26)** — added for broader practice: more variety, a wider
+* **Extra (30)** — added for broader practice: more variety, a wider
   difficulty range, a couple of deliberately easy warm-ups in levels 1–2.
   Good drilling, but not verified against any real exam sheet, and
   **never drawn into a real exam run** — reach them through **Practice
@@ -109,9 +109,9 @@ important — **`make exam` only ever draws from the Standard 14**:
 | Level | Standard (drawn by `make exam`) | Extra (practice mode only) |
 |------:|----------|-------|
 | 1 | **`py_cryptic_sorter`** · **`py_inter`** · **`py_bracket_validator`** | `py_vowel_counter` · `py_capitalizer` · `py_leet_speak` · `py_char_frequency` · `py_string_reverser` · `py_char_counter` |
-| 2 | **`py_echo_validator`** · **`py_mirror_matrix`** | `py_digit_extractor` · `py_case_counter` · `py_run_length_encoder` · `py_second_largest` · `py_even_odd_counter` · `py_sum_of_squares` |
-| 3 | **`py_number_base_converter`** · **`py_pattern_tracker`** · **`py_hidenp`** | `py_word_reverser` · `py_run_length_decoder` · `py_binary_gap` |
-| 4 | **`py_anagram`** · **`py_shadow_merge`** · **`py_string_permutation_checker`** | `py_unique_elements` · `py_pangram_checker` · `py_max_subarray_sum` |
+| 2 | **`py_echo_validator`** · **`py_mirror_matrix`** | `py_digit_extractor` · `py_case_counter` · `py_run_length_encoder` · `py_second_largest` · `py_even_odd_counter` · `py_sum_of_squares` · `py_longest_common_prefix` · `py_camel_to_snake_converter` |
+| 3 | **`py_number_base_converter`** · **`py_pattern_tracker`** · **`py_hidenp`** | `py_word_reverser` · `py_run_length_decoder` · `py_binary_gap` · `py_string_rotation_checker` |
+| 4 | **`py_anagram`** · **`py_shadow_merge`** · **`py_string_permutation_checker`** | `py_unique_elements` · `py_pangram_checker` · `py_max_subarray_sum` · `py_roman_numeral` |
 | 5 | **`py_string_sculptor`** · **`py_twist_sequence`** | `py_matrix_transposer` · `py_longest_word` · `py_zigzag_flatten` · `py_pascals_triangle_row` |
 | 6 | **`py_whisper_cipher`** | `py_matrix_rotator` · `py_prime_finder` · `py_longest_palindromic_substring` · `py_two_sum_indices` |
 
@@ -134,8 +134,8 @@ grouped by **difficulty** instead of exam level, and **never** drawn into
 | Difficulty | Exercises |
 |---|---|
 | Easy   | `py_fizzbuzz_list` · `py_first_unique_char` · `py_missing_number` · `py_contains_duplicate` · `py_single_number` · `py_climbing_stairs` |
-| Medium | `py_group_anagrams` · `py_product_except_self` · `py_kth_largest` · `py_three_sum` · `py_spiral_matrix` · `py_container_with_most_water` |
-| Hard   | `py_merge_intervals` · `py_longest_increasing_subsequence` · `py_trapping_rain_water` · `py_coin_change` · `py_edit_distance` · `py_largest_rectangle_histogram` |
+| Medium | `py_group_anagrams` · `py_product_except_self` · `py_kth_largest` · `py_three_sum` · `py_spiral_matrix` · `py_container_with_most_water` · `py_string_compression` |
+| Hard   | `py_merge_intervals` · `py_longest_increasing_subsequence` · `py_trapping_rain_water` · `py_coin_change` · `py_edit_distance` · `py_largest_rectangle_histogram` · `py_longest_common_subsequence` |
 
 These are graded through the exact same sandbox as the exam pool (same
 edge-case + fuzz testing, mutation/print detection, import checks), just
@@ -463,19 +463,27 @@ the file directly: `cc c_rendu/rotone.c -o /tmp/t && /tmp/t abc`.
 
 ## 📚 Exercise pool
 
-**All 56 exercises, across 4 levels** — the complete pool of a real Exam
-Rank 02 practice repository, its own per-level folder structure used
-directly (not blended across sources with different level splits). Names,
-prototypes, behaviour and level placement are all real. Exact level
-placement still varies by campus and changes over time, same caveat as the
-Python side.
+**59 exercises, across 4 levels**, split the same way as the Python
+bank — Standard vs Extra:
 
-| Level | Exercises |
-|------:|-----------|
-| 1 (12) | `first_word` 🖥️ · `fizzbuzz` 🖥️ · `ft_putstr` · `ft_strcpy` · `ft_strlen` · `ft_swap` · `repeat_alpha` 🖥️ · `rev_print` 🖥️ · `rot_13` 🖥️ · `rotone` 🖥️ · `search_and_replace` 🖥️ · `ulstr` 🖥️ |
-| 2 (19) | `alpha_mirror` 🖥️ · `camel_to_snake` 🖥️ · `do_op` 🖥️ · `ft_atoi` · `ft_strcmp` · `ft_strcspn` · `ft_strdup` · `ft_strpbrk` · `ft_strrev` · `ft_strspn` · `is_power_of_2` · `last_word` 🖥️ · `max` · `print_bits` · `reverse_bits` · `snake_to_camel` 🖥️ · `swap_bits` · `union` 🖥️ · `wdmatch` 🖥️ |
-| 3 (15) | `add_prime_sum` 🖥️ · `epur_str` 🖥️ · `expand_str` 🖥️ · `ft_atoi_base` · `ft_list_size` 🔗 · `ft_range` · `ft_rrange` · `hidenp` 🖥️ · `lcm` · `paramsum` 🖥️ · `pgcd` 🖥️ · `print_hex` 🖥️ · `rstr_capitalizer` 🖥️ · `str_capitalizer` 🖥️ · `tab_mult` 🖥️ |
-| 4 (10) | `flood_fill` 🧩 · `fprime` 🖥️ · `ft_itoa` · `ft_list_foreach` 🔗 · `ft_list_remove_if` 🔗 · `ft_split` · `rev_wstr` 🖥️ · `rostring` 🖥️ · `sort_int_tab` · `sort_list` 🔗 |
+* **Standard (56)** — the complete pool of a real Exam Rank 02 practice
+  repository, its own per-level folder structure used directly (not
+  blended across sources with different level splits). Names, prototypes,
+  behaviour and level placement are all real. Exact level placement still
+  varies by campus and changes over time, same caveat as the Python side.
+  Marked in **bold** below and with ★ in `--list`; the only pool a real
+  `make c-exam` run can draw from.
+* **Extra (3)** — this project's own invented additions for more
+  text-manipulation practice, one per level 1–3, not verified against any
+  real exam sheet, **never drawn into a real exam run** — reach them
+  through **Practice mode** instead (marked with ○ in `--list`).
+
+| Level | Standard (drawn by `make c-exam`) | Extra (practice mode only) |
+|------:|----------|-------|
+| 1 (12) | **`first_word`** 🖥️ · **`fizzbuzz`** 🖥️ · **`ft_putstr`** · **`ft_strcpy`** · **`ft_strlen`** · **`ft_swap`** · **`repeat_alpha`** 🖥️ · **`rev_print`** 🖥️ · **`rot_13`** 🖥️ · **`rotone`** 🖥️ · **`search_and_replace`** 🖥️ · **`ulstr`** 🖥️ | `count_vowels` 🖥️ |
+| 2 (19) | **`alpha_mirror`** 🖥️ · **`camel_to_snake`** 🖥️ · **`do_op`** 🖥️ · **`ft_atoi`** · **`ft_strcmp`** · **`ft_strcspn`** · **`ft_strdup`** · **`ft_strpbrk`** · **`ft_strrev`** · **`ft_strspn`** · **`is_power_of_2`** · **`last_word`** 🖥️ · **`max`** · **`print_bits`** · **`reverse_bits`** · **`snake_to_camel`** 🖥️ · **`swap_bits`** · **`union`** 🖥️ · **`wdmatch`** 🖥️ | `is_palindrome_str` 🖥️ |
+| 3 (15) | **`add_prime_sum`** 🖥️ · **`epur_str`** 🖥️ · **`expand_str`** 🖥️ · **`ft_atoi_base`** · **`ft_list_size`** 🔗 · **`ft_range`** · **`ft_rrange`** · **`hidenp`** 🖥️ · **`lcm`** · **`paramsum`** 🖥️ · **`pgcd`** 🖥️ · **`print_hex`** 🖥️ · **`rstr_capitalizer`** 🖥️ · **`str_capitalizer`** 🖥️ · **`tab_mult`** 🖥️ | `longest_word_str` 🖥️ |
+| 4 (10) | **`flood_fill`** 🧩 · **`fprime`** 🖥️ · **`ft_itoa`** · **`ft_list_foreach`** 🔗 · **`ft_list_remove_if`** 🔗 · **`ft_split`** · **`rev_wstr`** 🖥️ · **`rostring`** 🖥️ · **`sort_int_tab`** · **`sort_list`** 🔗 | — |
 
 🖥️ = "program" kind (your own `main()`, argv-driven) · 🔗 = uses a shared
 linked-list header (`list.h` for the simple `int`-data `t_list` used by
@@ -483,6 +491,10 @@ linked-list header (`list.h` for the simple `int`-data `t_list` used by
 used by `ft_list_foreach`/`ft_list_remove_if` — two different real headers
 for two different real subjects, same as the actual exam) · 🧩 =
 `flood_fill.h` (`t_point` + a 2D char grid).
+
+The three Extra exercises mirror text exercises the Python side already
+has (`py_vowel_counter`, `py_echo_validator`, `py_longest_word`) so you
+can practice the same logic in both languages.
 
 `ft_list_foreach`/`ft_list_remove_if` are graded against a fixed test
 callback the harness supplies (an accumulator, and an int-equality

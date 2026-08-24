@@ -209,6 +209,30 @@ def _ref_edit_distance(s1, s2):
                 dp[i][j] = 1 + min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
     return dp[n][m]
 
+def _ref_string_compression(chars):
+    if not chars:
+        return ""
+    res, prev, count = "", chars[0], 0
+    for ch in chars:
+        if ch == prev:
+            count += 1
+        else:
+            res += prev + (str(count) if count > 1 else "")
+            prev, count = ch, 1
+    res += prev + (str(count) if count > 1 else "")
+    return res
+
+def _ref_longest_common_subsequence(s1, s2):
+    n, m = len(s1), len(s2)
+    dp = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+            if s1[i - 1] == s2[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1] + 1
+            else:
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+    return dp[n][m]
+
 def _ref_largest_rectangle_histogram(heights):
     stack = []
     best = 0
@@ -320,6 +344,13 @@ def _fuzz_edit_distance(rng):
 
 def _fuzz_largest_rectangle_histogram(rng):
     return [[rng.randint(0, 10) for _ in range(rng.randint(0, 10))]]
+
+def _fuzz_string_compression(rng):
+    n = rng.randint(0, 14)
+    return [list(rng.choice("aabbccdd") for _ in range(n))]
+
+def _fuzz_longest_common_subsequence(rng):
+    return [_rand_word(rng, 0, 9, "abc"), _rand_word(rng, 0, 9, "abc")]
 
 
 # ══════════════════════════════════════════════════════════════
@@ -581,6 +612,31 @@ TRAINING_EXERCISES = {
             [[1, 2, 1]], [[]], [[5]], [[0, 2]], [[2, 0]],
         ],
     },
+    "py_string_compression": {
+        "difficulty": "medium", "function": "string_compression",
+        "oracle": _ref_string_compression, "fuzz": _fuzz_string_compression,
+        "subject": _sub("py_string_compression", """
+        Write a function that compresses a list of single characters:
+        each maximal run of the same character becomes that character
+        followed by the run's length, but ONLY when the run is longer
+        than 1 (a run of length 1 is written as just the character, no
+        digit). Return the result as one string, not a list. An empty
+        list returns "".
+
+            def string_compression(chars: list[str]) -> str:
+
+        Examples:
+            string_compression(["a","a","b","b","b"]) -> "a2b3"
+            string_compression(["a","b","c"])          -> "abc"
+            string_compression([])                      -> ""
+        """),
+        "cases": [
+            [[]], [["a"]], [["a", "a"]], [["a", "b", "c"]],
+            [["a", "a", "b", "b", "b"]],
+            [["a"] + ["b"] * 12], [list("aabbccdd")], [list("aaaa")],
+            [["x", "x", "x", "y"]],
+        ],
+    },
 
     # ── HARD ───────────────────────────────────────────────────
     "py_merge_intervals": {
@@ -709,6 +765,28 @@ TRAINING_EXERCISES = {
         "cases": [
             [[2, 1, 5, 6, 2, 3]], [[2, 4]], [[1]], [[]], [[0, 0, 0]],
             [[5, 4, 1, 2]], [[6, 2, 5, 4, 5, 1, 6]], [[1, 1, 1, 1]],
+        ],
+    },
+    "py_longest_common_subsequence": {
+        "difficulty": "hard", "function": "longest_common_subsequence",
+        "oracle": _ref_longest_common_subsequence,
+        "fuzz": _fuzz_longest_common_subsequence,
+        "subject": _sub("py_longest_common_subsequence", """
+        Write a function that returns the LENGTH of the longest common
+        subsequence of two strings: the longest sequence of characters
+        that appears, in order but not necessarily contiguously, in both.
+
+            def longest_common_subsequence(s1: str, s2: str) -> int:
+
+        Examples:
+            longest_common_subsequence("abcde", "ace") -> 3
+            longest_common_subsequence("abc", "def")    -> 0
+            longest_common_subsequence("", "abc")       -> 0
+        """),
+        "cases": [
+            ["abcde", "ace"], ["abc", "abc"], ["abc", "def"],
+            ["", "abc"], ["abc", ""], ["", ""], ["aaaa", "aa"],
+            ["abcba", "abcbcba"], ["bsbininm", "jmjkbkjkv"],
         ],
     },
 }

@@ -28,7 +28,7 @@ import time
 from src import report_export, session_store, settings, stats, ui
 
 from . import grader
-from .bank import EXERCISES, LEVELS, N_LEVELS
+from .bank import EXERCISES, LEVELS, N_LEVELS, STANDARD_LEVELS
 
 RENDU_DIR = "c_rendu"
 TOOL = "c"               # tags saved config/stats/reports — "c" vs src's "py"
@@ -121,13 +121,15 @@ def grade_all(cfg):
 
 def exercise_entries():
     """[(index, level, name, function, standard), …] ordered by level, then
-    name. Every exercise in the C bank can be drawn by a real exam run, so
-    `standard` is always True here (unlike the Python bank's Extra pool)."""
+    name. `standard` marks the real, documented exercises `make c-exam`
+    actually draws from — the invented "Extra" ones only ever show up in
+    practice mode (same Standard/Extra split as the Python bank)."""
     entries, index = [], 0
     for level in range(1, N_LEVELS + 1):
         for name in sorted(LEVELS[level]):
             index += 1
-            entries.append((index, level, name, EXERCISES[name]["function"], True))
+            entries.append((index, level, name, EXERCISES[name]["function"],
+                            EXERCISES[name]["standard"]))
     return entries
 
 
@@ -201,7 +203,7 @@ def exam_mode(cfg):
 
     while session.level <= N_LEVELS:
         if not resumed or session.current_ex is None:
-            session.current_ex = draw(rng, LEVELS[session.level])
+            session.current_ex = draw(rng, STANDARD_LEVELS[session.level])
             level_started, level_attempts = time.time(), 0
         resumed = False
         show_subject(session.current_ex, cfg, session)
@@ -237,7 +239,8 @@ def exam_mode(cfg):
                 print()
                 ui.status_bar(session, N_LEVELS)
             elif cmd == "new":
-                session.current_ex = draw(rng, LEVELS[session.level], session.current_ex)
+                session.current_ex = draw(rng, STANDARD_LEVELS[session.level],
+                                          session.current_ex)
                 show_subject(session.current_ex, cfg, session)
                 ui.commands(EXAM_COMMANDS)
                 ui.info("New exercise drawn for level %d." % session.level)

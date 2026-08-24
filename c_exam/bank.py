@@ -13,11 +13,14 @@ for how each is graded):
               all); graded by compiling their file standalone and running
               it once per case with that case's argv.
 
-Every exercise here mirrors a real, publicly documented Exam Rank 02
-subject (names, prototypes and behaviour cross-checked against several
-independent public exam-prep repositories) — the exact pool and level
-placement still varies by campus/date, same caveat as the Python bank's
-"Extra" pool, but these are not invented subjects.
+Every "standard" exercise here mirrors a real, publicly documented Exam
+Rank 02 subject (names, prototypes and behaviour cross-checked against
+several independent public exam-prep repositories) — the exact pool and
+level placement still varies by campus/date. A handful of exercises are
+marked "standard": False ("Extra", mirroring the Python bank's own
+Standard/Extra split): these are this project's own invented additions
+for broader text-manipulation practice, not verified against any real
+exam sheet, and `make c-exam` never draws them — only practice mode does.
 
 Common fields:
   - level      : which exam level it belongs to (1..N_LEVELS)
@@ -2728,6 +2731,217 @@ EXERCISES = {
             [["111"], (3, 1), (5, 5)],
         ],
     },
+
+    # ── EXTRA (practice only — never drawn by `make c-exam`) ────
+    "count_vowels": {
+        "level": 1, "function": "count_vowels", "kind": "program",
+        "standard": False,
+        "subject": _sub_c("count_vowels", "int main(int argc, char **argv);",
+                         "write", """
+        Write a PROGRAM that takes a string and displays how many vowels
+        (a, e, i, o, u, case-insensitive) it contains, followed by a
+        newline. If argc != 2, just a newline.
+
+        Examples:
+            ./count_vowels "hello"  -> 2
+            ./count_vowels "AEIOU"  -> 5
+        """),
+        "oracle_c": textwrap.dedent("""
+        #include <stdio.h>
+
+        static int is_vowel(char c)
+        {
+            if (c >= 'A' && c <= 'Z')
+                c = c - 'A' + 'a';
+            return (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u');
+        }
+
+        int main(int argc, char **argv)
+        {
+            int i;
+            int count;
+
+            if (argc != 2)
+            {
+                printf("\\n");
+                return (0);
+            }
+            i = 0;
+            count = 0;
+            while (argv[1][i])
+            {
+                if (is_vowel(argv[1][i]))
+                    count++;
+                i++;
+            }
+            printf("%d\\n", count);
+            return (0);
+        }
+        """),
+        "cases": [
+            ["hello"], ["AEIOUaeiou"], [""], [], ["xyz"],
+            ["The Quick Brown Fox"], ["bcdfg"], ["y"], ["1234!?"],
+            ["a", "b"],
+        ],
+    },
+    "is_palindrome_str": {
+        "level": 2, "function": "is_palindrome_str", "kind": "program",
+        "standard": False,
+        "subject": _sub_c("is_palindrome_str",
+                         "int main(int argc, char **argv);", "write", """
+        Write a PROGRAM that takes a string and displays "yes" if it is a
+        palindrome, "no" otherwise, followed by a newline. Only letters
+        are compared, case-insensitively; everything else (spaces,
+        digits, punctuation) is ignored. A string with no letters at all
+        is not a palindrome. If argc != 2, just a newline.
+
+        Examples:
+            ./is_palindrome_str "racecar"                     -> yes
+            ./is_palindrome_str "A man a plan a canal Panama"  -> yes
+            ./is_palindrome_str "hello"                        -> no
+            ./is_palindrome_str "12 21"                        -> no
+        """),
+        "oracle_c": textwrap.dedent("""
+        #include <stdio.h>
+
+        static int is_alpha(char c)
+        {
+            return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
+        }
+
+        static char to_lower(char c)
+        {
+            if (c >= 'A' && c <= 'Z')
+                return (c - 'A' + 'a');
+            return (c);
+        }
+
+        int main(int argc, char **argv)
+        {
+            int i;
+            int left;
+            int right;
+            int len;
+            int has_alpha;
+
+            if (argc != 2)
+            {
+                printf("\\n");
+                return (0);
+            }
+            len = 0;
+            while (argv[1][len])
+                len++;
+            has_alpha = 0;
+            i = 0;
+            while (i < len)
+            {
+                if (is_alpha(argv[1][i]))
+                    has_alpha = 1;
+                i++;
+            }
+            if (!has_alpha)
+            {
+                printf("no\\n");
+                return (0);
+            }
+            left = 0;
+            right = len - 1;
+            while (left < right)
+            {
+                while (left < right && !is_alpha(argv[1][left]))
+                    left++;
+                while (left < right && !is_alpha(argv[1][right]))
+                    right--;
+                if (to_lower(argv[1][left]) != to_lower(argv[1][right]))
+                {
+                    printf("no\\n");
+                    return (0);
+                }
+                left++;
+                right--;
+            }
+            printf("yes\\n");
+            return (0);
+        }
+        """),
+        "cases": [
+            ["racecar"], ["A man a plan a canal Panama"], ["hello"],
+            ["12 21"], [""], [], ["a"], ["ab"], ["Aa"], ["!!!"],
+            ["race a car"], ["Was it a car or a cat I saw"], ["a", "b"],
+        ],
+    },
+    "longest_word_str": {
+        "level": 3, "function": "longest_word_str", "kind": "program",
+        "standard": False,
+        "subject": _sub_c("longest_word_str",
+                         "int main(int argc, char **argv);", "write", """
+        Write a PROGRAM that takes a string and displays its longest
+        space/tab-delimited word, followed by a newline. On a tie, the
+        first one wins. No words (empty or all-whitespace input): just a
+        newline. If argc != 2, just a newline.
+
+        Examples:
+            ./longest_word_str "the quick brown fox" -> quick
+            ./longest_word_str "a bb ccc dd"          -> ccc
+        """),
+        "oracle_c": textwrap.dedent("""
+        #include <stdio.h>
+
+        static int is_sep(char c)
+        {
+            return (c == ' ' || c == '\\t');
+        }
+
+        int main(int argc, char **argv)
+        {
+            int i;
+            int start;
+            int len;
+            int best_start;
+            int best_len;
+
+            if (argc != 2)
+            {
+                printf("\\n");
+                return (0);
+            }
+            i = 0;
+            best_start = 0;
+            best_len = 0;
+            while (argv[1][i])
+            {
+                while (argv[1][i] && is_sep(argv[1][i]))
+                    i++;
+                start = i;
+                len = 0;
+                while (argv[1][i] && !is_sep(argv[1][i]))
+                {
+                    len++;
+                    i++;
+                }
+                if (len > best_len)
+                {
+                    best_len = len;
+                    best_start = start;
+                }
+            }
+            i = 0;
+            while (i < best_len)
+            {
+                printf("%c", argv[1][best_start + i]);
+                i++;
+            }
+            printf("\\n");
+            return (0);
+        }
+        """),
+        "cases": [
+            ["the quick brown fox"], ["a bb ccc dd"], [""], ["   "], [],
+            ["single"], ["tie tie2 abcd"], ["  lorem   ipsum  dolor  "],
+            ["a", "b"],
+        ],
+    },
 }
 
 # ══════════════════════════════════════════════════════════════
@@ -2742,7 +2956,18 @@ for _name, _ex in EXERCISES.items():
     LEVELS[_lvl].append(_name)
     _ex.setdefault("args", [])
     _ex.setdefault("kind", "function")
+    _ex.setdefault("standard", True)
 
 for _lvl, _pool in LEVELS.items():
     if not _pool:
         raise ValueError("c_exam.bank: level %d has no exercise" % _lvl)
+
+# The real, documented subjects — `make c-exam` draws only from this pool,
+# same split as the Python bank's Standard/Extra (see module docstring).
+# The invented "Extra" exercises stay reachable through practice mode only.
+STANDARD_LEVELS = {lvl: [name for name in pool if EXERCISES[name]["standard"]]
+                   for lvl, pool in LEVELS.items()}
+
+for _lvl, _pool in STANDARD_LEVELS.items():
+    if not _pool:
+        raise ValueError("c_exam.bank: level %d has no standard exercise" % _lvl)

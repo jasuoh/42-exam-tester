@@ -326,6 +326,41 @@ def _ref_sum_of_squares(lst):
         total += x * x
     return total
 
+def _ref_longest_common_prefix(strings):
+    if not strings:
+        return ""
+    prefix = strings[0]
+    for s in strings[1:]:
+        while not s.startswith(prefix):
+            prefix = prefix[:-1]
+            if not prefix:
+                return ""
+    return prefix
+
+def _ref_camel_to_snake_converter(text):
+    res = ""
+    for ch in text:
+        if ch.isupper():
+            res += "_" + ch.lower()
+        else:
+            res += ch
+    return res
+
+def _ref_string_rotation_checker(s1, s2):
+    if len(s1) != len(s2):
+        return False
+    return s2 in (s1 + s1)
+
+def _ref_roman_numeral(n):
+    values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+    symbols = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
+    res = ""
+    for value, symbol in zip(values, symbols):
+        while n >= value:
+            res += symbol
+            n -= value
+    return res
+
 # ══════════════════════════════════════════════════════════════
 #  FUZZERS  ·  generate random valid inputs per exercise
 # ══════════════════════════════════════════════════════════════
@@ -523,6 +558,40 @@ def _fuzz_even_odd_counter(rng):
 
 def _fuzz_sum_of_squares(rng):
     return [_rand_intlist(rng, 0, 10, vmin=-10, vmax=10)]
+
+def _fuzz_longest_common_prefix(rng):
+    n = rng.randint(0, 6)
+    if n == 0:
+        return [[]]
+    prefix = _rand_word(rng, 0, 5, string.ascii_lowercase)
+    strings = []
+    for _ in range(n):
+        if rng.random() < 0.8:
+            strings.append(prefix + _rand_word(rng, 0, 6, string.ascii_lowercase))
+        else:
+            strings.append(_rand_word(rng, 0, 8, string.ascii_lowercase))
+    return [strings]
+
+def _fuzz_camel_to_snake_converter(rng):
+    return [_rand_word(rng, 0, 16, string.ascii_letters + "0123456789")]
+
+def _fuzz_string_rotation_checker(rng):
+    alphabet = string.ascii_lowercase[:6]
+    base = _rand_word(rng, 0, 10, alphabet)
+    if base and rng.random() < 0.6:
+        k = rng.randint(0, len(base) - 1)
+        rotated = base[k:] + base[:k]
+        if rng.random() < 0.3:
+            chars = list(rotated)
+            idx = rng.randrange(len(chars))
+            chars[idx] = rng.choice(alphabet)
+            rotated = "".join(chars)
+    else:
+        rotated = _rand_word(rng, 0, 10, alphabet)
+    return [base, rotated]
+
+def _fuzz_roman_numeral(rng):
+    return [rng.randint(1, 3999)]
 
 # ══════════════════════════════════════════════════════════════
 #  EXERCISE BANK
@@ -886,6 +955,54 @@ EXERCISES = {
             [[10, -10]], [[0, 0, 0]], [[3, 4]], [[2, 2, 2, 2, 2]],
         ],
     },
+    "py_longest_common_prefix": {
+        "level": 2, "function": "longest_common_prefix",
+        "oracle": _ref_longest_common_prefix, "fuzz": _fuzz_longest_common_prefix,
+        "subject": _sub("py_longest_common_prefix", """
+        Write a function that returns the longest string that is a prefix
+        of every string in a list. An empty list, or no common prefix at
+        all, returns "". Case-sensitive.
+
+            def longest_common_prefix(strings: list[str]) -> str:
+
+        Examples:
+            longest_common_prefix(["flower","flow","flight"]) -> "fl"
+            longest_common_prefix(["dog","racecar","car"])    -> ""
+            longest_common_prefix([])                          -> ""
+        """),
+        "cases": [
+            [["flower", "flow", "flight"]], [["dog", "racecar", "car"]],
+            [[]], [[""]], [["a"]], [["abc", "abc", "abc"]],
+            [["", "abc"]], [["abc", ""]], [["ABC", "abc"]],
+            [["interspecies", "interstellar", "interstate"]],
+            [["a", "ab", "abc"]], [["abc", "ab"]],
+        ],
+    },
+    "py_camel_to_snake_converter": {
+        "level": 2, "function": "camel_to_snake_converter",
+        "oracle": _ref_camel_to_snake_converter,
+        "fuzz": _fuzz_camel_to_snake_converter,
+        "subject": _sub("py_camel_to_snake_converter", """
+        Write a function that converts a lowerCamelCase string to
+        snake_case: every upper-case letter is replaced by an underscore
+        followed by its lower-case form. Every other character (including
+        digits and any underscore already in the string) is left exactly
+        as it is — even a leading upper-case letter just produces a
+        leading underscore.
+
+            def camel_to_snake_converter(text: str) -> str:
+
+        Examples:
+            camel_to_snake_converter("helloWorld")   -> "hello_world"
+            camel_to_snake_converter("thisIsATest")  -> "this_is_a_test"
+            camel_to_snake_converter("single")       -> "single"
+        """),
+        "cases": [
+            ["helloWorld"], ["thisIsATest"], ["single"], [""],
+            ["AlreadyUpper"], ["a1B2c3D4"], ["ALLCAPS"], ["a"], ["A"],
+            ["already_snake"], ["mixOf_bothStyles"],
+        ],
+    },
 
     # ── LEVEL 3 ────────────────────────────────────────────────
     "py_number_base_converter": {
@@ -1034,6 +1151,31 @@ EXERCISES = {
             [1000000], [2], [16],
         ],
     },
+    "py_string_rotation_checker": {
+        "level": 3, "function": "string_rotation_checker",
+        "oracle": _ref_string_rotation_checker,
+        "fuzz": _fuzz_string_rotation_checker,
+        "subject": _sub("py_string_rotation_checker", """
+        Write a function that checks whether s2 is a rotation of s1 — i.e.
+        s2 can be obtained by moving some prefix of s1 to its end (zero
+        rotation, s2 == s1, counts too). Case-sensitive; two strings of
+        different lengths are never rotations of each other.
+
+            def string_rotation_checker(s1: str, s2: str) -> bool:
+
+        Examples:
+            string_rotation_checker("waterbottle", "erbottlewat") -> True
+            string_rotation_checker("abcd", "abdc")                -> False
+            string_rotation_checker("", "")                        -> True
+        """),
+        "cases": [
+            ["waterbottle", "erbottlewat"], ["abcd", "abdc"],
+            ["abcd", "abcd"], ["abcd", "dabc"], ["", ""], ["a", ""],
+            ["", "a"], ["aa", "aa"], ["ab", "ba"],
+            ["abcde", "cdeab"], ["abcde", "cdaeb"], ["abc", "ab"],
+            ["aaab", "abaa"],
+        ],
+    },
 
     # ── LEVEL 4 ────────────────────────────────────────────────
     "py_anagram": {
@@ -1170,6 +1312,25 @@ EXERCISES = {
             [[-2, 1, -3, 4, -1, 2, 1, -5, 4]], [[]], [[5]], [[-5]],
             [[-1, -2, -3]], [[1, 2, 3, 4]], [[0, 0, 0]], [[-2, -1]],
             [[3, -2, 5, -1]], [[10, -1, 10]],
+        ],
+    },
+    "py_roman_numeral": {
+        "level": 4, "function": "roman_numeral",
+        "oracle": _ref_roman_numeral, "fuzz": _fuzz_roman_numeral,
+        "subject": _sub("py_roman_numeral", """
+        Write a function that converts an integer (always between 1 and
+        3999 inclusive) to its Roman numeral representation.
+
+            def roman_numeral(n: int) -> str:
+
+        Examples:
+            roman_numeral(3)    -> "III"
+            roman_numeral(58)   -> "LVIII"
+            roman_numeral(1994) -> "MCMXCIV"
+        """),
+        "cases": [
+            [1], [3], [4], [9], [40], [44], [49], [58], [90], [400],
+            [900], [1994], [3999], [2024], [500], [1000], [3000], [8],
         ],
     },
 

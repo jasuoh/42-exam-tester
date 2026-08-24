@@ -65,9 +65,10 @@ class ExerciseEntriesTests(unittest.TestCase):
             names = [name for _, lvl, name, _, _ in entries if lvl == level]
             self.assertEqual(names, sorted(names))
 
-    def test_all_entries_are_standard(self):
+    def test_standard_flag_matches_the_bank(self):
         entries = examshell.exercise_entries()
-        self.assertTrue(all(standard for *_, standard in entries))
+        flagged = {name for _, _, name, _, standard in entries if standard}
+        self.assertEqual(flagged, {n for n in EXERCISES if EXERCISES[n]["standard"]})
 
     def test_indexes_are_sequential_from_one(self):
         entries = examshell.exercise_entries()
