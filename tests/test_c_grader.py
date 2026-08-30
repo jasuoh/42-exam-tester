@@ -409,7 +409,7 @@ class GradeEndToEndTests(unittest.TestCase):
         # wasn't requested — grade()'s default behaviour is unchanged.
         leaky = "#include <stdlib.h>\n" \
                "int ft_strlen(char *str)\n{\n" \
-               "    int *leak = malloc(sizeof(int));\n" \
+               "    int *leak = malloc(sizeof(int));\n    *leak = 1;\n" \
                "    int i = 0;\n    while (str[i]) i++;\n    return i;\n}\n"
         with tempfile.TemporaryDirectory() as tmp:
             self._write(tmp, leaky)
@@ -421,7 +421,7 @@ class GradeEndToEndTests(unittest.TestCase):
     def test_valgrind_true_warns_on_a_leaky_but_correct_solution(self):
         leaky = "#include <stdlib.h>\n" \
                "int ft_strlen(char *str)\n{\n" \
-               "    int *leak = malloc(sizeof(int));\n" \
+               "    int *leak = malloc(sizeof(int));\n    *leak = 1;\n" \
                "    int i = 0;\n    while (str[i]) i++;\n    return i;\n}\n"
         with tempfile.TemporaryDirectory() as tmp:
             self._write(tmp, leaky)
@@ -433,7 +433,7 @@ class GradeEndToEndTests(unittest.TestCase):
     def test_strict_valgrind_fails_a_leaky_but_correct_solution(self):
         leaky = "#include <stdlib.h>\n" \
                "int ft_strlen(char *str)\n{\n" \
-               "    int *leak = malloc(sizeof(int));\n" \
+               "    int *leak = malloc(sizeof(int));\n    *leak = 1;\n" \
                "    int i = 0;\n    while (str[i]) i++;\n    return i;\n}\n"
         with tempfile.TemporaryDirectory() as tmp:
             self._write(tmp, leaky)
@@ -466,7 +466,7 @@ class ValgrindProgramKindEndToEndTests(unittest.TestCase):
     }
     LEAKY_C = "#include <stdio.h>\n#include <stdlib.h>\n" \
              "int main(int argc, char **argv)\n{\n" \
-             "    int *leak = malloc(sizeof(int));\n" \
+             "    int *leak = malloc(sizeof(int));\n    *leak = 1;\n" \
              "    (void)argc;\n    printf(\"%s\\n\", argv[1]);\n" \
              "    return 0;\n}\n"
 
