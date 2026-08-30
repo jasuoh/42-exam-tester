@@ -41,16 +41,33 @@ jobs:
       - name: Install ruff (deeper lint)
         run: python3 -m pip install --quiet ruff
 
+      # valgrind isn't installable on macOS at all (Apple Silicon included)
+      # — this is squarely a Linux/"real 42 school machine" feature (see
+      # c_exam/grader.py's --valgrind). tests/test_c_grader.py's valgrind
+      # tests skip themselves everywhere it's missing, so this is what
+      # actually exercises that code for real instead of only by mock.
+      - name: Install valgrind
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends valgrind
+
       - name: Show toolchain
         run: |
           python3 --version
           cc --version | head -1
+          valgrind --version 2>/dev/null || echo "valgrind: not installed on this OS"
 
       - name: Unit tests + bank self-tests (Python tester)
         run: make test
 
       - name: Unit tests + bank self-tests (C tester)
         run: make c-test
+
+      # Proves every oracle in both C banks is itself leak-free — the
+      # bank's own reference implementations, not just this workflow's
+      # synthetic clean/leaky test snippets.
+      - name: Leak-check both C banks' own reference implementations
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 -m c_exam --check --valgrind
 
       - name: Lint
         run: make lint

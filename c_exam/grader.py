@@ -49,6 +49,13 @@ DEFAULT_CC = "cc"
 COMPILE_TIMEOUT = 20       # seconds for a single compiler invocation
 DEFAULT_FUZZ = 8           # random extra cases per exercise (function-kind, safe args only)
 
+# valgrind isn't available at all on Apple Silicon macOS — this is squarely
+# a "real 42 school machine" (Linux) feature. Off by default, opt-in via
+# --valgrind, and a no-op with a clear note when the binary isn't on PATH
+# (same best-effort posture as --cc pointing at a missing compiler).
+VALGRIND_TIMEOUT_MULT = 5     # valgrind runs much slower than the bare binary
+VALGRIND_ERROR_EXITCODE = 99
+
 CASE_DELIM = "===CASE "
 _CASE_RE = re.compile(r"===CASE (\d+)===\n")
 
@@ -683,6 +690,37 @@ def run_bin(path, timeout=DEFAULT_TIMEOUT, argv=None):
     return proc.stdout, None
 
 
+def have_valgrind():
+    return shutil.which("valgrind") is not None
+
+
+def run_valgrind(path, timeout=DEFAULT_TIMEOUT, argv=None):
+    """Run `path` under valgrind's full leak checker.
+
+    Returns (clean, detail): clean is True when valgrind reported zero
+    errors (leaks included — --errors-for-leak-kinds=all makes a leak
+    count as an "error" the same as an invalid read/write would), detail
+    is a truncated excerpt of valgrind's own report ("" when clean).
+    Never raises — a valgrind-side problem (timeout) is reported through
+    `detail` like any other finding, not as an exception.
+    """
+    cmd = ["valgrind", "--leak-check=full", "--show-leak-kinds=all",
+           "--errors-for-leak-kinds=all",
+           "--error-exitcode=%d" % VALGRIND_ERROR_EXITCODE, "-q",
+           path] + list(argv or ())
+    try:
+        proc = subprocess.run(cmd, stdin=subprocess.DEVNULL,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              timeout=timeout * VALGRIND_TIMEOUT_MULT,
+                              text=True, errors="replace")
+    except subprocess.TimeoutExpired:
+        return False, "valgrind timed out — the program may just be slow " \
+                      "under instrumentation, not necessarily an infinite loop"
+    if proc.returncode == VALGRIND_ERROR_EXITCODE:
+        return False, proc.stderr[:800]
+    return True, ""
+
+
 def split_cases(output):
     """{case_index: chunk_text} parsed from a harness run's stdout."""
     matches = list(_CASE_RE.finditer(output))
@@ -698,19 +736,22 @@ def split_cases(output):
 #  GRADE
 # ══════════════════════════════════════════════════════════════
 def grade(ex_name, ex, rendu_dir, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT,
-          strict_norm=False, filepath=None, rng=None, fuzz=0):
+          strict_norm=False, filepath=None, rng=None, fuzz=0,
+          valgrind=False, strict_valgrind=False):
     """Grade one exercise. `rng`/`fuzz` only ever apply to "function"-kind
     exercises whose args are all "safe" to randomise (see is_fuzzable) —
     every other exercise is graded on its curated cases alone, same as
-    before fuzzing existed."""
+    before fuzzing existed. `valgrind` is silently skipped (not an error)
+    when the valgrind binary isn't on PATH — see have_valgrind()."""
     if ex.get("kind") == "program":
-        return _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath)
+        return _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
+                              valgrind, strict_valgrind)
     return _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                           rng, fuzz)
+                           rng, fuzz, valgrind, strict_valgrind)
 
 
 def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                    rng=None, fuzz=0):
+                    rng=None, fuzz=0, valgrind=False, strict_valgrind=False):
     report = Report(ex_name, ex["function"])
     path = filepath or os.path.join(rendu_dir, ex_name + ".c")
     started = time.time()
@@ -794,6 +835,19 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
         if stu_crash:
             report.warnings.append("your program crashed: " + stu_crash.split(":", 1)[1])
 
+        if valgrind and have_valgrind():
+            # one valgrind pass covers every case: the harness's own main()
+            # already loops through curated + fuzz cases inside this single
+            # binary/process.
+            vg_clean, vg_detail = run_valgrind(student_bin, timeout)
+            if not vg_clean:
+                message = ("valgrind reported memory error(s) (leaks, invalid "
+                           "reads/writes, ...) — fix them before the real exam, "
+                           "leaked/invalid memory is graded there too:\n" + vg_detail)
+                if strict_valgrind:
+                    return report.fail("VALGRIND_ERRORS", vg_detail)
+                report.warnings.append(message)
+
         n = len(cases)
         ref_chunks = split_cases(ref_out)
         stu_chunks = split_cases(stu_out)
@@ -815,7 +869,8 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
         shutil.rmtree(workdir, ignore_errors=True)
 
 
-def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
+def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
+                   valgrind=False, strict_valgrind=False):
     """"program"-kind exercises: the student's file compiles ALONE (it IS
     the main()), and is run once per case with that case's argv."""
     report = Report(ex_name, ex["function"])
@@ -856,6 +911,8 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
                 "compiler warning (fix it — the real exam compiles with "
                 "-Wall -Wextra too; --strict-norm makes this fatal):\n" + err[:500])
 
+        run_valgrind_ok = valgrind and have_valgrind()
+        vg_issues = []
         cases = ex["cases"]
         report.total = len(cases)
         for i, argv in enumerate(cases):
@@ -877,6 +934,25 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
             else:
                 report.failures.append(
                     CFailure(i, ref_out.rstrip("\n"), stu_out.rstrip("\n")))
+            if run_valgrind_ok:
+                vg_clean, vg_detail = run_valgrind(student_bin, timeout, argv=argv)
+                if not vg_clean:
+                    vg_issues.append((i, vg_detail))
+                    if strict_valgrind:
+                        break
+
+        if vg_issues:
+            if strict_valgrind:
+                return report.fail("VALGRIND_ERRORS", "case %d: %s"
+                                   % (vg_issues[0][0], vg_issues[0][1]))
+            more = (" (+%d more case%s)" % (len(vg_issues) - 1,
+                    "" if len(vg_issues) == 2 else "s") if len(vg_issues) > 1 else "")
+            report.warnings.append(
+                "valgrind reported memory error(s) (leaks, invalid reads/writes, "
+                "...) on case %d%s — fix them before the real exam, leaked/invalid "
+                "memory is graded there too:\n%s"
+                % (vg_issues[0][0], more, vg_issues[0][1]))
+
         report.duration = time.time() - started
         return report
     finally:
@@ -887,13 +963,16 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
 #  BANK SELF-TEST  (make c-check)
 # ══════════════════════════════════════════════════════════════
 def selftest(exercises, groups, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT,
-             rng=None, fuzz=0, log=print):
+             rng=None, fuzz=0, valgrind=False, log=print):
     """Validate the whole C bank. Returns the number of problems found.
 
     `rng`/`fuzz` run every fuzzable exercise's oracle (as "student") against
     fuzzed cases too, the same way grade() would for a real submission —
     this is what actually proves the fuzz generators never hand the oracle
-    a value it cannot handle."""
+    a value it cannot handle. `valgrind` (only useful where the binary is
+    actually on PATH — see have_valgrind()) runs every oracle through it
+    too, always in strict mode: a leak in the bank's OWN reference
+    implementation is a bank bug, not a warning to shrug off."""
     problems = 0
 
     def bad(msg):
@@ -939,7 +1018,7 @@ def selftest(exercises, groups, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT,
                 fh.write(ex["oracle_c"])
 
             report = grade(name, ex, workdir, cc=cc, timeout=timeout, filepath=path,
-                           rng=rng, fuzz=fuzz)
+                           rng=rng, fuzz=fuzz, valgrind=valgrind, strict_valgrind=valgrind)
             if report.fatal:
                 bad("%s: %s (%s)" % (name, report.fatal, report.detail))
                 continue
@@ -949,7 +1028,8 @@ def selftest(exercises, groups, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT,
                        report.failures[0].index))
                 continue
             fuzzed = " (+fuzz)" if fuzz and is_fuzzable(ex) else ""
-            log("  ok    %-32s %3d tests%s" % (name, report.total, fuzzed))
+            vg_tag = " (+valgrind)" if valgrind and have_valgrind() else ""
+            log("  ok    %-32s %3d tests%s%s" % (name, report.total, fuzzed, vg_tag))
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
     return problems

@@ -401,7 +401,8 @@ Uses your system's `cc` by default — no extra dependency, works on any
 machine with a C compiler.
 
 **Jump to:** [How it works](#how-it-works) · [Exercise pool](#exercise-pool-1)
-· [Fuzzing](#-fuzzing-partial) · [Training pool](#-training-pool-leetcode-style-1)
+· [Fuzzing](#-fuzzing-partial) · [Valgrind](#-valgrind-optional) ·
+[Training pool](#-training-pool-leetcode-style-1)
 · [Make targets](#make-targets-1) · [CLI](#cli-1) · [Layout](#layout-1) ·
 **[↑ back to the Python tool](#quick-start)**
 
@@ -537,6 +538,28 @@ python3 -m c_exam --grade ft_atoi --fuzz 20
 python3 -m c_exam --check --fuzz 20       # also fuzzes the self-test
 ```
 
+### 🧪 Valgrind (optional)
+
+`--valgrind` runs your compiled solution through valgrind's leak checker
+(`--leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all`, so a
+leak counts as an error the same as an invalid read/write) in addition to
+the normal output comparison — a leak/memory error is reported as a
+**warning**, output correctness still decides pass/fail. `--strict-valgrind`
+raises the stakes: a leak/memory error **fails** grading outright (implies
+`--valgrind`). For "function"-kind exercises this is one valgrind pass over
+the whole harness run; for "program"-kind exercises it's one pass per case.
+
+Not available at all on Apple Silicon macOS — valgrind simply doesn't
+install there — but works on the real 42 school machines' Linux. Both flags
+are a no-op with a clear warning when the `valgrind` binary isn't on PATH,
+same best-effort posture as `--cc` pointing at a missing compiler.
+
+```bash
+python3 -m c_exam --grade ft_split --valgrind
+python3 -m c_exam --grade ft_split --strict-valgrind
+python3 -m c_exam --check --valgrind          # also leak-checks the self-test
+```
+
 ## 🧠 Training pool (LeetCode-style)
 
 A second, independent bank for open-ended practice — the C counterpart to
@@ -599,11 +622,13 @@ python3 -m c_exam --help
 ```
 
 Useful flags: `--rendu DIR`, `--cc COMPILER`, `--timeout SEC`, `--strict-norm`,
-`--fuzz N`, `--show-fails N`, `--theme {dark,light,highcontrast}`,
-`--save-config`, `--no-color`, `--no-rich`. Same shared theme/config/stats/
-resume/report layer as the Python tester — see
+`--fuzz N`, `--valgrind`, `--strict-valgrind`, `--show-fails N`,
+`--theme {dark,light,highcontrast}`, `--save-config`, `--no-color`,
+`--no-rich`. Same shared theme/config/stats/resume/report layer as the
+Python tester — see
 [Quality-of-life features](#quality-of-life-features-both-testers) up top,
-and [Fuzzing (partial)](#-fuzzing-partial) above for what `--fuzz` covers here.
+[Fuzzing (partial)](#-fuzzing-partial) for what `--fuzz` covers here, and
+[Valgrind (optional)](#-valgrind-optional) for the leak checker.
 
 ## 🗂️ Layout
 

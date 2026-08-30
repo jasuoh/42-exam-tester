@@ -59,6 +59,8 @@ class Config(object):
         self.show_fails = args.show_fails
         self.seed = args.seed
         self.fuzz = args.fuzz
+        self.valgrind = args.valgrind
+        self.strict_valgrind = args.strict_valgrind
 
 
 # ══════════════════════════════════════════════════════════════
@@ -99,8 +101,13 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
     fuzzed = cfg.fuzz if grader.is_fuzzable(ex) else 0
     n = len(ex["cases"]) + fuzzed
     ui.note("Compiling & grading %s … (%d tests)" % (ex_name, n))
+    if cfg.valgrind and not grader.have_valgrind():
+        ui.warn("--valgrind requested but the valgrind binary isn't on PATH — "
+                "skipping the leak/UB check (not available on Apple Silicon "
+                "macOS; works on the real 42 school machines' Linux)")
     report = grader.grade(ex_name, ex, cfg.rendu, cc=cfg.cc, timeout=cfg.timeout,
-                          strict_norm=cfg.strict_norm, rng=rng, fuzz=cfg.fuzz)
+                          strict_norm=cfg.strict_norm, rng=rng, fuzz=cfg.fuzz,
+                          valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind)
     ui.report(report, cfg.show_fails)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
@@ -118,7 +125,8 @@ def grade_all(cfg):
         rng = random.Random(cfg.seed)
         report = grader.grade(name, EXERCISES[name], cfg.rendu, cc=cfg.cc,
                               timeout=cfg.timeout, strict_norm=cfg.strict_norm,
-                              rng=rng, fuzz=cfg.fuzz)
+                              rng=rng, fuzz=cfg.fuzz,
+                              valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind)
         all_ok = all_ok and report.ok
         label = ("%d/%d" % (report.passed, report.total) if not report.fatal
                  else report.fatal_title)
@@ -709,6 +717,14 @@ def build_parser():
                         "exercises whose args are all safe to randomise are "
                         "affected; everything else still grades on curated cases "
                         "alone" % grader.DEFAULT_FUZZ)
+    p.add_argument("--valgrind", action="store_true",
+                   help="run your compiled solution through valgrind's leak "
+                        "checker too (warning only; needs valgrind on PATH — "
+                        "not available on Apple Silicon macOS, but is on the "
+                        "real 42 school machines' Linux)")
+    p.add_argument("--strict-valgrind", action="store_true",
+                   help="like --valgrind, but a leak/memory error fails grading "
+                        "instead of only warning")
     p.add_argument("--show-fails", type=int, default=None, metavar="N",
                    help="failing tests to display (default: 4, or your "
                         "saved --save-config value)")
@@ -750,6 +766,8 @@ def main(argv=None):
     args.fuzz = settings.merged(args, file_config, "fuzz", grader.DEFAULT_FUZZ)
     args.show_fails = settings.merged(args, file_config, "show_fails", 4)
     args.cc = settings.merged(args, file_config, "cc", grader.DEFAULT_CC)
+    if args.strict_valgrind:
+        args.valgrind = True
     ui.configure(rich=not args.no_rich, color=False if args.no_color else None,
                 theme=args.theme)
     cfg = Config(args)
@@ -776,13 +794,17 @@ def main(argv=None):
 
     if args.check:
         rng = random.Random(args.seed if args.seed is not None else 0)
+        if cfg.valgrind and not grader.have_valgrind():
+            ui.warn("--valgrind requested but the valgrind binary isn't on "
+                    "PATH — skipping the leak/UB check for both banks")
         ui.info("checking the C exercise bank …")
         problems = grader.selftest(EXERCISES, LEVELS, cc=cfg.cc, timeout=cfg.timeout,
-                                   rng=rng, fuzz=cfg.fuzz)
+                                   rng=rng, fuzz=cfg.fuzz, valgrind=cfg.valgrind)
         print()
         ui.info("checking the C training bank …")
         problems += grader.selftest(TRAINING_EXERCISES, TRAINING_BY_DIFFICULTY,
-                                    cc=cfg.cc, timeout=cfg.timeout, rng=rng, fuzz=cfg.fuzz)
+                                    cc=cfg.cc, timeout=cfg.timeout, rng=rng, fuzz=cfg.fuzz,
+                                    valgrind=cfg.valgrind)
         print()
         if problems:
             ui.error("%d problem(s) found in the bank(s)" % problems)

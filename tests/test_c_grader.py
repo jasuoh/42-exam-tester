@@ -11,14 +11,21 @@ here a missing `cc` genuinely can't be worked around)."""
 
 import random
 import shutil
+import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 from c_exam import grader
 
 HAVE_CC = shutil.which(grader.DEFAULT_CC) is not None
 skip_without_cc = unittest.skipUnless(HAVE_CC, "no C compiler (%r) on PATH"
                                       % grader.DEFAULT_CC)
+
+HAVE_VALGRIND = grader.have_valgrind()
+skip_without_valgrind = unittest.skipUnless(
+    HAVE_VALGRIND, "valgrind is not on PATH (expected on macOS, incl. Apple "
+                   "Silicon — this is a real 42 school machine / Linux feature)")
 
 
 class CLiteralTests(unittest.TestCase):
@@ -206,6 +213,93 @@ class SplitCasesTests(unittest.TestCase):
         self.assertEqual(grader.split_cases("garbage, no markers"), {})
 
 
+class RunValgrindCommandTests(unittest.TestCase):
+    """run_valgrind()'s command construction and exit-code interpretation,
+    with subprocess.run mocked out — doesn't need valgrind on PATH, so this
+    runs everywhere (including this project's own dev machine, Apple
+    Silicon macOS, where valgrind isn't installable at all)."""
+
+    def _run(self, returncode, stderr="", side_effect=None):
+        with mock.patch.object(grader.subprocess, "run") as run:
+            if side_effect is not None:
+                run.side_effect = side_effect
+            else:
+                run.return_value = subprocess.CompletedProcess(
+                    args=[], returncode=returncode, stdout="", stderr=stderr)
+            result = grader.run_valgrind("/tmp/some_binary", timeout=3, argv=["a", "b"])
+            return result, run
+
+    def test_clean_exit_is_reported_clean(self):
+        (clean, detail), _ = self._run(returncode=0)
+        self.assertTrue(clean)
+        self.assertEqual(detail, "")
+
+    def test_error_exitcode_is_reported_dirty_with_detail(self):
+        (clean, detail), _ = self._run(
+            returncode=grader.VALGRIND_ERROR_EXITCODE,
+            stderr="==123== 40 bytes in 1 blocks are definitely lost")
+        self.assertFalse(clean)
+        self.assertIn("definitely lost", detail)
+
+    def test_timeout_is_reported_dirty_not_raised(self):
+        (clean, detail), _ = self._run(
+            returncode=0, side_effect=subprocess.TimeoutExpired(cmd="valgrind", timeout=3))
+        self.assertFalse(clean)
+        self.assertIn("timed out", detail)
+
+    def test_command_uses_leak_check_full_and_error_exitcode(self):
+        _, run = self._run(returncode=0)
+        cmd = run.call_args.args[0]
+        self.assertEqual(cmd[0], "valgrind")
+        self.assertIn("--leak-check=full", cmd)
+        self.assertIn("--errors-for-leak-kinds=all", cmd)
+        self.assertIn("--error-exitcode=%d" % grader.VALGRIND_ERROR_EXITCODE, cmd)
+        self.assertIn("/tmp/some_binary", cmd)
+        # the exercise's own argv must be forwarded after the binary path
+        self.assertEqual(cmd[-2:], ["a", "b"])
+
+    def test_have_valgrind_reflects_path_lookup(self):
+        with mock.patch.object(grader.shutil, "which", return_value=None):
+            self.assertFalse(grader.have_valgrind())
+        with mock.patch.object(grader.shutil, "which", return_value="/usr/bin/valgrind"):
+            self.assertTrue(grader.have_valgrind())
+
+
+@skip_without_valgrind
+class ValgrindEndToEndTests(unittest.TestCase):
+    """Real valgrind runs — skipped everywhere valgrind isn't installed
+    (this project's own dev machine included), but exercised for real on
+    any Linux CI runner that has it (see .github/workflows/ci.yml)."""
+
+    CLEAN_C = "int add(int a, int b) { return a + b; }\n" \
+             "int main(void) { return add(1, 2) == 3 ? 0 : 1; }\n"
+    LEAKY_C = "#include <stdlib.h>\n" \
+             "int main(void) { int *p = malloc(sizeof(int)); *p = 42; return 0; }\n"
+
+    def _compile(self, tmp, name, src):
+        import os
+        path = os.path.join(tmp, name + ".c")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(src)
+        binpath = os.path.join(tmp, name)
+        ok, err = grader.compile_c([path], binpath)
+        self.assertTrue(ok, err)
+        return binpath
+
+    def test_clean_binary_is_reported_clean(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            binpath = self._compile(tmp, "clean", self.CLEAN_C)
+            clean, detail = grader.run_valgrind(binpath, timeout=10)
+            self.assertTrue(clean, detail)
+
+    def test_leaky_binary_is_caught(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            binpath = self._compile(tmp, "leaky", self.LEAKY_C)
+            clean, detail = grader.run_valgrind(binpath, timeout=10)
+            self.assertFalse(clean)
+            self.assertIn("lost", detail)
+
+
 @skip_without_cc
 class GradeEndToEndTests(unittest.TestCase):
     EX = {
@@ -308,6 +402,100 @@ class GradeEndToEndTests(unittest.TestCase):
             self._write(tmp, self.EX["oracle_c"])
             report = grader.grade("ft_strlen", broken_ex, tmp)
             self.assertEqual(report.fatal, "BANK_ERROR")
+
+    @skip_without_valgrind
+    def test_valgrind_false_never_runs_it(self):
+        # a correct-but-leaky solution must NOT be flagged when valgrind
+        # wasn't requested — grade()'s default behaviour is unchanged.
+        leaky = "#include <stdlib.h>\n" \
+               "int ft_strlen(char *str)\n{\n" \
+               "    int *leak = malloc(sizeof(int));\n" \
+               "    int i = 0;\n    while (str[i]) i++;\n    return i;\n}\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, leaky)
+            report = grader.grade("ft_strlen", self.EX, tmp)
+            self.assertTrue(report.ok, report.failures)
+            self.assertEqual(report.warnings, [])
+
+    @skip_without_valgrind
+    def test_valgrind_true_warns_on_a_leaky_but_correct_solution(self):
+        leaky = "#include <stdlib.h>\n" \
+               "int ft_strlen(char *str)\n{\n" \
+               "    int *leak = malloc(sizeof(int));\n" \
+               "    int i = 0;\n    while (str[i]) i++;\n    return i;\n}\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, leaky)
+            report = grader.grade("ft_strlen", self.EX, tmp, valgrind=True)
+            self.assertTrue(report.ok)   # output is still correct
+            self.assertTrue(any("valgrind" in w for w in report.warnings))
+
+    @skip_without_valgrind
+    def test_strict_valgrind_fails_a_leaky_but_correct_solution(self):
+        leaky = "#include <stdlib.h>\n" \
+               "int ft_strlen(char *str)\n{\n" \
+               "    int *leak = malloc(sizeof(int));\n" \
+               "    int i = 0;\n    while (str[i]) i++;\n    return i;\n}\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, leaky)
+            report = grader.grade("ft_strlen", self.EX, tmp,
+                                  valgrind=True, strict_valgrind=True)
+            self.assertEqual(report.fatal, "VALGRIND_ERRORS")
+
+    @skip_without_valgrind
+    def test_valgrind_true_is_silent_on_a_clean_solution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, self.EX["oracle_c"])
+            report = grader.grade("ft_strlen", self.EX, tmp, valgrind=True)
+            self.assertTrue(report.ok)
+            self.assertEqual(report.warnings, [])
+
+
+@skip_without_cc
+@skip_without_valgrind
+class ValgrindProgramKindEndToEndTests(unittest.TestCase):
+    """"program"-kind exercises run valgrind once per case (a separate
+    loop from "function"-kind's single pass) — its own coverage."""
+
+    EX = {
+        "function": "echoprog", "kind": "program",
+        "oracle_c": "#include <stdio.h>\n"
+                   "int main(int argc, char **argv)\n{\n"
+                   "    (void)argc;\n    printf(\"%s\\n\", argv[1]);\n"
+                   "    return 0;\n}\n",
+        "cases": [["hi"], ["there"]],
+    }
+    LEAKY_C = "#include <stdio.h>\n#include <stdlib.h>\n" \
+             "int main(int argc, char **argv)\n{\n" \
+             "    int *leak = malloc(sizeof(int));\n" \
+             "    (void)argc;\n    printf(\"%s\\n\", argv[1]);\n" \
+             "    return 0;\n}\n"
+
+    def _write(self, tmp, body):
+        path = tmp + "/echoprog.c"
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(body)
+        return path
+
+    def test_leaky_program_is_caught_across_multiple_cases(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, self.LEAKY_C)
+            report = grader.grade("echoprog", self.EX, tmp, valgrind=True)
+            self.assertTrue(report.ok)   # still correct output
+            self.assertTrue(any("valgrind" in w for w in report.warnings))
+
+    def test_strict_valgrind_fails_a_leaky_program(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, self.LEAKY_C)
+            report = grader.grade("echoprog", self.EX, tmp,
+                                  valgrind=True, strict_valgrind=True)
+            self.assertEqual(report.fatal, "VALGRIND_ERRORS")
+
+    def test_clean_program_has_no_valgrind_warning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, self.EX["oracle_c"])
+            report = grader.grade("echoprog", self.EX, tmp, valgrind=True)
+            self.assertTrue(report.ok)
+            self.assertEqual(report.warnings, [])
 
 
 if __name__ == "__main__":
