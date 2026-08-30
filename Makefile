@@ -49,7 +49,7 @@ OFF   := \033[0m
         stats check unit test lint format install venv deps clean fclean re \
         rendu-clean status \
         c-run c-exam c-practice c-list c-train c-list-training c-stub \
-        c-grade c-grade-all c-stats c-check c-unit c-test
+        c-grade c-grade-all c-stats c-check c-unit c-test c-status
 
 # ── help ──────────────────────────────────────────────────────
 # Every "make X ..." row uses a real printf field width (%-21s) on the
@@ -105,8 +105,9 @@ help:
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-stats" "your local practice history (attempts, pass rate, best time)"
 	@printf "  $(BOLD)Develop$(OFF)\n"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-unit" "fast unit tests for the C tester's own logic"
-	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-check" "self-test the C exercise bank (real compiles)"
+	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-check" "self-test both C exercise banks (real compiles)"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-test" "c-unit + c-check"
+	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-status" "which solutions exist in $(C_RENDU)/"
 	@printf "  $(DIM)Options: EX=<exercise>  SEED=<n>  RENDU=<dir> (default $(C_RENDU))  CC=<compiler>$(OFF)\n"
 	@printf "  $(DIM)cc: $(CC)$(OFF)\n"
 
@@ -223,6 +224,22 @@ status:
 		if [ -f "$(RENDU)/$$ex.py" ]; then printf "  $(GREEN)●$(OFF) %s\n" "$$ex"; \
 		else printf "  $(DIM)○ %s$(OFF)\n" "$$ex"; fi; \
 	done
+
+# C exercise names have no shared prefix to awk-filter on (unlike py_*),
+# so list them straight from the bank modules instead of scraping --list.
+c-status:
+	@printf "$(BOLD)Exam solutions in $(C_RENDU)/$(OFF)\n"
+	@$(PY) -c "from c_exam.bank import EXERCISES as E; [print(n) for n in sorted(E)]" \
+		| while read -r ex; do \
+			if [ -f "$(C_RENDU)/$$ex.c" ]; then printf "  $(GREEN)●$(OFF) %s\n" "$$ex"; \
+			else printf "  $(DIM)○ %s$(OFF)\n" "$$ex"; fi; \
+		done
+	@printf "$(BOLD)Training solutions in $(C_RENDU)/$(OFF)\n"
+	@$(PY) -c "from c_exam.training_bank import TRAINING_EXERCISES as E; [print(n) for n in sorted(E)]" \
+		| while read -r ex; do \
+			if [ -f "$(C_RENDU)/$$ex.c" ]; then printf "  $(GREEN)●$(OFF) %s\n" "$$ex"; \
+			else printf "  $(DIM)○ %s$(OFF)\n" "$$ex"; fi; \
+		done
 
 # ── environment ───────────────────────────────────────────────
 install: venv deps
