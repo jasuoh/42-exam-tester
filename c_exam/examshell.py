@@ -29,9 +29,18 @@ from src import report_export, session_store, settings, stats, ui
 
 from . import grader
 from .bank import EXERCISES, LEVELS, N_LEVELS, STANDARD_LEVELS
+from .training_bank import DIFFICULTIES, TRAINING_BY_DIFFICULTY, TRAINING_EXERCISES
 
 RENDU_DIR = "c_rendu"
 TOOL = "c"               # tags saved config/stats/reports — "c" vs src's "py"
+
+# Every exercise from both pools, keyed by name — used wherever the code only
+# needs "the exercise dict for this name" and doesn't care which pool it is
+# from (resolving, grading, showing the subject, creating a stub). Exam-only
+# concerns (level draws, the 4-level progression) keep using EXERCISES/LEVELS
+# directly so the training pool can never be drawn into an exam run.
+ALL_EXERCISES = dict(EXERCISES)
+ALL_EXERCISES.update(TRAINING_EXERCISES)
 
 
 def banner():
@@ -49,6 +58,7 @@ class Config(object):
         self.strict_norm = args.strict_norm
         self.show_fails = args.show_fails
         self.seed = args.seed
+        self.fuzz = args.fuzz
 
 
 # ══════════════════════════════════════════════════════════════
@@ -84,11 +94,13 @@ def fmt_duration(seconds):
 # ══════════════════════════════════════════════════════════════
 #  GRADING FRONT-END
 # ══════════════════════════════════════════════════════════════
-def grade_exercise(ex_name, cfg, mode="practice"):
-    ex = EXERCISES[ex_name]
-    ui.note("Compiling & grading %s … (%d tests)" % (ex_name, len(ex["cases"])))
+def grade_exercise(ex_name, rng, cfg, mode="practice"):
+    ex = ALL_EXERCISES[ex_name]
+    fuzzed = cfg.fuzz if grader.is_fuzzable(ex) else 0
+    n = len(ex["cases"]) + fuzzed
+    ui.note("Compiling & grading %s … (%d tests)" % (ex_name, n))
     report = grader.grade(ex_name, ex, cfg.rendu, cc=cfg.cc, timeout=cfg.timeout,
-                          strict_norm=cfg.strict_norm)
+                          strict_norm=cfg.strict_norm, rng=rng, fuzz=cfg.fuzz)
     ui.report(report, cfg.show_fails)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
@@ -103,8 +115,10 @@ def grade_all(cfg):
             rows.append((level, name, "missing", "—"))
             continue
         found += 1
+        rng = random.Random(cfg.seed)
         report = grader.grade(name, EXERCISES[name], cfg.rendu, cc=cfg.cc,
-                              timeout=cfg.timeout, strict_norm=cfg.strict_norm)
+                              timeout=cfg.timeout, strict_norm=cfg.strict_norm,
+                              rng=rng, fuzz=cfg.fuzz)
         all_ok = all_ok and report.ok
         label = ("%d/%d" % (report.passed, report.total) if not report.fatal
                  else report.fatal_title)
@@ -133,6 +147,20 @@ def exercise_entries():
     return entries
 
 
+def training_entries():
+    """[(index, difficulty, name, function), …] ordered by difficulty, then
+    name. A separate listing from exercise_entries() on purpose: the
+    training pool is never part of an exam draw, so it never shares a
+    table with it."""
+    entries, index = [], 0
+    for difficulty in DIFFICULTIES:
+        for name in sorted(TRAINING_BY_DIFFICULTY[difficulty]):
+            index += 1
+            entries.append((index, difficulty, name,
+                            TRAINING_EXERCISES[name]["function"]))
+    return entries
+
+
 def draw(rng, pool, avoid=None):
     choices = [name for name in pool if name != avoid] or list(pool)
     return rng.choice(choices)
@@ -143,7 +171,7 @@ def show_subject(ex_name, cfg, session=None):
     banner()
     if session is not None:
         ui.status_bar(session, N_LEVELS)
-    ui.subject(ex_name, EXERCISES[ex_name], cfg.rendu)
+    ui.subject(ex_name, ALL_EXERCISES[ex_name], cfg.rendu)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -219,7 +247,7 @@ def exam_mode(cfg):
             if cmd in ("grademe", "g"):
                 session.attempts += 1
                 level_attempts += 1
-                if grade_exercise(session.current_ex, cfg, mode="exam"):
+                if grade_exercise(session.current_ex, rng, cfg, mode="exam"):
                     session.passed.append(session.current_ex)
                     session.history.append((session.level, session.current_ex,
                                             level_attempts, time.time() - level_started))
@@ -311,7 +339,7 @@ PRACTICE_COMMANDS = [
 ]
 
 
-def practice_one(ex_name, cfg, mode="practice"):
+def practice_one(ex_name, cfg, rng, mode="practice"):
     show_subject(ex_name, cfg)
     ui.commands(PRACTICE_COMMANDS)
     while True:
@@ -320,7 +348,7 @@ def practice_one(ex_name, cfg, mode="practice"):
         except ui.Abort:
             return
         if cmd in ("grademe", "g"):
-            grade_exercise(ex_name, cfg, mode=mode)
+            grade_exercise(ex_name, rng, cfg, mode=mode)
         elif cmd in ("subject", "s"):
             show_subject(ex_name, cfg)
             ui.commands(PRACTICE_COMMANDS)
@@ -349,8 +377,9 @@ def _filter_entries(entries, query, name_col, func_col):
 
 
 def practice_mode(cfg, ex_name=None):
+    rng = random.Random()
     if ex_name:
-        practice_one(ex_name, cfg)
+        practice_one(ex_name, cfg, rng)
         return
     all_entries = exercise_entries()
     query = ""
@@ -379,7 +408,56 @@ def practice_mode(cfg, ex_name=None):
             ui.warn("pick a number between 1 and %d, or /text to filter" % len(shown))
             time.sleep(0.8)
             continue
-        practice_one(shown[int(choice) - 1][2], cfg)
+        practice_one(shown[int(choice) - 1][2], cfg, rng)
+
+
+# ══════════════════════════════════════════════════════════════
+#  TRAINING MODE  ·  LeetCode-style, by difficulty — never in the exam
+# ══════════════════════════════════════════════════════════════
+_DIFFICULTY_KEYS = {"e": "easy", "m": "medium", "h": "hard", "a": None}
+
+
+def training_mode(cfg, ex_name=None, difficulty=None):
+    """Drill the training pool. Reuses practice_one() — grading, `stub` and
+    `subject` don't care which pool an exercise came from."""
+    rng = random.Random()
+    if ex_name:
+        practice_one(ex_name, cfg, rng, mode="train")
+        return
+    query = ""
+    while True:
+        entries = training_entries()
+        if difficulty:
+            entries = [e for e in entries if e[1] == difficulty]
+        shown = _renumber(_filter_entries(entries, query, 2, 3))
+        ui.clear()
+        banner()
+        print()
+        ui.training_table(shown, numbered=True)
+        label = ("all" if not difficulty else difficulty)
+        if query:
+            ui.note("filter /%s — %d/%d shown  ('/' alone clears it)"
+                    % (query, len(shown), len(entries)))
+            if not shown:
+                ui.warn("no exercise matches %r" % query)
+        try:
+            choice = ui.ask("\n  [%s] Selection (number · e/m/h to filter · "
+                            "/text to search · b to go back): " % label).lower()
+        except ui.Abort:
+            return
+        if choice in ("b", "back", "q", "quit", ""):
+            return
+        if choice.startswith("/"):
+            query = choice[1:].strip()
+            continue
+        if choice in _DIFFICULTY_KEYS:
+            difficulty = _DIFFICULTY_KEYS[choice]
+            continue
+        if not choice.isdigit() or not 1 <= int(choice) <= len(shown):
+            ui.warn("pick a number, e/m/h to filter, /text to search, or b to go back")
+            time.sleep(0.8)
+            continue
+        practice_one(shown[int(choice) - 1][2], cfg, rng, mode="train")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -394,6 +472,22 @@ def list_mode(interactive=True):
     ui.exercise_table(entries)
     ui.info("%d exercises · %d levels · one exercise per level in the exam"
             % (len(entries), N_LEVELS))
+    if interactive:
+        try:
+            ui.pause("\n  Press Enter to go back…")
+        except ui.Abort:
+            return
+
+
+def training_list_mode(interactive=True):
+    if interactive:
+        ui.clear()
+        banner()
+        print()
+    entries = training_entries()
+    ui.training_table(entries)
+    ui.info("%d training exercises · %d difficulties · practice only, "
+            "never drawn into the exam" % (len(entries), len(DIFFICULTIES)))
     if interactive:
         try:
             ui.pause("\n  Press Enter to go back…")
@@ -459,7 +553,7 @@ def _definition_header(prototype):
 def make_stub(ex_name, cfg):
     """Create c_rendu/<ex>.c (and list.h, if the exercise needs one). Never
     overwrites an existing file."""
-    ex = EXERCISES[ex_name]
+    ex = ALL_EXERCISES[ex_name]
     path = os.path.join(cfg.rendu, ex_name + ".c")
     if os.path.exists(path):
         ui.warn("%s already exists — not touching it" % path)
@@ -525,6 +619,7 @@ MENU = [
     ("1", "Start exam", "(%d levels, real exam flow)" % N_LEVELS),
     ("2", "Practice mode", "(drill a single exercise)"),
     ("3", "List all exercises", ""),
+    ("4", "Training mode", "(LeetCode-style, by difficulty — not exam material)"),
     ("q", "Quit", ""),
 ]
 
@@ -549,6 +644,8 @@ def main_menu(cfg):
             practice_mode(cfg)
         elif choice == "3":
             list_mode()
+        elif choice == "4":
+            training_mode(cfg)
         elif choice in ("q", "quit", "exit"):
             ui.info("Good luck on the real exam! 🍀")
             print()
@@ -567,9 +664,10 @@ def build_parser():
                "  python3 -m c_exam                       interactive menu\n"
                "  python3 -m c_exam --exam --seed 42      reproducible exam\n"
                "  python3 -m c_exam --practice ft_atoi    drill one exercise\n"
+               "  python3 -m c_exam --train easy          drill an easy training exercise\n"
                "  python3 -m c_exam --grade ft_atoi       grade once, no UI\n"
                "  python3 -m c_exam --grade-all           grade every c_rendu/ solution\n"
-               "  python3 -m c_exam --check                validate the bank\n")
+               "  python3 -m c_exam --check                validate the banks\n")
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--exam", action="store_true",
                       help="start the exam directly, skipping the menu")
@@ -577,6 +675,11 @@ def build_parser():
                       help="practice mode, optionally on one exercise")
     mode.add_argument("--list", action="store_true",
                       help="print the exercise pool and exit")
+    mode.add_argument("--train", nargs="?", const="", metavar="EXERCISE_OR_DIFFICULTY",
+                      help="training mode (LeetCode-style, by difficulty; "
+                           "never part of the exam)")
+    mode.add_argument("--list-training", action="store_true",
+                      help="print the training pool (by difficulty) and exit")
     mode.add_argument("--grade", metavar="EXERCISE",
                       help="grade one exercise and exit (0 = OK, 1 = KO)")
     mode.add_argument("--grade-all", action="store_true",
@@ -600,6 +703,12 @@ def build_parser():
                         "your saved --save-config value)" % grader.DEFAULT_TIMEOUT)
     p.add_argument("--strict-norm", action="store_true",
                    help="fail grading on any compiler warning (-Werror)")
+    p.add_argument("--fuzz", type=int, default=None, metavar="N",
+                   help="random extra cases per fuzzable exercise (default: %d, or "
+                        "your saved --save-config value) — only \"function\"-kind "
+                        "exercises whose args are all safe to randomise are "
+                        "affected; everything else still grades on curated cases "
+                        "alone" % grader.DEFAULT_FUZZ)
     p.add_argument("--show-fails", type=int, default=None, metavar="N",
                    help="failing tests to display (default: 4, or your "
                         "saved --save-config value)")
@@ -607,7 +716,7 @@ def build_parser():
                    help="colour theme: dark (default), light, or highcontrast "
                         "(colour-blind friendly)")
     p.add_argument("--save-config", action="store_true",
-                   help="remember --theme/--timeout/--show-fails/--cc for "
+                   help="remember --theme/--timeout/--fuzz/--show-fails/--cc for "
                         "next time, then exit")
     p.add_argument("--no-color", action="store_true",
                    help="disable colours (also honours NO_COLOR)")
@@ -617,10 +726,11 @@ def build_parser():
 
 
 def resolve_exercise(name):
-    """Accept the exact name, or a unique suffix like 'strlen'."""
-    if name in EXERCISES:
+    """Accept the exact name, or a unique suffix like 'strlen'. Searches
+    both the exam pool and the training pool."""
+    if name in ALL_EXERCISES:
         return name
-    matches = [n for n in EXERCISES if n == "ft_" + name or n.endswith(name)]
+    matches = [n for n in ALL_EXERCISES if n == "ft_" + name or n.endswith(name)]
     if len(matches) == 1:
         return matches[0]
     if not matches:
@@ -637,6 +747,7 @@ def main(argv=None):
     file_config = settings.load_config()
     args.theme = settings.merged(args, file_config, "theme", "dark")
     args.timeout = settings.merged(args, file_config, "timeout", grader.DEFAULT_TIMEOUT)
+    args.fuzz = settings.merged(args, file_config, "fuzz", grader.DEFAULT_FUZZ)
     args.show_fails = settings.merged(args, file_config, "show_fails", 4)
     args.cc = settings.merged(args, file_config, "cc", grader.DEFAULT_CC)
     ui.configure(rich=not args.no_rich, color=False if args.no_color else None,
@@ -645,17 +756,18 @@ def main(argv=None):
 
     if args.save_config:
         ok = settings.save_config({"theme": args.theme, "timeout": args.timeout,
-                                    "show_fails": args.show_fails, "cc": args.cc})
+                                    "fuzz": args.fuzz, "show_fails": args.show_fails,
+                                    "cc": args.cc})
         if ok:
-            ui.success("saved to %s — theme=%s timeout=%d show_fails=%d cc=%s"
+            ui.success("saved to %s — theme=%s timeout=%d fuzz=%d show_fails=%d cc=%s"
                       % (settings.CONFIG_PATH, args.theme, args.timeout,
-                         args.show_fails, args.cc))
+                         args.fuzz, args.show_fails, args.cc))
         else:
             ui.error("could not write %s" % settings.CONFIG_PATH)
         return 0 if ok else 1
 
-    if args.timeout < 1:
-        ui.error("--timeout must be >= 1")
+    if args.timeout < 1 or args.fuzz < 0:
+        ui.error("--timeout must be >= 1 and --fuzz must be >= 0")
         return 2
 
     if args.stats:
@@ -663,18 +775,30 @@ def main(argv=None):
         return 0
 
     if args.check:
+        rng = random.Random(args.seed if args.seed is not None else 0)
         ui.info("checking the C exercise bank …")
-        problems = grader.selftest(EXERCISES, LEVELS, cc=cfg.cc, timeout=cfg.timeout)
+        problems = grader.selftest(EXERCISES, LEVELS, cc=cfg.cc, timeout=cfg.timeout,
+                                   rng=rng, fuzz=cfg.fuzz)
+        print()
+        ui.info("checking the C training bank …")
+        problems += grader.selftest(TRAINING_EXERCISES, TRAINING_BY_DIFFICULTY,
+                                    cc=cfg.cc, timeout=cfg.timeout, rng=rng, fuzz=cfg.fuzz)
         print()
         if problems:
-            ui.error("%d problem(s) found in the bank" % problems)
+            ui.error("%d problem(s) found in the bank(s)" % problems)
             return 1
-        ui.success("bank is consistent — %d exercises, %d levels"
-                   % (len(EXERCISES), N_LEVELS))
+        ui.success("banks are consistent — %d exam exercises (%d levels), "
+                   "%d training exercises (%d difficulties)"
+                   % (len(EXERCISES), N_LEVELS, len(TRAINING_EXERCISES),
+                      len(DIFFICULTIES)))
         return 0
 
     if args.list:
         list_mode(interactive=False)
+        return 0
+
+    if args.list_training:
+        training_list_mode(interactive=False)
         return 0
 
     if args.stub:
@@ -685,7 +809,8 @@ def main(argv=None):
         name = resolve_exercise(args.grade)
         if not name:
             return 2
-        return 0 if grade_exercise(name, cfg, mode="grade") else 1
+        rng = random.Random(args.seed)
+        return 0 if grade_exercise(name, rng, cfg, mode="grade") else 1
 
     if args.grade_all:
         return 0 if grade_all(cfg) else 1
@@ -700,6 +825,18 @@ def main(argv=None):
         if args.practice and not name:
             return 2
         practice_mode(cfg, name)
+        return 0
+    if args.train is not None:
+        value = args.train.lower()
+        if value in DIFFICULTIES:
+            training_mode(cfg, difficulty=value)
+        elif value:
+            name = resolve_exercise(args.train)
+            if not name:
+                return 2
+            training_mode(cfg, ex_name=name)
+        else:
+            training_mode(cfg)
         return 0
 
     main_menu(cfg)

@@ -23,7 +23,7 @@ SOURCES     := $(SRC_PKG)/__main__.py $(SRC_PKG)/examshell.py \
                $(SRC_PKG)/settings.py $(SRC_PKG)/stats.py \
                $(SRC_PKG)/session_store.py $(SRC_PKG)/report_export.py \
                $(C_PKG)/__main__.py $(C_PKG)/examshell.py $(C_PKG)/grader.py \
-               $(C_PKG)/bank.py \
+               $(C_PKG)/bank.py $(C_PKG)/training_bank.py \
                $(wildcard tests/*.py)
 RENDU       ?= rendu
 
@@ -48,8 +48,8 @@ OFF   := \033[0m
 .PHONY: help run exam practice list train list-training stub grade grade-all \
         stats check unit test lint format install venv deps clean fclean re \
         rendu-clean status \
-        c-run c-exam c-practice c-list c-stub c-grade c-grade-all c-stats \
-        c-check c-unit c-test
+        c-run c-exam c-practice c-list c-train c-list-training c-stub \
+        c-grade c-grade-all c-stats c-check c-unit c-test
 
 # ── help ──────────────────────────────────────────────────────
 # Every "make X ..." row uses a real printf field width (%-21s) on the
@@ -97,6 +97,8 @@ help:
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-exam" "jump straight into the exam"
 	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)[EX=ft_atoi]$(OFF)\n" $(ROWW) "make c-practice" "drill a single exercise"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-list" "print the exercise pool"
+	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)[EX=easy|array_sum]$(OFF)\n" $(ROWW) "make c-train" "LeetCode-style practice, by difficulty"
+	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-list-training" "print the training pool (by difficulty)"
 	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)EX=ft_atoi$(OFF)\n" $(ROWW) "make c-stub" "create a solution stub (never overwrites)"
 	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)EX=ft_atoi$(OFF)\n" $(ROWW) "make c-grade" "grade one solution, no menu"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make c-grade-all" "grade every solution in $(C_RENDU)/, one overview"
@@ -154,6 +156,12 @@ c-practice:
 c-list:
 	@$(PY) -m $(C_PKG) --list
 
+c-train:
+	@$(PY) -m $(C_PKG) --train $(EX) $(C_ARGS)
+
+c-list-training:
+	@$(PY) -m $(C_PKG) --list-training
+
 c-stub:
 	@[ -n "$(EX)" ] || { printf "usage: make c-stub EX=ft_atoi\n" >&2; exit 2; }
 	@$(PY) -m $(C_PKG) --stub $(EX) $(C_ARGS)
@@ -189,7 +197,9 @@ c-test: c-unit c-check
 lint:
 	@$(PY) -c 'import ast,sys;[ast.parse(open(f,encoding="utf-8").read(),f) for f in sys.argv[1:]]' \
 		$(SOURCES) && printf "$(GREEN)✔$(OFF) all sources parse\n"
-	@if $(PY) -c "import ruff" 2>/dev/null || command -v ruff >/dev/null 2>&1; then \
+	@if $(PY) -m ruff --version >/dev/null 2>&1; then \
+		$(PY) -m ruff check $(SOURCES); \
+	elif command -v ruff >/dev/null 2>&1; then \
 		ruff check $(SOURCES); \
 	elif $(PY) -m pyflakes --version >/dev/null 2>&1; then \
 		$(PY) -m pyflakes $(SOURCES); \
@@ -198,7 +208,8 @@ lint:
 	fi
 
 format:
-	@if command -v ruff >/dev/null 2>&1; then ruff format $(SOURCES); \
+	@if $(PY) -m ruff --version >/dev/null 2>&1; then $(PY) -m ruff format $(SOURCES); \
+	elif command -v ruff >/dev/null 2>&1; then ruff format $(SOURCES); \
 	else printf "ruff is not installed — pip install ruff\n" >&2; exit 1; fi
 
 status:

@@ -2619,12 +2619,12 @@ EXERCISES = {
     "ft_list_remove_if": {
         "level": 4, "function": "ft_list_remove_if",
         "prototype": "void ft_list_remove_if(t_list **begin_list, "
-                     "void *data_ref, int (*cmp)());",
+                     "void *data_ref, int (*cmp)(void *, void *));",
         "args": ["voidlist_ptr", "int_ptr", "cmp_eq_ints"],
         "returns": "void", "print_after_args": [0],
         "subject": _sub_c("ft_list_remove_if",
                          "void ft_list_remove_if(t_list **begin_list, "
-                         "void *data_ref, int (*cmp)());", "free", """
+                         "void *data_ref, int (*cmp)(void *, void *));", "free", """
         Write a function that removes every element of the list whose
         data is "equal" to `data_ref`, per `cmp` (which returns 0 when its
         two void* arguments are equal). You must use the t_list type
@@ -2639,7 +2639,7 @@ EXERCISES = {
         #include "ft_list.h"
 
         void ft_list_remove_if(t_list **begin_list, void *data_ref,
-                               int (*cmp)())
+                               int (*cmp)(void *, void *))
         {
             t_list *cur;
             t_list *prev;

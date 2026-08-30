@@ -23,8 +23,13 @@ Real Exam Rank 02 subjects come in two shapes, and this bank has both:
               stdout is diffed directly.
 
 Both paths share compiling, running, and diffing — `grade()` just picks
-which one applies per exercise. `Report` and `BankError` are reused as-is
-from `src/grader.py` (plain bookkeeping, no Python-specific logic).
+which one applies per exercise. `Report` is reused as-is from
+`src/grader.py` (plain bookkeeping, no Python-specific logic). A bank/
+codegen bug (the reference itself fails to compile or crashes) is
+reported as a "BANK_ERROR" fatal Report rather than raised — a raw
+exception would crash a student's interactive session, and fuzzing
+(below) makes that path reachable even for exercises whose curated
+cases always compiled cleanly.
 `CFailure` here plays the role `Failure` plays there, keyed by case index
 instead of call arguments.
 """
@@ -37,14 +42,23 @@ import subprocess
 import tempfile
 import time
 
-from src.grader import BankError, Report
+from src.grader import Report
 
 DEFAULT_TIMEOUT = 5        # seconds per case (program mode) / per whole run (function mode)
 DEFAULT_CC = "cc"
 COMPILE_TIMEOUT = 20       # seconds for a single compiler invocation
+DEFAULT_FUZZ = 8           # random extra cases per exercise (function-kind, safe args only)
 
 CASE_DELIM = "===CASE "
 _CASE_RE = re.compile(r"===CASE (\d+)===\n")
+
+# `int (*cmp)()` compiles under Apple Clang's default standard, but not
+# under GCC's C23 default: () there now means "takes no parameters" (same
+# as (void)), not "unspecified parameters" like every older C standard —
+# so a real call with real arguments fails to compile. selftest() below
+# scans every bank prototype for this so a second compiler isn't needed
+# to catch it (see also c_exam/grader.py's DEFAULT_CC / --cc).
+_KR_FUNC_PTR_RE = re.compile(r"\(\*\w+\)\(\s*\)")
 
 # Shared with any exercise using a linked list ("int_list" arg/return) —
 # written into the sandbox's temp workdir at grade time, and alongside a
@@ -313,6 +327,66 @@ FIXED_CALLBACK_KINDS = {
 }
 
 
+# ══════════════════════════════════════════════════════════════
+#  FUZZING  ·  "function"-kind exercises with only "safe" arg kinds
+# ══════════════════════════════════════════════════════════════
+# Deliberately conservative compared to the Python tool's fuzzers (one
+# hand-written generator per exercise there, free to respect that
+# exercise's own preconditions). C has no oracle-only in-process check —
+# a bad fuzzed value can only be caught by actually compiling and
+# running it, and a value the oracle doesn't expect can trigger real
+# undefined behaviour identically in both the oracle and a correct
+# student solution (a false failure neither side can be "blamed" for).
+# So only arg kinds with no exercise-specific precondition get random
+# values; an exercise using any other kind (voidlist, point, char_grid,
+# a fixed callback with its own contract, ...) is graded on its curated
+# cases only, same as before this existed. "program"-kind exercises are
+# never fuzzed either — their argv shapes are too varied to randomise
+# generically (see the module docstring).
+FUZZABLE_VALUE_KINDS = {"int", "int_ptr", "char", "str", "int_arr", "int_list", "buf"}
+
+_FUZZ_STR_ALPHABET = ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                      "0123456789 _-.")
+
+
+def _fuzz_str(rng, max_len):
+    return "".join(rng.choice(_FUZZ_STR_ALPHABET) for _ in range(rng.randint(0, max_len)))
+
+
+def _fuzz_value(kind, rng):
+    """One random value for a single "safe" arg kind (see FUZZABLE_VALUE_KINDS)."""
+    if kind in ("int", "int_ptr"):
+        return rng.randint(-1000, 1000)
+    if kind == "char":
+        return chr(rng.randint(32, 126))
+    if kind == "str":
+        return _fuzz_str(rng, 16)
+    if kind in ("int_arr", "int_list"):
+        return [rng.randint(-50, 50) for _ in range(rng.randint(0, 6))]
+    if kind == "buf":
+        # the harness declares a fixed `char name[128];` for this kind —
+        # stay well under it so a correct solution never legitimately
+        # overflows the very buffer the harness itself provides.
+        return _fuzz_str(rng, 40)
+    raise ValueError("kind %r has no fuzz generator" % (kind,))  # pragma: no cover
+
+
+def is_fuzzable(ex):
+    """True when every arg this exercise takes is safe to randomise."""
+    if ex.get("kind") == "program":
+        return False
+    return all(k in FUZZABLE_VALUE_KINDS or k in FIXED_CALLBACK_KINDS
+               for k in ex.get("args", ()))
+
+
+def build_fuzz_cases(ex, rng, n):
+    """`n` extra random case tuples, shaped exactly like a hand-curated
+    entry in ex["cases"] (one value per arg, fixed-callback args skipped —
+    they consume no case value, see FIXED_CALLBACK_KINDS)."""
+    kinds = [k for k in ex["args"] if k not in FIXED_CALLBACK_KINDS]
+    return [[_fuzz_value(k, rng) for k in kinds] for _ in range(n)]
+
+
 def _emit_args(ex, args):
     """Build (decl lines, call-argument expressions, {arg_index: (kind, var)})."""
     decls, call_args, refs = [], [], {}
@@ -505,10 +579,16 @@ def needed_helpers_c(ex):
     return helpers
 
 
-def generate_harness(ex):
-    """The full harness.c source: preamble + one main() looping every case."""
+def generate_harness(ex, cases=None):
+    """The full harness.c source: preamble + one main() looping every case.
+
+    `cases` defaults to ex["cases"]; grade() passes curated + fuzz cases
+    combined so the harness that gets compiled matches what was announced.
+    """
+    if cases is None:
+        cases = ex["cases"]
     blocks = "\n".join(render_call(ex, args, index=i)
-                       for i, args in enumerate(ex["cases"]))
+                       for i, args in enumerate(cases))
     header = header_filename(ex)
     header_include = '#include "%s"\n' % header if header else ""
     preamble = HARNESS_PREAMBLE.format(prototype=ex["prototype"],
@@ -618,19 +698,29 @@ def split_cases(output):
 #  GRADE
 # ══════════════════════════════════════════════════════════════
 def grade(ex_name, ex, rendu_dir, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT,
-          strict_norm=False, filepath=None):
+          strict_norm=False, filepath=None, rng=None, fuzz=0):
+    """Grade one exercise. `rng`/`fuzz` only ever apply to "function"-kind
+    exercises whose args are all "safe" to randomise (see is_fuzzable) —
+    every other exercise is graded on its curated cases alone, same as
+    before fuzzing existed."""
     if ex.get("kind") == "program":
         return _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath)
-    return _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath)
+    return _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
+                           rng, fuzz)
 
 
-def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
+def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
+                    rng=None, fuzz=0):
     report = Report(ex_name, ex["function"])
     path = filepath or os.path.join(rendu_dir, ex_name + ".c")
     started = time.time()
 
     if not os.path.isfile(path):
         return report.fail("FILE_MISSING", "expected your solution at %s" % path)
+
+    cases = list(ex["cases"])
+    if fuzz and rng is not None and is_fuzzable(ex):
+        cases += build_fuzz_cases(ex, rng, fuzz)
 
     with open(path, encoding="utf-8", errors="replace") as fh:
         raw = fh.read()
@@ -658,7 +748,7 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
 
         harness_path = os.path.join(workdir, "harness.c")
         with open(harness_path, "w", encoding="utf-8") as fh:
-            fh.write(generate_harness(ex))
+            fh.write(generate_harness(ex, cases))
 
         oracle_path = os.path.join(workdir, "oracle.c")
         with open(oracle_path, "w", encoding="utf-8") as fh:
@@ -668,8 +758,12 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
         ok, err = compile_c([oracle_path, harness_path], ref_bin, cc,
                             include_dirs=include_dirs)
         if not ok:
-            raise BankError("%s: reference implementation fails to compile:\n%s"
-                            % (ex_name, err[:800]))
+            # A real bank/codegen bug, not the student's fault — never let it
+            # surface as a raw traceback mid-exam (fuzz cases make this path
+            # reachable even for exercises whose curated cases always compiled).
+            return report.fail("BANK_ERROR",
+                               "%s: reference implementation fails to compile:\n%s"
+                               % (ex_name, err[:800]))
 
         student_bin = os.path.join(workdir, "student")
         extra = ["-Werror"] if strict_norm else []
@@ -689,7 +783,8 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
 
         ref_out, ref_crash = run_bin(ref_bin, timeout)
         if ref_crash:
-            raise BankError("%s: reference binary %s" % (ex_name, ref_crash))
+            return report.fail("BANK_ERROR", "%s: reference binary %s"
+                               % (ex_name, ref_crash))
 
         stu_out, stu_crash = run_bin(student_bin, timeout)
         report.duration = time.time() - started
@@ -699,7 +794,7 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
         if stu_crash:
             report.warnings.append("your program crashed: " + stu_crash.split(":", 1)[1])
 
-        n = len(ex["cases"])
+        n = len(cases)
         ref_chunks = split_cases(ref_out)
         stu_chunks = split_cases(stu_out)
         report.total = n
@@ -747,8 +842,9 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
         ref_bin = os.path.join(workdir, "ref")
         ok, err = compile_c([oracle_path], ref_bin, cc)
         if not ok:
-            raise BankError("%s: reference program fails to compile:\n%s"
-                            % (ex_name, err[:800]))
+            return report.fail("BANK_ERROR",
+                               "%s: reference program fails to compile:\n%s"
+                               % (ex_name, err[:800]))
 
         student_bin = os.path.join(workdir, "student")
         extra = ["-Werror"] if strict_norm else []
@@ -765,8 +861,8 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
         for i, argv in enumerate(cases):
             ref_out, ref_crash = run_bin(ref_bin, timeout, argv=argv)
             if ref_crash:
-                raise BankError("%s: reference program %s on case %d"
-                                % (ex_name, ref_crash, i))
+                return report.fail("BANK_ERROR", "%s: reference program %s on case %d"
+                                   % (ex_name, ref_crash, i))
             stu_out, stu_crash = run_bin(student_bin, timeout, argv=argv)
             if stu_crash:
                 note = stu_crash.split(":", 1)[-1]
@@ -790,8 +886,14 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath):
 # ══════════════════════════════════════════════════════════════
 #  BANK SELF-TEST  (make c-check)
 # ══════════════════════════════════════════════════════════════
-def selftest(exercises, groups, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT, log=print):
-    """Validate the whole C bank. Returns the number of problems found."""
+def selftest(exercises, groups, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT,
+             rng=None, fuzz=0, log=print):
+    """Validate the whole C bank. Returns the number of problems found.
+
+    `rng`/`fuzz` run every fuzzable exercise's oracle (as "student") against
+    fuzzed cases too, the same way grade() would for a real submission —
+    this is what actually proves the fuzz generators never hand the oracle
+    a value it cannot handle."""
     problems = 0
 
     def bad(msg):
@@ -811,6 +913,13 @@ def selftest(exercises, groups, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT, log=prin
 
             if name not in ex["subject"]:
                 bad("%s: subject does not mention the exercise name" % name)
+            prototype = ex.get("prototype", "")
+            if _KR_FUNC_PTR_RE.search(prototype):
+                bad("%s: prototype declares a K&R-style empty-parens function "
+                    "pointer (%s) — GCC's C23 default reads () as \"takes no "
+                    "arguments\", not \"unspecified\", so a real call to it fails "
+                    "to compile; write out the parameter types instead"
+                    % (name, _KR_FUNC_PTR_RE.search(prototype).group()))
             if kind == "function":
                 for args in ex["cases"]:
                     want = sum(1 for k in ex["args"] if k not in FIXED_CALLBACK_KINDS)
@@ -829,7 +938,8 @@ def selftest(exercises, groups, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT, log=prin
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write(ex["oracle_c"])
 
-            report = grade(name, ex, workdir, cc=cc, timeout=timeout, filepath=path)
+            report = grade(name, ex, workdir, cc=cc, timeout=timeout, filepath=path,
+                           rng=rng, fuzz=fuzz)
             if report.fatal:
                 bad("%s: %s (%s)" % (name, report.fatal, report.detail))
                 continue
@@ -838,7 +948,8 @@ def selftest(exercises, groups, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT, log=prin
                     % (name, "harness" if kind == "function" else "run",
                        report.failures[0].index))
                 continue
-            log("  ok    %-32s %3d tests" % (name, report.total))
+            fuzzed = " (+fuzz)" if fuzz and is_fuzzable(ex) else ""
+            log("  ok    %-32s %3d tests%s" % (name, report.total, fuzzed))
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
     return problems

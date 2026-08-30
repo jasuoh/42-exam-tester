@@ -14,11 +14,12 @@ from unittest import mock
 
 from c_exam import examshell
 from c_exam.bank import EXERCISES, N_LEVELS
+from c_exam.training_bank import DIFFICULTIES, TRAINING_EXERCISES
 
 
 def _cfg(rendu, **overrides):
     args = argparse.Namespace(rendu=rendu, timeout=5, cc="cc",
-                              strict_norm=False, show_fails=4, seed=None)
+                              strict_norm=False, show_fails=4, seed=None, fuzz=0)
     for key, value in overrides.items():
         setattr(args, key, value)
     return examshell.Config(args)
@@ -45,8 +46,11 @@ class ResolveExerciseTests(unittest.TestCase):
             self.assertIsNone(examshell.resolve_exercise("not_a_real_exercise"))
 
     def test_ambiguous_suffix_returns_none(self):
+        # resolve_exercise searches ALL_EXERCISES (exam + training pool
+        # merged at import time) — patch that, not EXERCISES, which it no
+        # longer reads.
         fake = {"ft_alpha_demo": {}, "ft_beta_demo": {}}
-        with mock.patch.object(examshell, "EXERCISES", fake), \
+        with mock.patch.object(examshell, "ALL_EXERCISES", fake), \
              contextlib.redirect_stdout(io.StringIO()):
             self.assertIsNone(examshell.resolve_exercise("demo"))
 
@@ -73,6 +77,33 @@ class ExerciseEntriesTests(unittest.TestCase):
     def test_indexes_are_sequential_from_one(self):
         entries = examshell.exercise_entries()
         self.assertEqual([idx for idx, *_ in entries], list(range(1, len(entries) + 1)))
+
+
+class TrainingEntriesTests(unittest.TestCase):
+    def test_covers_every_training_exercise_exactly_once(self):
+        entries = examshell.training_entries()
+        self.assertEqual(len(entries), len(TRAINING_EXERCISES))
+        self.assertEqual({name for _, _, name, _ in entries}, set(TRAINING_EXERCISES))
+
+    def test_ordered_by_difficulty_then_name(self):
+        entries = examshell.training_entries()
+        order = {d: i for i, d in enumerate(DIFFICULTIES)}
+        difficulties = [order[d] for _, d, _, _ in entries]
+        self.assertEqual(difficulties, sorted(difficulties))
+
+    def test_never_shares_names_with_the_exam_pool(self):
+        # the training pool is a completely separate bank — same spirit
+        # as the Python tool's, see training_bank.py's module docstring
+        self.assertEqual(set(TRAINING_EXERCISES) & set(EXERCISES), set())
+
+
+class ResolveExerciseFindsTrainingPoolTests(unittest.TestCase):
+    def test_exact_training_name_resolves(self):
+        self.assertEqual(examshell.resolve_exercise("array_sum"), "array_sum")
+
+    def test_training_exercise_is_gradeable_through_all_exercises(self):
+        self.assertIn("array_sum", examshell.ALL_EXERCISES)
+        self.assertEqual(examshell.ALL_EXERCISES["array_sum"]["function"], "array_sum")
 
 
 class DrawTests(unittest.TestCase):
@@ -129,6 +160,15 @@ class MakeStubTests(unittest.TestCase):
                 content = fh.read()
             self.assertIn("int main(int argc, char **argv)", content)
             self.assertNotIn("SELF_TEST", content)
+
+    def test_training_exercise_stub_gets_a_c_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = _cfg(tmp)
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertTrue(examshell.make_stub("array_sum", cfg))
+            with open(tmp + "/array_sum.c", encoding="utf-8") as fh:
+                content = fh.read()
+            self.assertIn("int array_sum(int *arr, unsigned int size)", content)
 
     def test_list_needing_exercise_also_writes_list_h(self):
         with tempfile.TemporaryDirectory() as tmp:

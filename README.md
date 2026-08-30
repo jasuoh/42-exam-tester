@@ -28,7 +28,7 @@ ANSI output, so it runs on any exam machine with nothing but Python 3.8+.
 | | Python · Exam Rank 03 | C · Exam Rank 02 |
 |---|---|---|
 | Levels / exercises | 6 levels · 44 exercises | 4 levels · 59 exercises |
-| Extra practice | 🧠 Training pool (20, by difficulty) | — *(planned)* |
+| Extra practice | 🧠 Training pool (20, by difficulty) | 🧠 Training pool (9, by difficulty) |
 | Grading | in-process sandbox, `deep_eq` | compile + run + diff stdout |
 | Solutions live in | `rendu/` | `c_rendu/` |
 | Entry point | `make run` · `python3 -m src` | `make c-run` · `python3 -m c_exam` |
@@ -399,6 +399,7 @@ Uses your system's `cc` by default — no extra dependency, works on any
 machine with a C compiler.
 
 **Jump to:** [How it works](#how-it-works) · [Exercise pool](#exercise-pool-1)
+· [Fuzzing](#-fuzzing-partial) · [Training pool](#-training-pool-leetcode-style-1)
 · [Make targets](#make-targets-1) · [CLI](#cli-1) · [Layout](#layout-1) ·
 **[↑ back to the Python tool](#quick-start)**
 
@@ -444,6 +445,16 @@ Beyond pass/fail, `grademe` tells you when:
 * you used a **forbidden libc call** for that exercise (e.g. `atoi` itself
   for `ft_atoi`) — a warning, not a hard failure, matching the Python
   tool's default posture on imports.
+
+`--cc` isn't just a convenience flag: every oracle in both C banks is
+also verified against a second compiler (GCC, alongside the default
+`cc`/Clang) before being trusted, since the two don't always agree — GCC's
+C23 default reads an empty-parens function pointer declaration `int
+(*cmp)()` as "takes no parameters" where every older C standard (and
+Clang's current default) reads it as "unspecified parameters", so a
+prototype that compiles under one can fail to compile under the other.
+`make c-check` scans every prototype for that specific pattern regardless
+of which `cc` you run it with.
 
 Every generated **"function"**-kind stub also ships a `#ifdef
 SELF_TEST`-guarded `main()` with a couple of worked examples, so you can
@@ -502,23 +513,67 @@ comparator respectively) rather than a callback of the student's own
 choosing — that's what lets a generic harness test a function-pointer
 argument at all, at the cost of not exercising arbitrary callback logic.
 
-Known v1 limitation, stated openly: test cases are a fixed curated set, no
-randomised fuzzing yet (unlike the Python tool's `--fuzz`).
+### 🎲 Fuzzing (partial)
+
+`--fuzz N` (default 8, like the Python tool's) adds N random extra cases
+to every **"function"-kind exercise whose args are all "safe" to
+randomise** — plain `int`/`char`/`str`/`int_arr`/`int_list`/`buf`
+arguments with no exercise-specific precondition. Unlike the Python
+tool, there is no per-exercise custom fuzzer: C has no oracle-only
+in-process check, so a fuzzed value can only be validated by actually
+compiling and running it, and a value the oracle doesn't expect could
+trigger undefined behaviour identically on both sides (a false failure
+that's nobody's fault). So exercises using a linked list, `t_point`,
+a char grid, or a fixed callback keep their curated cases only —
+`make c-check` marks which exercises got fuzzed with `(+fuzz)`.
+**"Program"-kind exercises are never fuzzed** — their argv shapes vary
+too much (a bare string vs. multiple flags vs. numeric parsing) to
+randomise generically without mostly generating meaningless input.
+
+```bash
+python3 -m c_exam --grade ft_atoi --fuzz 20
+python3 -m c_exam --check --fuzz 20       # also fuzzes the self-test
+```
+
+## 🧠 Training pool (LeetCode-style)
+
+A second, independent bank for open-ended practice — the C counterpart to
+the Python tool's own training pool above, same shape: grouped by
+**difficulty** instead of exam level, never drawn into `make c-exam` or
+shown in `--list`. Reach it through the main menu's **Training mode**,
+`make c-train`, or `python3 -m c_exam --train`.
+
+| Difficulty | Exercises |
+|---|---|
+| Easy   | `array_sum` · `find_max` · `is_palindrome_num` |
+| Medium | `count_pairs_sum` · `kadane_max_sum` · `count_unique` |
+| Hard   | `lis_length` · `count_inversions` · `max_gap` |
+
+Deliberately smaller than the Python tool's 20 — every exercise here uses
+only plain `int`/`int *` arguments and an `int` return with no precondition
+on how the array is ordered, so `--fuzz` (see above) already covers all
+nine automatically; `make c-check`/`python3 -m c_exam --check` validates
+this bank the same real-compiler way as the exam pool.
+`python3 -m c_exam --list-training` prints the pool; `python3 -m c_exam
+--train easy` opens the picker filtered to the easy exercises, `--train
+array_sum` drills that one exercise directly.
 
 ## 🛠️ Make targets
 
 | Target | What it does |
 |---|---|
-| `make c-run` | interactive menu (exam · practice · list) |
+| `make c-run` | interactive menu (exam · practice · list · training) |
 | `make c-exam` | start the exam directly |
 | `make c-practice` | drill exercises — `make c-practice EX=ft_atoi` for one |
 | `make c-list` | print the exercise pool |
+| `make c-train` | Training mode — `make c-train EX=easy` or `EX=array_sum` |
+| `make c-list-training` | print the training pool (by difficulty) |
 | `make c-stub EX=…` | create a solution stub (never overwrites) |
 | `make c-grade EX=…` | grade one solution, no menu |
 | `make c-grade-all` | grade every solution in `c_rendu/` at once, one overview |
 | `make c-stats` | your local practice history — attempts, pass rate, best exam time |
 | `make c-unit` | fast unit tests for the C tester's own logic |
-| `make c-check` | self-test the C exercise bank (every oracle, through the real sandbox) |
+| `make c-check` | self-test both C exercise banks (every oracle, through the real sandbox) |
 | `make c-test` | `c-unit` + `c-check` |
 
 Options: `EX=<exercise>`, `SEED=<n>`, `RENDU=<dir>` (that's `c_rendu` by
@@ -530,19 +585,23 @@ default here), `CC=<compiler>` (default `cc`).
 python3 -m c_exam                       # interactive menu
 python3 -m c_exam --exam --seed 42      # reproducible exam
 python3 -m c_exam --practice ft_atoi    # drill one exercise
+python3 -m c_exam --train               # training mode (LeetCode-style, by difficulty)
+python3 -m c_exam --train easy          # …filtered to easy exercises
 python3 -m c_exam --grade atoi          # grade once (unique suffixes work)
 python3 -m c_exam --grade-all           # grade every solution in c_rendu/
-python3 -m c_exam --check               # validate the bank
+python3 -m c_exam --check               # validate both banks
 python3 -m c_exam --stats               # your local practice history
 python3 -m c_exam --list
+python3 -m c_exam --list-training
 python3 -m c_exam --help
 ```
 
 Useful flags: `--rendu DIR`, `--cc COMPILER`, `--timeout SEC`, `--strict-norm`,
-`--show-fails N`, `--theme {dark,light,highcontrast}`, `--save-config`,
-`--no-color`, `--no-rich`. Same shared theme/config/stats/resume/report
-layer as the Python tester — see
-[Quality-of-life features](#quality-of-life-features-both-testers) up top.
+`--fuzz N`, `--show-fails N`, `--theme {dark,light,highcontrast}`,
+`--save-config`, `--no-color`, `--no-rich`. Same shared theme/config/stats/
+resume/report layer as the Python tester — see
+[Quality-of-life features](#quality-of-life-features-both-testers) up top,
+and [Fuzzing (partial)](#-fuzzing-partial) above for what `--fuzz` covers here.
 
 ## 🗂️ Layout
 
@@ -550,14 +609,16 @@ layer as the Python tester — see
 |---|---|
 | `c_exam/__main__.py` | entry point for `python3 -m c_exam` |
 | `c_exam/examshell.py` | CLI, menu, exam and practice flow |
-| `c_exam/grader.py` | harness codegen, the compile/run/diff sandbox, the self-test |
-| `c_exam/bank.py` | the exercise bank ⚠ **contains the answers** |
+| `c_exam/grader.py` | harness codegen, the compile/run/diff sandbox, fuzzing, the self-test |
+| `c_exam/bank.py` | the exam exercise bank ⚠ **contains the answers** |
+| `c_exam/training_bank.py` | the LeetCode-style training bank ⚠ **contains the answers** |
 | `c_rendu/` | your solutions (git-ignored) |
 
 Rendering is **shared** with the Python tool — `c_exam/examshell.py` uses
-`src/ui.py` directly, unchanged in behavior. `src/grader.py`'s `Report` and
-`BankError` are reused too; only the grading mechanism itself
-(`c_exam/grader.py`) is new. Themes, saved config, local stats, exam
-save/resume and session reports (`src/settings.py`, `src/stats.py`,
-`src/session_store.py`, `src/report_export.py`) are shared the same way —
-see [Quality-of-life features](#quality-of-life-features-both-testers).
+`src/ui.py` directly, unchanged in behavior, including `exercise_table`/
+`training_table`. `src/grader.py`'s `Report` is reused too; only the
+grading mechanism itself (`c_exam/grader.py`) is new. Themes, saved
+config, local stats, exam save/resume and session reports
+(`src/settings.py`, `src/stats.py`, `src/session_store.py`,
+`src/report_export.py`) are shared the same way — see
+[Quality-of-life features](#quality-of-life-features-both-testers).

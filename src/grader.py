@@ -106,6 +106,7 @@ FATAL_TITLES = {
     "COMPILE_ERROR":   "Your file does not compile",
     "FORBIDDEN_MAIN":  "You defined main() — only the required function is allowed",
     "TIMEOUT":         "Timed out (infinite loop?)",
+    "BANK_ERROR":      "Internal error in the exercise bank (not your fault — please report this)",
 }
 
 
