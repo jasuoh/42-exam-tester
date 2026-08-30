@@ -51,13 +51,23 @@ An explicit `--theme` on the command line always overrides the saved one,
 so `python3 -m src --theme dark --exam` still works for a single run even
 after saving `light`.
 
-`--save-config` also remembers `--timeout`, `--fuzz` (Python tester only),
-`--show-fails`, and `--cc` (C tester only) the same way — useful if you
-always run with a longer timeout on a slow machine, for example:
+`--save-config` also remembers `--timeout`, `--fuzz`, `--show-fails`, and
+`--cc` (C tester only) the same way — useful if you always run with a
+longer timeout on a slow machine, for example:
 
 ```bash
 python3 -m src --timeout 8 --fuzz 20 --save-config
 ```
+
+`--fuzz` itself means slightly different things per tester: the Python
+tool has a hand-written fuzzer for every exercise, so `--fuzz N` always
+adds N extra cases everywhere. The C tool generates fuzz values generically
+from an exercise's argument types instead (no per-exercise oracle to
+validate against ahead of time), so it only applies to exercises whose
+arguments are all plain `int`/`char`/`str`/array values with no ordering
+precondition — `make c-check`/`python3 -m c_exam --check` marks which
+ones with `(+fuzz)`, and grading itself announces the real case count
+either way (`"… (28 tests)"`).
 
 ## 2. Practice, then check `--stats`
 
