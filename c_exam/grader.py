@@ -183,7 +183,13 @@ static void print_int_array(int *a, int n)
 }
 """
 
-LIST_HELPERS = """
+# Split by what actually calls each one (see needed_helpers_c) — an
+# exercise that only ever takes an int_list ARG (e.g. ft_list_size) never
+# calls print_list, and one that only ever RETURNS an int_list would never
+# call build_list; bundling all three unconditionally would leave one
+# `static` unused and that's a compiler warning of the harness's own
+# making, shown to the student as if it were their fault.
+LIST_BUILD_HELPER = """
 static t_list *build_list(int *vals, int n)
 {
     t_list *head;
@@ -208,7 +214,9 @@ static t_list *build_list(int *vals, int n)
     }
     return head;
 }
+"""
 
+LIST_PRINT_HELPER = """
 static void print_list(t_list *list)
 {
     while (list)
@@ -217,6 +225,20 @@ static void print_list(t_list *list)
         list = list->next;
     }
     printf("\\n");
+}
+"""
+
+LIST_FREE_HELPER = """
+static void free_list(t_list *list)
+{
+    t_list *next;
+
+    while (list)
+    {
+        next = list->next;
+        free(list);
+        list = next;
+    }
 }
 """
 
@@ -233,6 +255,16 @@ static void print_str_array(char **arr)
     }
     printf("\\n");
 }
+
+static void free_str_array(char **arr)
+{
+    int i;
+
+    i = 0;
+    while (arr && arr[i])
+        free(arr[i++]);
+    free(arr);
+}
 """
 
 CMP_ASCENDING_HELPER = """
@@ -248,7 +280,12 @@ static int ascending(int a, int b)
 # correct foreach visits each node exactly once, in order), `eq_ints`
 # treats two ints as "equal" (matching the real subject's "cmp returns 0
 # when the two are equal" contract).
-VOIDLIST_HELPERS = """
+# Split the same way as LIST_*_HELPER above (see the comment there) —
+# print_voidlist in particular is only ever called for ft_list_remove_if
+# (the one voidlist_ptr exercise with a print_after_args entry);
+# ft_list_foreach never prints its list at all, so bundling it
+# unconditionally would leave it unused there.
+VOIDLIST_BUILD_HELPER = """
 static t_list *build_voidlist(int *vals, int n)
 {
     t_list *head;
@@ -276,7 +313,9 @@ static t_list *build_voidlist(int *vals, int n)
     }
     return head;
 }
+"""
 
+VOIDLIST_PRINT_HELPER = """
 static void print_voidlist(t_list *list)
 {
     while (list)
@@ -285,6 +324,21 @@ static void print_voidlist(t_list *list)
         list = list->next;
     }
     printf("\\n");
+}
+"""
+
+VOIDLIST_FREE_HELPER = """
+static void free_voidlist(t_list *list)
+{
+    t_list *next;
+
+    while (list)
+    {
+        next = list->next;
+        free(list->data);
+        free(list);
+        list = next;
+    }
 }
 """
 
@@ -435,6 +489,7 @@ def _emit_args(ex, args):
             decls.append("t_list *%s = build_list(%s, %d);"
                          % (name, vals_name, len(value)))
             call_args.append(name)
+            refs[i] = ("int_list", name)
         elif kind == "buf":
             decls.append("char %s[128];" % name)
             decls.append("strcpy(%s, %s);" % (name, c_string_literal(value)))
@@ -511,6 +566,7 @@ def render_call(ex, args, index=None):
     elif returns == "str_array":
         lines.append("char **ret = " + call_expr + ";")
         lines.append("print_str_array(ret);")
+        lines.append("free_str_array(ret);")
     elif returns == "int_arr":
         # the length of a malloc'd returned array isn't observable from C
         # alone — the exercise supplies a `return_len(case_args)` callable
@@ -523,8 +579,23 @@ def render_call(ex, args, index=None):
     elif returns == "int_list":
         lines.append("t_list *ret = " + call_expr + ";")
         lines.append("print_list(ret);")
+        lines.append("free_list(ret);")
     else:
         raise ValueError("unknown return kind %r" % (returns,))
+    # The harness builds test fixtures (a linked list, a void*-boxed list)
+    # for int_list/voidlist(_ptr) args itself, so it must free them itself
+    # too — otherwise every grading run leaks by construction, regardless
+    # of the student's own code (see the valgrind leak-check CI job). An
+    # int_list ARG is skipped when the return is also "int_list": every
+    # bank exercise shaped that way (sort_list) sorts in place and hands
+    # back the same nodes, so free_list(ret) above already released them
+    # — freeing the arg's own local variable too would double-free.
+    for ref in refs.values():
+        kind, name = ref[0], ref[1]
+        if kind == "int_list" and returns != "int_list":
+            lines.append("free_list(%s);" % name)
+        elif kind in ("voidlist", "voidlist_ptr"):
+            lines.append("free_voidlist(%s);" % name)
     indented = "\n        ".join(lines)
     return "    {\n        " + indented + "\n    }"
 
@@ -569,14 +640,21 @@ def needed_helpers_c(ex):
                            or ex.get("returns") == "int_arr")
     if needs_array_printer:
         helpers += PRINT_INT_ARRAY_HELPER
+    if "int_list" in ex.get("args", ()):
+        helpers += LIST_BUILD_HELPER
+    if ex.get("returns") == "int_list":
+        helpers += LIST_PRINT_HELPER
     if needs_list_h(ex):
-        helpers += LIST_HELPERS
+        helpers += LIST_FREE_HELPER
     if ex.get("returns") == "str_array":
         helpers += PRINT_STR_ARRAY_HELPER
     if "cmp_ascending" in ex["args"]:
         helpers += CMP_ASCENDING_HELPER
     if needs_ft_list_h(ex):
-        helpers += VOIDLIST_HELPERS
+        helpers += VOIDLIST_BUILD_HELPER + VOIDLIST_FREE_HELPER
+    print_after = ex.get("print_after_args", ())
+    if any(ex["args"][i] in ("voidlist", "voidlist_ptr") for i in print_after):
+        helpers += VOIDLIST_PRINT_HELPER
     if ex.get("returns") == "foreach_sum":
         helpers += ACCUMULATE_HELPER
     if "cmp_eq_ints" in ex["args"]:
