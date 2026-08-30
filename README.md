@@ -5,6 +5,8 @@
 
 *Real sandboxed grading, real edge cases, zero internet required.*
 
+[![CI](https://github.com/jasuoh/42-exam-rank03-tester/actions/workflows/ci.yml/badge.svg)](https://github.com/jasuoh/42-exam-rank03-tester/actions/workflows/ci.yml)
+
 </div>
 
 A practice tester built in the style of the real `examshell` / moulinette for

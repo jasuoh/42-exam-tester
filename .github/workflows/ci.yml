@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The real reason this runs on both OSes: macos-latest's `cc` is Apple
+  # Clang, ubuntu-latest's is GCC — two real compilers with genuinely
+  # different defaults (see c_exam/grader.py's _KR_FUNC_PTR_RE, added
+  # after GCC's C23 default rejected a prototype Clang accepted). This
+  # is what a one-off local `--cc gcc` check can't give you: the same
+  # check on every push, for free, without anyone remembering to run it.
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        # ui.py has a `rich`-present and a plain-ANSI code path; both need
+        # covering since `rich` is an optional dependency (README: "No
+        # dependencies are required").
+        rich: [true, false]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install rich
+        if: matrix.rich
+        run: python3 -m pip install --quiet rich
+
+      - name: Install ruff (deeper lint)
+        run: python3 -m pip install --quiet ruff
+
+      - name: Show toolchain
+        run: |
+          python3 --version
+          cc --version | head -1
+
+      - name: Unit tests + bank self-tests (Python tester)
+        run: make test
+
+      - name: Unit tests + bank self-tests (C tester)
+        run: make c-test
+
+      - name: Lint
+        run: make lint
+
+  # README promises "any exam machine with nothing but Python 3.8+" — this
+  # job is what actually keeps that claim true instead of just asserted.
+  # Kept minimal (no rich, no C compile pass, no lint) since its only job
+  # is catching syntax/stdlib usage that 3.8 doesn't have.
+  minimum-python-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+
+      - name: Unit tests + bank self-tests on the oldest supported Python
+        run: make test
