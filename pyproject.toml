@@ -1,0 +1,21 @@
+[tool.ruff]
+line-length = 100
+extend-exclude = ["venv"]
+
+[tool.ruff.lint]
+# Keep this to rules that catch real bugs (pyflakes, syntax errors, a
+# handful of pycodestyle checks) — not a style mandate. Ruff's newer
+# "default" selection pulls in a much broader set (flake8-bandit,
+# pyupgrade, flake8-executable, ...) that flags this project's deliberate
+# choices as errors: semicolon-joined one-liners in exam_bank.py/ui.py,
+# exec() in tests/test_grader.py + tests/test_examshell.py (legitimate —
+# it runs a generated stub's self-check the same way the real sandbox
+# does), and modules invoked via `python3 -m package` rather than
+# executed directly (so EXE001's "shebang but not executable" doesn't
+# apply here).
+select = ["E", "F"]
+ignore = [
+    "E501",  # line length — the 100-col budget above is a soft target, not a hard gate
+    "E702",  # multiple statements via ';' — used deliberately for compact tables
+    "E741",  # ambiguous variable name (l) — used for "level" in a couple of tight scopes
+]
