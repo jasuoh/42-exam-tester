@@ -41,6 +41,21 @@ class EscapeTests(unittest.TestCase):
         self.assertIn("hello", ui._esc("hello"))
 
 
+class FileExtTests(unittest.TestCase):
+    def test_python_exercise_gets_py(self):
+        self.assertEqual(ui._file_ext({"oracle": lambda: None}), ".py")
+
+    def test_c_function_kind_gets_c(self):
+        self.assertEqual(ui._file_ext({"oracle_c": "int f(void);",
+                                       "prototype": "int f(void);"}), ".c")
+
+    def test_c_program_kind_gets_c(self):
+        # "program"-kind C exercises (own main(), no harness) carry no
+        # "prototype" — only "oracle_c" is common to every C exercise.
+        self.assertEqual(ui._file_ext({"oracle_c": "int main(void){}",
+                                       "kind": "program"}), ".c")
+
+
 class SplitSubjectTests(unittest.TestCase):
     def setUp(self):
         self.subject = (

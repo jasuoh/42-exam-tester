@@ -373,8 +373,12 @@ def _group_label(ex):
 
 
 def _file_ext(ex):
-    """.c for the C bank's exercises (they carry a 'prototype'), .py otherwise."""
-    return ".c" if "prototype" in ex else ".py"
+    """.c for the C bank's exercises (they carry an 'oracle_c'), .py otherwise.
+
+    Not 'prototype': "program"-kind C exercises (their own main(), no
+    harness) have no prototype at all, only "function"-kind ones do.
+    """
+    return ".c" if "oracle_c" in ex else ".py"
 
 
 def subject(ex_name, ex, rendu_dir):
