@@ -26,7 +26,7 @@ import os
 import random
 import time
 
-from . import grader, report_export, session_store, settings, stats, ui
+from . import grader, hints, report_export, session_store, settings, stats, ui
 from .bank_common import signature_of as _signature_of
 from .exam_bank import EXERCISES, LEVELS, N_LEVELS, STANDARD_LEVELS
 from .training_bank import DIFFICULTIES, TRAINING_BY_DIFFICULTY, TRAINING_EXERCISES
@@ -104,6 +104,11 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
     ui.report(report, cfg.show_fails)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
+    if not report.ok and mode != "exam":
+        if stats.consecutive_fails(TOOL, ex_name) >= hints.STUCK_THRESHOLD:
+            text = hints.hint_for(ex, report)
+            if text:
+                ui.hint(text)
     return report.ok
 
 

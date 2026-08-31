@@ -177,6 +177,10 @@ EXERCISES = {
     },
     "fizzbuzz": {
         "level": 1, "function": "fizzbuzz", "kind": "program",
+        "hint": ("Check the 'multiple of both' case before (or instead "
+                "of) the separate multiple-of-3 and multiple-of-5 checks "
+                "— an if/elif chain that checks %3 then %5 will never "
+                "print 'fizzbuzz' for a number like 15."),
         "subject": _sub_c("fizzbuzz", "int main(void);", "write", """
         Write a PROGRAM that prints the numbers from 1 to 100, each
         separated by a newline.
@@ -264,6 +268,10 @@ EXERCISES = {
         "level": 1, "function": "ft_strcpy",
         "prototype": "char *ft_strcpy(char *s1, char *s2);",
         "args": ["buf", "str"], "returns": "str", "forbidden": ["strcpy"],
+        "hint": ("The terminating null byte has to be copied too, not "
+                "just the visible characters — and the function must "
+                "return s1 itself, not whatever pointer you were using "
+                "to walk through it."),
         "subject": _sub_c("ft_strcpy", "char *ft_strcpy(char *s1, char *s2);",
                          "None", """
         Reproduce the behaviour of the standard strcpy(): copy the string
@@ -456,6 +464,9 @@ EXERCISES = {
         "level": 2, "function": "ft_atoi",
         "prototype": "int ft_atoi(const char *str);",
         "args": ["str"], "returns": "int", "forbidden": ["atoi"],
+        "hint": ("Order matters: skip whitespace FIRST, then look for a "
+                "single optional sign, then digits — a sign check before "
+                "the whitespace skip misses inputs like '   -17'."),
         "subject": _sub_c("ft_atoi", "int ft_atoi(const char *str);", "None", """
         Write your own version of atoi(): convert the initial portion of
         the string to an int, skipping leading whitespace and honouring an
@@ -502,6 +513,10 @@ EXERCISES = {
         "level": 2, "function": "is_power_of_2",
         "prototype": "int is_power_of_2(unsigned int n);",
         "args": ["int"], "returns": "int",
+        "hint": ("The classic n & (n - 1) trick breaks for n = 0, since "
+                "n is unsigned: 0 - 1 underflows to UINT_MAX, and 0 & "
+                "UINT_MAX is 0 — which looks like a power of 2 unless "
+                "you special-case it."),
         "subject": _sub_c("is_power_of_2", "int is_power_of_2(unsigned int n);",
                          "None", """
         Write a function that determines if a given number is a power of
@@ -560,6 +575,11 @@ EXERCISES = {
     },
     "rot_13": {
         "level": 1, "function": "rot_13", "kind": "program",
+        "hint": ("Only letters shift — everything else (digits, spaces, "
+                "punctuation) passes through untouched. And the shift "
+                "has to wrap around within its own case ('z' -> 'm', "
+                "'Z' -> 'M'), so a plain += 13 without a modulo will "
+                "overshoot past 'z'/'Z'."),
         "subject": _sub_c("rot_13", "int main(int argc, char **argv);", "write", """
         Write a PROGRAM that takes a string and displays it, replacing
         each of its letters by the letter 13 spaces ahead in alphabetical
@@ -826,6 +846,9 @@ EXERCISES = {
         "level": 2, "function": "ft_strdup",
         "prototype": "char *ft_strdup(char *src);",
         "args": ["str"], "returns": "str_owned", "forbidden": ["strdup"],
+        "hint": ("The malloc size needs room for the null terminator too "
+                "— strlen(src) alone is one byte too small; it's "
+                "strlen(src) + 1."),
         "subject": _sub_c("ft_strdup", "char *ft_strdup(char *src);",
                          "malloc", """
         Reproduce the behaviour of the standard strdup(): return a newly
@@ -1150,6 +1173,10 @@ EXERCISES = {
     },
     "union": {
         "level": 2, "function": "union", "kind": "program",
+        "hint": ("Dedup against everything printed so far, not just "
+                "within the string you're currently scanning — a "
+                "character repeated inside the SAME string (e.g. 'aaa') "
+                "must still only print once."),
         "subject": _sub_c("union", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes two strings and displays, without
@@ -1392,6 +1419,12 @@ EXERCISES = {
         "level": 3, "function": "ft_atoi_base",
         "prototype": "int ft_atoi_base(const char *str, int str_base);",
         "args": ["str", "int"], "returns": "int",
+        "hint": ("A '-' only counts as the sign if it's the very first "
+                "character — one later in the string just means an "
+                "invalid digit, ending the parse right there. Also make "
+                "sure you reject a digit character that's valid in "
+                "general but too large for THIS base (e.g. '2' in base "
+                "2)."),
         "subject": _sub_c("ft_atoi_base",
                          "int ft_atoi_base(const char *str, int str_base);",
                          "None", """
@@ -1456,6 +1489,9 @@ EXERCISES = {
         "prototype": "int *ft_range(int start, int end);",
         "args": ["int", "int"], "returns": "int_arr",
         "return_len": lambda a: abs(a[1] - a[0]) + 1,
+        "hint": ("The element count is abs(end - start) + 1, not "
+                "end - start + 1 — that goes negative (or too small) "
+                "the moment start > end."),
         "subject": _sub_c("ft_range", "int *ft_range(int start, int end);",
                          "malloc", """
         Write a function that mallocs an array of ints filled with every
@@ -1497,6 +1533,10 @@ EXERCISES = {
         "prototype": "int *ft_rrange(int start, int end);",
         "args": ["int", "int"], "returns": "int_arr",
         "return_len": lambda a: abs(a[1] - a[0]) + 1,
+        "hint": ("Don't just call ft_range and reverse it — ft_range's "
+                "own contract stays ascending even when start > end, so "
+                "the two functions need independent fill directions, "
+                "not a shared helper that assumes one order."),
         "subject": _sub_c("ft_rrange", "int *ft_rrange(int start, int end);",
                          "malloc", """
         Like ft_range, but the array runs from `end` down to `start`
@@ -1811,6 +1851,21 @@ EXERCISES = {
         "level": 4, "function": "ft_split",
         "prototype": "char **ft_split(char *str);",
         "args": ["str"], "returns": "str_array", "forbidden": ["malloc"],
+        "hint": {
+            "crash": ("Your pointer array needs room for a trailing "
+                     "NULL too — count_words words means count_words + 1 "
+                     "pointers. Same for each word's own buffer: malloc "
+                     "its length plus one for its null terminator."),
+            "leak": ("If you bail out partway through (a failed malloc, "
+                     "an early return) you need to free every word "
+                     "you've already allocated before that point, not "
+                     "just leave them — a leak here almost always means "
+                     "an error path that returns without cleaning up."),
+            "default": ("Count your words (count_words or similar) with "
+                        "exactly the same logic you later use to extract "
+                        "them — a mismatch on multiple consecutive "
+                        "separators is the most common bug here."),
+        },
         "subject": _sub_c("ft_split", "char **ft_split(char *str);", "malloc", """
         Write a function that takes a string, splits it into words, and
         returns them as a NULL-terminated array of strings. A "word" is a
@@ -2382,6 +2437,11 @@ EXERCISES = {
         "level": 4, "function": "ft_itoa",
         "prototype": "char *ft_itoa(int nbr);",
         "args": ["int"], "returns": "str_owned",
+        "hint": ("INT_MIN is the nasty edge case: you can't fix its "
+                "sign by negating it (that overflows int, since "
+                "2147483648 doesn't fit), and it needs an 11-character "
+                "buffer plus the null terminator, one more than any "
+                "other int."),
         "subject": _sub_c("ft_itoa", "char *ft_itoa(int nbr);", "malloc", """
         Write a function that converts an int into a null-terminated,
         malloc'd string.
@@ -2620,6 +2680,20 @@ EXERCISES = {
         "level": 4, "function": "ft_list_remove_if",
         "prototype": "void ft_list_remove_if(t_list **begin_list, "
                      "void *data_ref, int (*cmp)(void *, void *));",
+        "hint": {
+            "crash": ("If the FIRST node matches, you need to rebind "
+                     "*begin_list itself, not just a 'prev' pointer "
+                     "inside the loop — leaving *begin_list pointing at "
+                     "freed memory is what causes the crash."),
+            "leak": ("Don't forget to free the removed node itself (and "
+                     "its data, if you own it) — since every call "
+                     "removes at least one node, a missing free here "
+                     "shows up as a leak on nearly every test case."),
+            "default": ("If the FIRST node matches, you need to rebind "
+                        "*begin_list itself, not just a 'prev' pointer "
+                        "inside the loop — and don't forget to free the "
+                        "removed node (and its data)."),
+        },
         "args": ["voidlist_ptr", "int_ptr", "cmp_eq_ints"],
         "returns": "void", "print_after_args": [0],
         "subject": _sub_c("ft_list_remove_if",
@@ -2679,6 +2753,19 @@ EXERCISES = {
                      "t_point begin);",
         "args": ["char_grid", "point", "point"], "returns": "void",
         "print_after_args": [0],
+        "hint": {
+            "crash": ("Before recursing into a neighbour, check both "
+                     "that it's still inside the grid AND that it still "
+                     "holds the ORIGINAL character — without that second "
+                     "check you'll recurse back into cells you already "
+                     "turned into 'F', which blows the stack."),
+            "default": ("Remember t_point is {x, y} with x = width and "
+                        "y = height — indexing the grid as tab[x][y] "
+                        "instead of tab[y][x], or mixing up which loop "
+                        "bound is width vs. height, gives you a subtly "
+                        "wrong fill rather than a crash, especially on "
+                        "a non-square grid."),
+        },
         "subject": _sub_c("flood_fill",
                          "void flood_fill(char **tab, t_point size, "
                          "t_point begin);", "None", """
@@ -2874,6 +2961,10 @@ EXERCISES = {
     "longest_word_str": {
         "level": 3, "function": "longest_word_str", "kind": "program",
         "standard": False,
+        "hint": ("On a tie, the FIRST longest word wins — that means "
+                "your comparison has to be strictly greater-than "
+                "(replace only when a word is longer, never when equal), "
+                "not greater-than-or-equal."),
         "subject": _sub_c("longest_word_str",
                          "int main(int argc, char **argv);", "write", """
         Write a PROGRAM that takes a string and displays its longest

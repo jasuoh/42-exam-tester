@@ -601,6 +601,11 @@ EXERCISES = {
     "py_cryptic_sorter": {
         "level": 1, "function": "cryptic_sorter", "standard": True,
         "oracle": _ref_cryptic_sorter, "fuzz": _fuzz_cryptic_sorter,
+        "hint": ("The sort key needs to be a single tuple of all three "
+                "criteria in exactly this order (length, then the word "
+                "case-insensitively, then vowel count) — don't sort in "
+                "several separate passes, that breaks stability for "
+                "equal words."),
         "subject": _sub("py_cryptic_sorter", """
         Write a function that sorts a list of strings by multiple criteria:
           1. Primary   : by length (shortest first)
@@ -783,6 +788,11 @@ EXERCISES = {
     "py_echo_validator": {
         "level": 2, "function": "echo_validator", "standard": True,
         "oracle": _ref_echo_validator, "fuzz": _fuzz_echo_validator,
+        "hint": ("If filtering out non-alphabetic characters leaves "
+                "nothing (e.g. for '42' or '!!!'), what's left is an "
+                "empty string — and an empty string is symmetric to "
+                "itself, so it would wrongly pass as a palindrome. "
+                "Check that case explicitly."),
         "subject": _sub("py_echo_validator", """
         Write a function that checks whether a string is a palindrome.
         Only alphabetic characters are considered: case, spaces, digits and
@@ -1451,6 +1461,9 @@ EXERCISES = {
     "py_pascals_triangle_row": {
         "level": 5, "function": "pascals_triangle_row",
         "oracle": _ref_pascals_triangle_row, "fuzz": _fuzz_pascals_triangle_row,
+        "hint": ("Row 0 is the special case [1] — check whether your "
+                "general build-up logic even runs once for n=0, or "
+                "whether you need to handle it separately."),
         "subject": _sub("py_pascals_triangle_row", """
         Write a function that returns row n (0-indexed) of Pascal's
         triangle, where row 0 is [1] and every other row starts and ends
@@ -1517,6 +1530,11 @@ EXERCISES = {
     "py_matrix_rotator": {
         "level": 6, "function": "matrix_rotator",
         "oracle": _ref_matrix_rotator, "fuzz": _fuzz_matrix_rotator,
+        "hint": ("The matrix is rectangular, not necessarily square — "
+                "an RxC matrix becomes CxR, so your row/column loop "
+                "bounds need to swap, not stay the same. And handle the "
+                "empty matrix ([]) separately before touching the first "
+                "row."),
         "subject": _sub("py_matrix_rotator", """
         Write a function that rotates a matrix 90 degrees clockwise. The
         matrix is rectangular; the result may have different dimensions
@@ -1539,6 +1557,9 @@ EXERCISES = {
     "py_prime_finder": {
         "level": 6, "function": "prime_finder",
         "oracle": _ref_prime_finder, "fuzz": _fuzz_prime_finder,
+        "hint": ("Think about the edge cases first: 0, 1 and negative "
+                "numbers are never prime — if it's only wrong for small "
+                "n, that's almost always it."),
         "subject": _sub("py_prime_finder", """
         Write a function that checks whether an integer is prime. Numbers
         less than 2 (0, 1, and every negative number) are not prime.
@@ -1582,6 +1603,9 @@ EXERCISES = {
     "py_two_sum_indices": {
         "level": 6, "function": "two_sum_indices",
         "oracle": _ref_two_sum_indices, "fuzz": _fuzz_two_sum_indices,
+        "hint": ("i and j must be different indices (not the same "
+                "element twice) — and the scan order matters: i "
+                "ascending, then j ascending."),
         "subject": _sub("py_two_sum_indices", """
         Write a function that finds two DIFFERENT elements of a list that
         add up to target and returns their indices [i, j] with i < j. If

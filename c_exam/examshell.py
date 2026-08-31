@@ -25,7 +25,7 @@ import random
 import shlex
 import time
 
-from src import report_export, session_store, settings, stats, ui
+from src import hints, report_export, session_store, settings, stats, ui
 
 from . import grader
 from .bank import EXERCISES, LEVELS, N_LEVELS, STANDARD_LEVELS
@@ -111,6 +111,11 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
     ui.report(report, cfg.show_fails)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
+    if not report.ok and mode != "exam":
+        if stats.consecutive_fails(TOOL, ex_name) >= hints.STUCK_THRESHOLD:
+            text = hints.hint_for(ex, report)
+            if text:
+                ui.hint(text)
     return report.ok
 
 

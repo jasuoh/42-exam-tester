@@ -228,6 +228,39 @@ Shows your overall attempts and pass rate, your best full-exam completion
 time, and a per-exercise breakdown (`3/7 passed`, …) — a quick way to see
 which exercises you actually need more reps on.
 
+### 💡 Stuck? A small nudge, not a spoiler
+
+Fail the **same** exercise three times in a row in practice/training mode
+(tracked via the local stats above) and the next failing report ends with
+one hedged, one-line hint — never the answer, just a push in the right
+direction:
+
+```
+✖  ████████░░░░░░░░  17/36 tests passed   47%
+💡 Think about the edge cases first: 0, 1 and negative numbers are never
+   prime — if it's only wrong for small n, that's almost always it.
+```
+
+Two sources, in order: a hand-written hint on the exercise itself when one
+exists (a growing set — not every exercise has one yet), otherwise a
+generic guess from the shape of the failure alone (off-by-one, a sign
+flip, an unhandled empty-input case, a crash pointing at memory rather
+than logic, a leak Valgrind caught, an infinite loop). The generic one is
+a heuristic, not a diagnosis — it's phrased as "could be", and stays
+silent rather than guess wrong when nothing matches.
+
+A curated hint can also react to *which kind* of failure it was, instead
+of always saying the same thing: a crash and a Valgrind leak on the same
+exercise usually call for different advice (e.g. `ft_split` points at a
+missing NULL-terminator slot for a crash, but a missing free on an error
+path for a leak), so the exercise can define one hint per failure kind
+instead of a single fixed string.
+
+**Never shown during `--exam`** —
+getting unstuck without a crutch under time pressure is part of what the
+exam actually tests, so practice/training is where this builds that
+muscle instead of short-circuiting it.
+
 ### 📄 Session reports
 
 Every exam run — passed or aborted — writes a small Markdown summary to
@@ -372,6 +405,7 @@ things:
 | `src/stats.py` | `~/.examshell/stats.jsonl` — local grading history, shared by both testers |
 | `src/session_store.py` | exam save/resume state, shared by both testers |
 | `src/report_export.py` | Markdown session reports in `~/.examshell/reports/`, shared by both testers |
+| `src/hints.py` | the "stuck 3x in a row" nudge (generic + curated), shared by both testers |
 | `tests/` | unit tests for the tool itself |
 | `rendu/` | your solutions (git-ignored) |
 
@@ -645,7 +679,7 @@ Rendering is **shared** with the Python tool — `c_exam/examshell.py` uses
 `src/ui.py` directly, unchanged in behavior, including `exercise_table`/
 `training_table`. `src/grader.py`'s `Report` is reused too; only the
 grading mechanism itself (`c_exam/grader.py`) is new. Themes, saved
-config, local stats, exam save/resume and session reports
-(`src/settings.py`, `src/stats.py`, `src/session_store.py`,
-`src/report_export.py`) are shared the same way — see
+config, local stats, exam save/resume, session reports and stuck-student
+hints (`src/settings.py`, `src/stats.py`, `src/session_store.py`,
+`src/report_export.py`, `src/hints.py`) are shared the same way — see
 [Quality-of-life features](#quality-of-life-features-both-testers).

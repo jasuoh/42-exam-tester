@@ -6,12 +6,13 @@ exercise resolution, formatting — not the interactive flow itself."""
 import argparse
 import contextlib
 import io
+import os
 import random
 import tempfile
 import unittest
 from unittest import mock
 
-from src import examshell
+from src import examshell, stats
 from src.exam_bank import EXERCISES, N_LEVELS
 from src.training_bank import DIFFICULTIES, TRAINING_EXERCISES
 
@@ -195,6 +196,107 @@ class GradeAllTests(unittest.TestCase):
             cfg = _cfg(tmp)
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertTrue(examshell.grade_all(cfg))
+
+
+class GradeExerciseHintTests(unittest.TestCase):
+    """grade_exercise()'s stuck-student nudge (see src/hints.py) — a
+    generic diagnose() hint only appears after STUCK_THRESHOLD consecutive
+    fails on the same exercise, and never during --exam."""
+
+    WRONG_SOLUTION = "def inter(s1, s2):\n    return ''\n"   # always fails
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmpdir.cleanup)
+        stats_patcher = mock.patch.object(
+            stats, "STATS_PATH", os.path.join(self.tmpdir.name, "stats.jsonl"))
+        stats_patcher.start()
+        self.addCleanup(stats_patcher.stop)
+        data_patcher = mock.patch.object(stats, "DATA_DIR", self.tmpdir.name)
+        data_patcher.start()
+        self.addCleanup(data_patcher.stop)
+
+    def _rendu_with_wrong_solution(self):
+        rendu = tempfile.TemporaryDirectory()
+        self.addCleanup(rendu.cleanup)
+        with open(os.path.join(rendu.name, "py_inter.py"), "w", encoding="utf-8") as fh:
+            fh.write(self.WRONG_SOLUTION)
+        return rendu.name
+
+    # These patch hints.diagnose() to a canned string so they test only
+    # grade_exercise()'s wiring (streak threshold, exam exclusion) — the
+    # heuristic's own accuracy is HintsTests' job in test_shared.py, and
+    # coupling both here would make this test flaky against unrelated
+    # changes to diagnose()'s pattern matching.
+
+    def test_no_hint_before_the_threshold(self):
+        cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
+        rng = random.Random(0)
+        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+             mock.patch.object(examshell.ui, "hint") as hint, \
+             contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD - 1):
+                examshell.grade_exercise("py_inter", rng, cfg, mode="practice")
+        hint.assert_not_called()
+
+    def test_hint_appears_once_the_threshold_is_reached(self):
+        cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
+        rng = random.Random(0)
+        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+             mock.patch.object(examshell.ui, "hint") as hint, \
+             contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD):
+                examshell.grade_exercise("py_inter", rng, cfg, mode="practice")
+        hint.assert_called_once_with("a hint")
+
+    def test_never_hints_during_exam_mode(self):
+        cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
+        rng = random.Random(0)
+        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+             mock.patch.object(examshell.ui, "hint") as hint, \
+             contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD + 2):
+                examshell.grade_exercise("py_inter", rng, cfg, mode="exam")
+        hint.assert_not_called()
+
+    def test_no_hint_when_diagnose_finds_no_pattern(self):
+        cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
+        rng = random.Random(0)
+        with mock.patch.object(examshell.hints, "diagnose", return_value=None), \
+             mock.patch.object(examshell.ui, "hint") as hint, \
+             contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD):
+                examshell.grade_exercise("py_inter", rng, cfg, mode="practice")
+        hint.assert_not_called()
+
+    def test_curated_bank_hint_is_preferred_over_the_generic_one(self):
+        rendu = tempfile.TemporaryDirectory()
+        self.addCleanup(rendu.cleanup)
+        with open(os.path.join(rendu.name, "py_prime_finder.py"), "w",
+                 encoding="utf-8") as fh:
+            fh.write("def prime_finder(n):\n    return True\n")   # always fails
+        cfg = _cfg(rendu.name, fuzz=0, seed=0)
+        rng = random.Random(0)
+        with mock.patch.object(examshell.hints, "diagnose", return_value="generic"), \
+             mock.patch.object(examshell.ui, "hint") as hint, \
+             contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD):
+                examshell.grade_exercise("py_prime_finder", rng, cfg, mode="practice")
+        hint.assert_called_once_with(EXERCISES["py_prime_finder"]["hint"])
+
+    def test_no_hint_once_the_solution_is_fixed(self):
+        rendu = self._rendu_with_wrong_solution()
+        cfg = _cfg(rendu, fuzz=0, seed=0)
+        rng = random.Random(0)
+        with contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD - 1):
+                examshell.grade_exercise("py_inter", rng, cfg, mode="practice")
+            with open(os.path.join(rendu, "py_inter.py"), "w", encoding="utf-8") as fh:
+                fh.write("def inter(s1, s2):\n"
+                        "    return sorted(set(s1) & set(s2))\n")
+            with mock.patch.object(examshell.ui, "hint") as hint:
+                examshell.grade_exercise("py_inter", rng, cfg, mode="practice")
+        hint.assert_not_called()
 
 
 if __name__ == "__main__":

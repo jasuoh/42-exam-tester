@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Unit tests for the shared quality-of-life layer used by both testers:
-settings.py, stats.py, session_store.py, report_export.py. Every test
-patches each module's own path constants to a throwaway temp directory —
-never touches the student's real ~/.examshell/."""
+settings.py, stats.py, session_store.py, report_export.py, hints.py. Every
+test patches each module's own path constants to a throwaway temp
+directory — never touches the student's real ~/.examshell/."""
 
 import argparse
 import os
@@ -12,8 +12,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from src import report_export, session_store, settings, stats
+from src import hints, report_export, session_store, settings, stats
 from src.examshell import Session
+from src.grader import Failure, Report
 
 
 class SettingsTests(unittest.TestCase):
@@ -156,6 +157,33 @@ class StatsTests(unittest.TestCase):
         self.assertEqual(summary["exam_completions"], 1)
         self.assertEqual(summary["best_seconds"], 100.0)
 
+    def test_consecutive_fails_zero_with_no_history(self):
+        self.assertEqual(stats.consecutive_fails("py", "py_inter"), 0)
+
+    def test_consecutive_fails_counts_the_trailing_run(self):
+        stats.record("py", "py_inter", 1, False, 3, 10, "practice")
+        stats.record("py", "py_inter", 1, False, 5, 10, "practice")
+        stats.record("py", "py_inter", 1, False, 7, 10, "practice")
+        self.assertEqual(stats.consecutive_fails("py", "py_inter"), 3)
+
+    def test_consecutive_fails_resets_on_a_pass(self):
+        stats.record("py", "py_inter", 1, False, 3, 10, "practice")
+        stats.record("py", "py_inter", 1, True, 10, 10, "practice")
+        stats.record("py", "py_inter", 1, False, 5, 10, "practice")
+        self.assertEqual(stats.consecutive_fails("py", "py_inter"), 1)
+
+    def test_consecutive_fails_ignores_exam_mode(self):
+        stats.record("py", "py_inter", 1, False, 3, 10, "practice")
+        stats.record("py", "py_inter", 1, False, 5, 10, "practice")
+        stats.record("py", "py_inter", 1, False, 1, 10, "exam")
+        self.assertEqual(stats.consecutive_fails("py", "py_inter"), 2)
+
+    def test_consecutive_fails_is_per_exercise_and_tool(self):
+        stats.record("py", "py_inter", 1, False, 3, 10, "practice")
+        stats.record("py", "py_hidenp", 1, False, 3, 10, "practice")
+        stats.record("c", "py_inter", 1, False, 3, 10, "practice")
+        self.assertEqual(stats.consecutive_fails("py", "py_inter"), 1)
+
 
 class SessionStoreTests(unittest.TestCase):
     def setUp(self):
@@ -283,6 +311,118 @@ class ReportExportTests(unittest.TestCase):
             session = self._session()
             path = report_export.write_exam_report("py", session, 6, True)
         self.assertIsNone(path)
+
+
+class HintsTests(unittest.TestCase):
+    """diagnose() is a heuristic, not a proof — these tests only pin down
+    the specific, deliberately narrow patterns it's supposed to catch
+    (see hints.py's module docstring on why it's hedged). It must work
+    unmodified on both a Python Report (typed expected/got) and a C one
+    (string expected/got, see c_exam/grader.py's CFailure) — every test
+    below exercises both."""
+
+    def _report(self, failures=(), fatal="", warnings=()):
+        report = Report("some_exercise", "some_func")
+        report.failures = list(failures)
+        report.fatal = fatal
+        report.warnings = list(warnings)
+        return report
+
+    def test_no_hint_when_report_is_clean(self):
+        report = self._report()
+        report.passed = report.total = 1
+        self.assertIsNone(hints.diagnose(report))
+
+    def test_timeout_hint(self):
+        for code in ("TIMEOUT", "GLOBAL_TIMEOUT", "IMPORT_TIMEOUT"):
+            self.assertIn("infinite loop", hints.diagnose(self._report(fatal=code)))
+
+    def test_other_fatal_codes_get_no_generic_hint(self):
+        self.assertIsNone(hints.diagnose(self._report(fatal="COMPILE_ERROR")))
+
+    def test_crash_warning_hint(self):
+        report = self._report(warnings=["your program crashed: segfault"])
+        self.assertIn("memory access", hints.diagnose(report))
+
+    def test_leak_warning_hint(self):
+        report = self._report(warnings=[
+            "valgrind reported memory error(s) (leaks, invalid reads/"
+            "writes, ...) on case 3"])
+        self.assertIn("leak", hints.diagnose(report))
+
+    def test_crash_is_checked_before_leak(self):
+        # A run can't be both, but if warnings ever carried both a crash
+        # takes priority — a crash is the more actionable, more urgent
+        # thing to point at first.
+        report = self._report(warnings=["your program crashed: segfault",
+                                        "valgrind reported memory error(s)"])
+        self.assertIn("memory access", hints.diagnose(report))
+
+    def test_off_by_one_hint_python_and_c_shaped(self):
+        py_report = self._report([Failure([5], 4, 5)])
+        c_report = self._report([Failure([], "4", "5")])
+        for report in (py_report, c_report):
+            self.assertIn("off-by-one", hints.diagnose(report))
+
+    def test_bools_are_not_mistaken_for_off_by_one(self):
+        # float(True) - float(False) == 1, which would otherwise look
+        # exactly like an off-by-one on a completely unrelated bug.
+        report = self._report([Failure([], True, False)])
+        self.assertIsNone(hints.diagnose(report))
+
+    def test_sign_flip_hint(self):
+        report = self._report([Failure([], -3, 3)])
+        self.assertIn("sign", hints.diagnose(report))
+
+    def test_empty_expected_hint_python_and_c_shaped(self):
+        py_report = self._report([Failure([], [], [1, 2])])
+        c_report = self._report([Failure([], "", "1 2")])
+        for report in (py_report, c_report):
+            self.assertIn("empty", hints.diagnose(report))
+
+    def test_no_hint_for_an_unrelated_mismatch(self):
+        report = self._report([Failure([], "hello", "world")])
+        self.assertIsNone(hints.diagnose(report))
+
+
+class HintForTests(unittest.TestCase):
+    """hint_for() — picking between a plain-string curated hint, a
+    per-category dict one, and the diagnose() fallback (see hints.py's
+    module docstring)."""
+
+    def _report(self, failures=(), fatal="", warnings=()):
+        report = Report("some_exercise", "some_func")
+        report.failures = list(failures)
+        report.fatal = fatal
+        report.warnings = list(warnings)
+        return report
+
+    def test_plain_string_hint_is_returned_as_is(self):
+        ex = {"hint": "a static hint"}
+        report = self._report([Failure([], "hello", "world")])
+        self.assertEqual(hints.hint_for(ex, report), "a static hint")
+
+    def test_no_hint_field_falls_back_to_diagnose(self):
+        ex = {}
+        report = self._report(fatal="TIMEOUT")
+        self.assertIn("infinite loop", hints.hint_for(ex, report))
+
+    def test_dict_hint_picks_the_matching_category(self):
+        ex = {"hint": {"crash": "a crash-specific hint",
+                       "default": "a fallback hint"}}
+        report = self._report(warnings=["your program crashed: segfault"])
+        self.assertEqual(hints.hint_for(ex, report), "a crash-specific hint")
+
+    def test_dict_hint_falls_back_to_default_key(self):
+        ex = {"hint": {"crash": "a crash-specific hint",
+                       "default": "a fallback hint"}}
+        report = self._report([Failure([], "hello", "world")])
+        self.assertEqual(hints.hint_for(ex, report), "a fallback hint")
+
+    def test_dict_hint_with_no_matching_key_falls_back_to_diagnose(self):
+        ex = {"hint": {"crash": "a crash-specific hint"}}
+        report = self._report(fatal="TIMEOUT")
+        self.assertIn("infinite loop", hints.hint_for(ex, report))
 
 
 if __name__ == "__main__":

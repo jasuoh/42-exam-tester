@@ -236,6 +236,12 @@ def success(msg):
     _line("✔  " + msg, "bold green", "GREEN", "BOLD")
 
 
+def hint(msg):
+    """A stuck-student nudge (see hints.py) — deliberately calmer than
+    warn()/error(): this isn't a problem with the run, just a suggestion."""
+    _line("💡 " + msg, "cyan", "CYAN")
+
+
 def _line(msg, rich_style, *ansi):
     if _rich:
         _console.print(IND0 + "[%s]%s[/%s]" % (rich_style, _esc(msg), rich_style))

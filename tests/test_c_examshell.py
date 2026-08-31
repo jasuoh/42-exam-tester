@@ -8,6 +8,9 @@ covered by tests/test_c_grader.py's end-to-end tests instead."""
 import argparse
 import contextlib
 import io
+import os
+import random
+import shutil
 import tempfile
 import unittest
 from unittest import mock
@@ -15,6 +18,10 @@ from unittest import mock
 from c_exam import examshell
 from c_exam.bank import EXERCISES, N_LEVELS
 from c_exam.training_bank import DIFFICULTIES, TRAINING_EXERCISES
+from src import stats
+
+HAVE_CC = shutil.which("cc") is not None
+skip_without_cc = unittest.skipUnless(HAVE_CC, "no C compiler on PATH")
 
 
 def _cfg(rendu, **overrides):
@@ -181,6 +188,79 @@ class MakeStubTests(unittest.TestCase):
             self.assertIn('#include "list.h"', content)
             with open(tmp + "/list.h", encoding="utf-8") as fh:
                 self.assertIn("t_list", fh.read())
+
+
+@skip_without_cc
+class GradeExerciseHintTests(unittest.TestCase):
+    """Mirrors tests/test_examshell.py's GradeExerciseHintTests — same
+    grade_exercise() wiring (STUCK_THRESHOLD, never during --exam), shared
+    verbatim between both testers (see src/hints.py)."""
+
+    WRONG_SOLUTION = "int ft_strlen(char *str)\n{\n    (void)str;\n    return -1;\n}\n"
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmpdir.cleanup)
+        stats_patcher = mock.patch.object(
+            stats, "STATS_PATH", os.path.join(self.tmpdir.name, "stats.jsonl"))
+        stats_patcher.start()
+        self.addCleanup(stats_patcher.stop)
+        data_patcher = mock.patch.object(stats, "DATA_DIR", self.tmpdir.name)
+        data_patcher.start()
+        self.addCleanup(data_patcher.stop)
+
+    def _rendu_with_wrong_solution(self):
+        rendu = tempfile.TemporaryDirectory()
+        self.addCleanup(rendu.cleanup)
+        with open(os.path.join(rendu.name, "ft_strlen.c"), "w", encoding="utf-8") as fh:
+            fh.write(self.WRONG_SOLUTION)
+        return rendu.name
+
+    def test_no_hint_before_the_threshold(self):
+        cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
+        rng = random.Random(0)
+        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+             mock.patch.object(examshell.ui, "hint") as hint, \
+             contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD - 1):
+                examshell.grade_exercise("ft_strlen", rng, cfg, mode="practice")
+        hint.assert_not_called()
+
+    def test_hint_appears_once_the_threshold_is_reached(self):
+        cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
+        rng = random.Random(0)
+        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+             mock.patch.object(examshell.ui, "hint") as hint, \
+             contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD):
+                examshell.grade_exercise("ft_strlen", rng, cfg, mode="practice")
+        hint.assert_called_once_with("a hint")
+
+    def test_never_hints_during_exam_mode(self):
+        cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
+        rng = random.Random(0)
+        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+             mock.patch.object(examshell.ui, "hint") as hint, \
+             contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD + 2):
+                examshell.grade_exercise("ft_strlen", rng, cfg, mode="exam")
+        hint.assert_not_called()
+
+    def test_curated_bank_hint_is_preferred_over_the_generic_one(self):
+        rendu = tempfile.TemporaryDirectory()
+        self.addCleanup(rendu.cleanup)
+        with open(os.path.join(rendu.name, "ft_split.c"), "w", encoding="utf-8") as fh:
+            fh.write("#include <stdlib.h>\n"
+                    "char **ft_split(char *str)\n{\n    (void)str;\n"
+                    "    return calloc(1, sizeof(char *));\n}\n")
+        cfg = _cfg(rendu.name, fuzz=0, seed=0)
+        rng = random.Random(0)
+        with mock.patch.object(examshell.hints, "diagnose", return_value="generic"), \
+             mock.patch.object(examshell.ui, "hint") as hint, \
+             contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(examshell.hints.STUCK_THRESHOLD):
+                examshell.grade_exercise("ft_split", rng, cfg, mode="practice")
+        hint.assert_called_once_with(EXERCISES["ft_split"]["hint"]["default"])
 
 
 if __name__ == "__main__":

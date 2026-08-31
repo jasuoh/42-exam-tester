@@ -60,6 +60,22 @@ def load_all(tool=None):
     return events
 
 
+def consecutive_fails(tool, exercise):
+    """How many times in a row (most recent first) `exercise` was graded
+    and failed, ignoring --exam attempts — the exam is one-shot per
+    exercise anyway, and this is used to decide when to nudge a stuck
+    student in practice/training, never during the exam itself."""
+    events = [e for e in load_all(tool)
+             if e.get("exercise") == exercise and e.get("mode") != "exam"]
+    events.sort(key=lambda e: e.get("ts", 0))
+    streak = 0
+    for e in reversed(events):
+        if e.get("ok"):
+            break
+        streak += 1
+    return streak
+
+
 def best_exam_time(tool):
     """Fastest recorded full-exam completion (seconds), or None."""
     times = [e["seconds"] for e in load_all(tool)
