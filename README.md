@@ -1,51 +1,120 @@
 <div align="center">
 
 # ⌨️ ExamShell
-### Practice testers for 42 Common Core exams — Python Rank 03 & C Rank 02
 
-*Real sandboxed grading, real edge cases, zero internet required.*
+### Practice testers for the 42 Common Core exams
+
+**🐍 Python · Exam Rank 03** &nbsp;·&nbsp; **🔧 C · Exam Rank 02**
+
+*Real sandboxed grading. Real edge cases. Real compiler. Zero internet required.*
 
 [![CI](https://github.com/jasuoh/42-exam-rank03-tester/actions/workflows/ci.yml/badge.svg)](https://github.com/jasuoh/42-exam-rank03-tester/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue?logo=python&logoColor=white)
+![Dependencies](https://img.shields.io/badge/dependencies-none%20required-brightgreen)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
+![Visitors](https://komarev.com/ghpvc/?username=jasuoh&repo=42-exam-rank03-tester&label=Views&color=blueviolet&style=flat)
+
+**[⚡ Quick start](#-quick-start)** &nbsp;·&nbsp;
+**[✨ Features](#-features)** &nbsp;·&nbsp;
+**[🐍 Python tester](#-python--exam-rank-03-tester)** &nbsp;·&nbsp;
+**[🔧 C tester](#-c-exam-rank-02-tester)**
 
 </div>
 
-A practice tester built in the style of the real `examshell` / moulinette for
-the **42 Common Core Python Exam Rank 03** — and, further down, a second,
-independent one for **Exam Rank 02 (C)**.
+<br>
 
-Six levels in order, one random exercise per level out of a pool of 40, each
-graded against dozens of tests, and you only move up at **100 %** — same
-rules as the real thing.
+Two independent practice testers, built in the style of the real `examshell` /
+moulinette used at 42 — one for the **Python Common Core Exam Rank 03**, one
+for the **C Common Core Exam Rank 02**. Same philosophy on both sides: draw a
+random exercise per level, write your solution, type `grademe`, and only
+advance at **100 %** — no partial credit, no shortcuts, just like the real
+thing.
+
+<br>
+
+## ⚡ Quick start
 
 ```bash
-make install     # optional: venv + rich for the pretty UI
-make run         # interactive menu
+git clone <this-repo> && cd 42-exam-rank03-tester
+
+make install     # optional — venv + rich, for the pretty TUI
+make run         # 🐍 Python · Exam Rank 03 — interactive menu
+
+make c-run       # 🔧 C · Exam Rank 02 — interactive menu (needs a C compiler, that's it)
 ```
 
-No dependencies are required. Without `rich` the tester falls back to plain
-ANSI output, so it runs on any exam machine with nothing but Python 3.8+.
+That's it — you're in. Both are **zero-dependency by design**: without
+`rich` the Python tool falls back to clean plain-ANSI output, and the C tool
+only needs whatever `cc`/`gcc`/`clang` your machine already has. Either one
+runs on a bare exam machine with nothing preinstalled.
 
-**At a glance**
+<div align="center">
 
-| | Python · Exam Rank 03 | C · Exam Rank 02 |
-|---|---|---|
-| Levels / exercises | 6 levels · 44 exercises | 4 levels · 59 exercises |
-| Extra practice | 🧠 Training pool (20, by difficulty) | 🧠 Training pool (9, by difficulty) |
-| Grading | in-process sandbox, `deep_eq` | compile + run + diff stdout |
-| Solutions live in | `rendu/` | `c_rendu/` |
-| Entry point | `make run` · `python3 -m src` | `make c-run` · `python3 -m c_exam` |
+| | 🐍 Python · Exam Rank 03 | 🔧 C · Exam Rank 02 |
+|---|:---:|:---:|
+| **Levels** | 6 | 4 |
+| **Exercises** | 44 (14 standard + 30 extra) | 59 (56 standard + 3 extra) |
+| **Training pool** | 20 exercises, 3 difficulties | 9 exercises, 3 difficulties |
+| **Grading engine** | in-process sandbox, type-strict `deep_eq` | compile → run → diff stdout, real `cc` |
+| **Solutions live in** | `rendu/` | `c_rendu/` |
+| **Extra checks** | mutation/print detection, import ban | crash/timeout, `-Wall -Wextra`, 🧪 Valgrind |
+| **Run it** | `make run` · `python3 -m src` | `make c-run` · `python3 -m c_exam` |
 
-**Jump to:** [Quick start](#quick-start) · [How the exam works](#how-the-exam-works)
-· [Exercise pool](#exercise-pool) · [Training pool](#training-pool-leetcode-style)
-· [How grading works](#how-grading-works) ·
-[Quality-of-life features](#quality-of-life-features-both-testers) ·
-[Make targets](#make-targets) ·
-[CLI](#cli) · [Testing](#testing-this-project) · [Layout](#layout) ·
-**[→ jump to the C tester](#c-exam-rank-02-tester)**
+</div>
+
+<br>
+
+## ✨ Features
+
+Everything below is **shared** between both testers (same theme, same local
+stats, same resume/report engine) — learn it once, it just works on both.
+
+| | |
+|---|---|
+| 🏖️ **True sandboxed grading** | your file is never imported/linked into the tester itself — a subprocess (Python) or a fresh compiled binary (C) does the work, so a crash or an infinite loop can never take your session down with it |
+| 🎲 **Fuzzing** | curated edge cases *plus* randomised extra tests on every run — passing once by luck isn't enough |
+| 🧪 **Valgrind leak checking** *(C, optional)* | `--valgrind` / `--strict-valgrind` catch leaks and invalid memory access, exactly what the real exam grades you on |
+| 💡 **Stuck-student hints** | fail the same exercise 3× in a row in practice and get one hedged, non-spoiling nudge — never during `--exam` |
+| 🎨 **Three colour themes** | `dark`, `light`, and a colour-blind-friendly `highcontrast` (Okabe–Ito palette) |
+| ⏸️ **Resume an aborted exam** | `quit` saves your progress; next run offers to pick up exactly where you left off |
+| 📄 **Session reports** | every exam run writes a Markdown summary to `~/.examshell/reports/` — a study log you can diff between attempts |
+| 📊 **Local stats** | `--stats` shows attempts, pass rate, best exam time, and a per-exercise breakdown — all 100 % local, never sent anywhere |
+| 🏅 **Achievements** | Flawless runs, first full clears, personal bests — bragging rights only, zero effect on scoring |
+| 🔎 **Fuzzy exercise search** | `/text` in any picker narrows the list instantly |
+| 🧠 **A second, separate training pool** | LeetCode-style drills by difficulty, never mixed into a real exam draw |
+
+<br>
+
+## 🗺️ Table of contents
+
+**🐍 Python · Exam Rank 03**
+[How the exam works](#-how-the-exam-works) ·
+[Exercise pool](#-exercise-pool) ·
+[Training pool](#-training-pool-leetcode-style) ·
+[How grading works](#-how-grading-works) ·
+[Quality-of-life features](#️-quality-of-life-features-both-testers) ·
+[Make targets](#️-make-targets) ·
+[CLI](#️-cli) ·
+[Testing](#-testing-this-project) ·
+[Layout](#️-layout)
+
+**🔧 C · Exam Rank 02**
+[How it works](#-how-it-works) ·
+[Exercise pool](#-exercise-pool-1) ·
+[Fuzzing](#-fuzzing-partial) ·
+[Valgrind](#-valgrind-optional) ·
+[Training pool](#-training-pool-leetcode-style-1) ·
+[Make targets](#️-make-targets-1) ·
+[CLI](#️-cli-1) ·
+[Layout](#️-layout-1)
 
 ---
 
-## 🚀 Quick start
+# 🐍 Python · Exam Rank 03 tester
+
+Six levels in order, one random exercise per level out of a pool of 44, each
+graded against dozens of tests, and you only move up at **100 %** — same
+rules as the real thing.
 
 ```bash
 make exam                    # jump straight into the 6-level exam
@@ -79,7 +148,7 @@ Commands during the exam:
 
 Modes from the main menu: **Start exam** (the full run above — draws only
 from the Standard 14, one per level), **Practice mode** (drill *any* of
-the 40, Standard or Extra, no progression), **List all exercises**,
+the 44, Standard or Extra, no progression), **List all exercises**,
 **Training mode** (LeetCode-style exercises by difficulty — see below,
 never part of the exam).
 
@@ -108,6 +177,10 @@ important — **`make exam` only ever draws from the Standard 14**:
   **never drawn into a real exam run** — reach them through **Practice
   mode** instead (marked with ○ in `--list`).
 
+<details>
+<summary><b>📖 Show the full Python exercise pool (44 exercises)</b></summary>
+<br>
+
 | Level | Standard (drawn by `make exam`) | Extra (practice mode only) |
 |------:|----------|-------|
 | 1 | **`py_cryptic_sorter`** · **`py_inter`** · **`py_bracket_validator`** | `py_vowel_counter` · `py_capitalizer` · `py_leet_speak` · `py_char_frequency` · `py_string_reverser` · `py_char_counter` |
@@ -122,6 +195,8 @@ plus `py_even_odd_counter` and `py_sum_of_squares` (level 2), are the
 deliberately easy ones — a good place to start if you're new to the exam
 format.
 
+</details>
+
 `python3 -m src --list` prints this pool with the exact function name for
 each exercise, ★/○ marking which pool each belongs to; the full signature
 and subject show up once you draw or practice it.
@@ -135,9 +210,9 @@ grouped by **difficulty** instead of exam level, and **never** drawn into
 
 | Difficulty | Exercises |
 |---|---|
-| Easy   | `py_fizzbuzz_list` · `py_first_unique_char` · `py_missing_number` · `py_contains_duplicate` · `py_single_number` · `py_climbing_stairs` |
-| Medium | `py_group_anagrams` · `py_product_except_self` · `py_kth_largest` · `py_three_sum` · `py_spiral_matrix` · `py_container_with_most_water` · `py_string_compression` |
-| Hard   | `py_merge_intervals` · `py_longest_increasing_subsequence` · `py_trapping_rain_water` · `py_coin_change` · `py_edit_distance` · `py_largest_rectangle_histogram` · `py_longest_common_subsequence` |
+| 🟢 Easy   | `py_fizzbuzz_list` · `py_first_unique_char` · `py_missing_number` · `py_contains_duplicate` · `py_single_number` · `py_climbing_stairs` |
+| 🟡 Medium | `py_group_anagrams` · `py_product_except_self` · `py_kth_largest` · `py_three_sum` · `py_spiral_matrix` · `py_container_with_most_water` · `py_string_compression` |
+| 🔴 Hard   | `py_merge_intervals` · `py_longest_increasing_subsequence` · `py_trapping_rain_water` · `py_coin_change` · `py_edit_distance` · `py_largest_rectangle_histogram` · `py_longest_common_subsequence` |
 
 These are graded through the exact same sandbox as the exam pool (same
 edge-case + fuzz testing, mutation/print detection, import checks), just
@@ -367,7 +442,7 @@ script, so `python3 src/examshell.py` will not work.
 Useful flags: `--rendu DIR`, `--timeout SEC`, `--fuzz N`, `--show-fails N`,
 `--strict-imports`, `--theme {dark,light,highcontrast}`, `--save-config`,
 `--no-color`, `--no-rich`. See
-[Quality-of-life features](#quality-of-life-features-both-testers) above
+[Quality-of-life features](#️-quality-of-life-features-both-testers) above
 for what `--theme`, `--save-config` and `--stats` actually do.
 
 ## ✅ Testing this project
@@ -411,14 +486,14 @@ things:
 
 ---
 
-> The exact exercise set depends on your campus and changes over time. The
+> 💬 The exact exercise set depends on your campus and changes over time. The
 > **standard** pool above is based on the publicly documented Rank-03 Python
 > exercises; the **extra** pool is this project's own addition for more
 > practice. Don't rote-learn the solutions — understand the logic.
 
 ---
 
-# 🔧 C Exam Rank 02 tester
+# 🔧 C · Exam Rank 02 tester
 
 A second, independent practice tester in the same repo, for the **42
 Common Core C Exam Rank 02** — same shape (levels, `grademe`, a stub with a
@@ -433,12 +508,6 @@ make c-exam          # jump straight into the exam
 Solutions live in `c_rendu/` (separate from the Python tool's `rendu/`).
 Uses your system's `cc` by default — no extra dependency, works on any
 machine with a C compiler.
-
-**Jump to:** [How it works](#how-it-works) · [Exercise pool](#exercise-pool-1)
-· [Fuzzing](#-fuzzing-partial) · [Valgrind](#-valgrind-optional) ·
-[Training pool](#-training-pool-leetcode-style-1)
-· [Make targets](#make-targets-1) · [CLI](#cli-1) · [Layout](#layout-1) ·
-**[↑ back to the Python tool](#quick-start)**
 
 ## 🔍 How it works
 
@@ -528,6 +597,10 @@ bank — Standard vs Extra:
   real exam sheet, **never drawn into a real exam run** — reach them
   through **Practice mode** instead (marked with ○ in `--list`).
 
+<details>
+<summary><b>📖 Show the full C exercise pool (59 exercises)</b></summary>
+<br>
+
 | Level | Standard (drawn by `make c-exam`) | Extra (practice mode only) |
 |------:|----------|-------|
 | 1 (12) | **`first_word`** 🖥️ · **`fizzbuzz`** 🖥️ · **`ft_putstr`** · **`ft_strcpy`** · **`ft_strlen`** · **`ft_swap`** · **`repeat_alpha`** 🖥️ · **`rev_print`** 🖥️ · **`rot_13`** 🖥️ · **`rotone`** 🖥️ · **`search_and_replace`** 🖥️ · **`ulstr`** 🖥️ | `count_vowels` 🖥️ |
@@ -551,6 +624,8 @@ callback the harness supplies (an accumulator, and an int-equality
 comparator respectively) rather than a callback of the student's own
 choosing — that's what lets a generic harness test a function-pointer
 argument at all, at the cost of not exercising arbitrary callback logic.
+
+</details>
 
 ### 🎲 Fuzzing (partial)
 
@@ -606,9 +681,9 @@ shown in `--list`. Reach it through the main menu's **Training mode**,
 
 | Difficulty | Exercises |
 |---|---|
-| Easy   | `array_sum` · `find_max` · `is_palindrome_num` |
-| Medium | `count_pairs_sum` · `kadane_max_sum` · `count_unique` |
-| Hard   | `lis_length` · `count_inversions` · `max_gap` |
+| 🟢 Easy   | `array_sum` · `find_max` · `is_palindrome_num` |
+| 🟡 Medium | `count_pairs_sum` · `kadane_max_sum` · `count_unique` |
+| 🔴 Hard   | `lis_length` · `count_inversions` · `max_gap` |
 
 Deliberately smaller than the Python tool's 20 — every exercise here uses
 only plain `int`/`int *` arguments and an `int` return with no precondition
@@ -662,7 +737,7 @@ Useful flags: `--rendu DIR`, `--cc COMPILER`, `--timeout SEC`, `--strict-norm`,
 `--theme {dark,light,highcontrast}`, `--save-config`, `--no-color`,
 `--no-rich`. Same shared theme/config/stats/resume/report layer as the
 Python tester — see
-[Quality-of-life features](#quality-of-life-features-both-testers) up top,
+[Quality-of-life features](#️-quality-of-life-features-both-testers) up top,
 [Fuzzing (partial)](#-fuzzing-partial) for what `--fuzz` covers here, and
 [Valgrind (optional)](#-valgrind-optional) for the leak checker.
 
@@ -684,4 +759,16 @@ grading mechanism itself (`c_exam/grader.py`) is new. Themes, saved
 config, local stats, exam save/resume, session reports and stuck-student
 hints (`src/settings.py`, `src/stats.py`, `src/session_store.py`,
 `src/report_export.py`, `src/hints.py`) are shared the same way — see
-[Quality-of-life features](#quality-of-life-features-both-testers).
+[Quality-of-life features](#️-quality-of-life-features-both-testers).
+
+<br>
+
+---
+
+<div align="center">
+
+### 🍀 Good luck on the real exam
+
+*Solve it, don't memorise it.*
+
+</div>
