@@ -9,6 +9,7 @@ import argparse
 import os
 import random
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -219,6 +220,24 @@ class SessionStoreTests(unittest.TestCase):
         self.assertEqual(data["attempts"], 5)
         self.assertEqual(data["level_attempts"], 2)
 
+    def test_level_elapsed_seconds_round_trips_the_time_spent_pre_quit(self):
+        # Without level_started, a resume can only restart the current
+        # level's clock from the moment of resuming — silently dropping
+        # whatever time was already spent on it before the earlier quit.
+        session = self._session()
+        rng = random.Random(42)
+        level_started = time.time() - 90   # 90s already spent on this level
+        session_store.save("py", session, rng, "py_hidenp",
+                           level_attempts=2, level_started=level_started)
+        data = session_store.load("py")
+        self.assertAlmostEqual(data["level_elapsed_seconds"], 90, delta=2)
+
+    def test_level_elapsed_seconds_defaults_to_zero_without_level_started(self):
+        session = self._session()
+        session_store.save("py", session, random.Random(1), "py_hidenp")
+        data = session_store.load("py")
+        self.assertEqual(data["level_elapsed_seconds"], 0)
+
     def test_rng_state_round_trips_identically(self):
         session = self._session()
         rng = random.Random(1234)
@@ -306,6 +325,18 @@ class ReportExportTests(unittest.TestCase):
         self.assertIn("C (Rank 02)", content)
         self.assertNotIn("Achievements", content)
 
+    def test_a_login_with_path_separators_cannot_escape_reports_dir(self):
+        # session.login is free-form student input (see ui.ask("  Login…")
+        # in both examshell.py's) — a "/" or ".." in it must never let the
+        # report land outside REPORTS_DIR.
+        session = self._session()
+        session.login = "../../../tmp/evil"
+        path = report_export.write_exam_report("py", session, 6, True)
+        self.assertIsNotNone(path)
+        self.assertEqual(os.path.dirname(os.path.abspath(path)),
+                         os.path.abspath(self.reports_dir))
+        self.assertTrue(os.path.isfile(path))
+
     def test_write_report_survives_unwritable_dir(self):
         with patch.object(report_export, "REPORTS_DIR", "/this/does/not/exist/at/all"):
             session = self._session()
@@ -340,6 +371,16 @@ class HintsTests(unittest.TestCase):
     def test_other_fatal_codes_get_no_generic_hint(self):
         self.assertIsNone(hints.diagnose(self._report(fatal="COMPILE_ERROR")))
 
+    def test_timeout_hint_from_a_c_program_kind_per_case_timeout(self):
+        # c_exam/grader.py's _grade_program records a per-case timeout as a
+        # non-fatal failure with got="[TIMEOUT]" (see its "note = TIMEOUT"
+        # path), not as report.fatal like every other timeout — must still
+        # get the TIMEOUT hint, not the CRASH one its own bracket shape
+        # would otherwise trigger.
+        report = self._report([Failure([], "some output", "[TIMEOUT]")],
+                              warnings=["case 2 timed out: TIMEOUT"])
+        self.assertIn("infinite loop", hints.diagnose(report))
+
     def test_crash_warning_hint(self):
         report = self._report(warnings=["your program crashed: segfault"])
         self.assertIn("memory access", hints.diagnose(report))
@@ -350,12 +391,30 @@ class HintsTests(unittest.TestCase):
             "writes, ...) on case 3"])
         self.assertIn("leak", hints.diagnose(report))
 
+    def test_leak_warning_hint_still_applies_under_strict_valgrind(self):
+        # --strict-valgrind sets report.fatal = "VALGRIND_ERRORS" (not one
+        # of the TIMEOUT codes) instead of only warning — classify() must
+        # still find LEAK from the warning text, not bail out early just
+        # because report.fatal is set.
+        report = self._report(
+            fatal="VALGRIND_ERRORS",
+            warnings=["valgrind reported memory error(s) (leaks, invalid "
+                      "reads/writes, ...) on case 3"])
+        self.assertIn("leak", hints.diagnose(report))
+
     def test_crash_is_checked_before_leak(self):
         # A run can't be both, but if warnings ever carried both a crash
         # takes priority — a crash is the more actionable, more urgent
         # thing to point at first.
         report = self._report(warnings=["your program crashed: segfault",
                                         "valgrind reported memory error(s)"])
+        self.assertIn("memory access", hints.diagnose(report))
+
+    def test_crash_hint_from_a_python_exception_failure(self):
+        # The Python sandbox never appends a "crashed" warning (only the C
+        # tester does) — a raised exception shows up as a failing case
+        # instead, e.g. "[ZeroDivisionError] division by zero" as `got`.
+        report = self._report([Failure([1, 0], 1, "[ZeroDivisionError] division by zero")])
         self.assertIn("memory access", hints.diagnose(report))
 
     def test_off_by_one_hint_python_and_c_shaped(self):

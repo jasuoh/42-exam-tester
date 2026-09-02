@@ -32,9 +32,18 @@ practice/training modes are where this tool is supposed to build that
 muscle instead of short-circuiting it.
 """
 
+import re
+
 STUCK_THRESHOLD = 3
 
 _EMPTYISH_REPRS = ("", "[]", "()", "{}", "None")
+
+# The Python sandbox never appends a "crashed" warning like the C tester
+# does (see grade_exercise() below) — a raised exception is just a failing
+# case, recorded as "[ExceptionType] message" in that Failure's `got` (see
+# src/grader.py's RUNNER_TEMPLATE). Recognising that shape here is what
+# lets a Python crash reach the same CRASH category as a C one.
+_CRASH_MARKER_RE = re.compile(r"^\[[A-Za-z_]\w*\]")
 
 TIMEOUT = "timeout"
 CRASH = "crash"
@@ -99,6 +108,16 @@ def classify(report):
     if report.fatal or not report.failures:
         return None
     f = report.failures[0]
+    # c_exam/grader.py's _grade_program records a per-case timeout as a
+    # per-case failure ("[TIMEOUT]"), not a fatal Report like every other
+    # timeout path (_grade_function's whole-run timeout, and every Python
+    # one) — special-cased ahead of the CRASH marker below, which would
+    # otherwise also match "[TIMEOUT]" and misreport an infinite loop as
+    # a memory-access crash.
+    if str(f.got) == "[TIMEOUT]":
+        return TIMEOUT
+    if _CRASH_MARKER_RE.match(str(f.got)):
+        return CRASH
     exp_n, got_n = _as_number(f.expected), _as_number(f.got)
     if exp_n is not None and got_n is not None and exp_n != got_n:
         if abs(got_n - exp_n) == 1:

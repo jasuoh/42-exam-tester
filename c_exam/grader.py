@@ -56,6 +56,12 @@ DEFAULT_FUZZ = 8           # random extra cases per exercise (function-kind, saf
 VALGRIND_TIMEOUT_MULT = 5     # valgrind runs much slower than the bare binary
 VALGRIND_ERROR_EXITCODE = 99
 
+# Every line valgrind itself writes (an error, a leak record, ...) is
+# prefixed "==<pid>==" — see run_valgrind()'s use of this to tell a real
+# finding apart from the traced program's own exit code coincidentally
+# matching VALGRIND_ERROR_EXITCODE.
+_VALGRIND_REPORT_RE = re.compile(r"(?m)^==\d+==")
+
 CASE_DELIM = "===CASE "
 _CASE_RE = re.compile(r"===CASE (\d+)===\n")
 
@@ -794,7 +800,17 @@ def run_valgrind(path, timeout=DEFAULT_TIMEOUT, argv=None):
     except subprocess.TimeoutExpired:
         return False, "valgrind timed out — the program may just be slow " \
                       "under instrumentation, not necessarily an infinite loop"
-    if proc.returncode == VALGRIND_ERROR_EXITCODE:
+    # --error-exitcode only overrides the exit code when valgrind ITSELF
+    # found an error; a clean run passes the TRACED PROGRAM's own exit
+    # code straight through, which can coincidentally equal
+    # VALGRIND_ERROR_EXITCODE (e.g. a program-kind exercise whose correct
+    # solution legitimately exits(99)) and would otherwise misreport a
+    # clean run as leaky. Valgrind always prefixes every one of its own
+    # findings with "==<pid>==", even under -q (which only silences its
+    # startup/summary banners, never an actual finding) — checking for
+    # that is what actually tells "valgrind found something" apart from
+    # "the program's own exit code happened to match".
+    if proc.returncode == VALGRIND_ERROR_EXITCODE and _VALGRIND_REPORT_RE.search(proc.stderr):
         return False, proc.stderr[:800]
     return True, ""
 
@@ -865,9 +881,22 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
                 fh.write(header_content(header))
             include_dirs.append(workdir)
 
+        # Codegen itself (render_call(), a return_len callable, ...) can
+        # raise on a value it doesn't expect — reachable even for an
+        # exercise whose curated cases always codegen cleanly, since fuzz
+        # cases exercise it with values the bank author never tried. Same
+        # BANK_ERROR treatment as a reference that fails to compile below:
+        # a bank/codegen bug is never the student's fault, and must never
+        # surface as a raw traceback mid-exam (see the module docstring).
+        try:
+            harness_src = generate_harness(ex, cases)
+        except Exception as exc:
+            return report.fail("BANK_ERROR",
+                               "%s: harness codegen crashed (%s: %s)"
+                               % (ex_name, type(exc).__name__, exc))
         harness_path = os.path.join(workdir, "harness.c")
         with open(harness_path, "w", encoding="utf-8") as fh:
-            fh.write(generate_harness(ex, cases))
+            fh.write(harness_src)
 
         oracle_path = os.path.join(workdir, "oracle.c")
         with open(oracle_path, "w", encoding="utf-8") as fh:
@@ -919,12 +948,17 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
             # binary/process.
             vg_clean, vg_detail = run_valgrind(student_bin, timeout)
             if not vg_clean:
-                message = ("valgrind reported memory error(s) (leaks, invalid "
-                           "reads/writes, ...) — fix them before the real exam, "
-                           "leaked/invalid memory is graded there too:\n" + vg_detail)
+                # Appended before the strict_valgrind fail-out below too —
+                # ui.report() prints warnings even on a fatal Report, and
+                # hints.classify() detects LEAK by scanning report.warnings
+                # for the word (see src/hints.py), which needs it present
+                # here regardless of strict/non-strict.
+                report.warnings.append(
+                    "valgrind reported memory error(s) (leaks, invalid "
+                    "reads/writes, ...) — fix them before the real exam, "
+                    "leaked/invalid memory is graded there too:\n" + vg_detail)
                 if strict_valgrind:
                     return report.fail("VALGRIND_ERRORS", vg_detail)
-                report.warnings.append(message)
 
         n = len(cases)
         ref_chunks = split_cases(ref_out)
@@ -1020,9 +1054,8 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
                         break
 
         if vg_issues:
-            if strict_valgrind:
-                return report.fail("VALGRIND_ERRORS", "case %d: %s"
-                                   % (vg_issues[0][0], vg_issues[0][1]))
+            # Appended before the strict_valgrind fail-out below too — see
+            # the matching comment in _grade_function.
             more = (" (+%d more case%s)" % (len(vg_issues) - 1,
                     "" if len(vg_issues) == 2 else "s") if len(vg_issues) > 1 else "")
             report.warnings.append(
@@ -1030,6 +1063,9 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
                 "...) on case %d%s — fix them before the real exam, leaked/invalid "
                 "memory is graded there too:\n%s"
                 % (vg_issues[0][0], more, vg_issues[0][1]))
+            if strict_valgrind:
+                return report.fail("VALGRIND_ERRORS", "case %d: %s"
+                                   % (vg_issues[0][0], vg_issues[0][1]))
 
         report.duration = time.time() - started
         return report

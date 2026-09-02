@@ -240,7 +240,16 @@ def exam_mode(cfg):
         if cfg.seed is not None:
             ui.note("seed %d — this exam is reproducible" % cfg.seed)
 
-    level_started, level_attempts = time.time(), saved.get("level_attempts", 0) if resumed else 0
+    if resumed:
+        level_attempts = saved.get("level_attempts", 0)
+        # Restore how much of this level's clock had already run before
+        # the earlier quit — otherwise a resume always restarts it from
+        # zero, silently dropping the time spent on it pre-quit from
+        # session.history / the exported report (see session_store.save()).
+        level_started = time.time() - saved.get("level_elapsed_seconds", 0)
+    else:
+        level_attempts = 0
+        level_started = time.time()
 
     while session.level <= N_LEVELS:
         if not resumed or session.current_ex is None:
@@ -266,10 +275,19 @@ def exam_mode(cfg):
                                             level_attempts, time.time() - level_started))
                     ui.level_cleared(session.level)
                     session.level += 1
+                    if session.level > N_LEVELS:
+                        try:
+                            ui.pause("  Press Enter to see your summary…")
+                        except ui.Abort:
+                            pass
+                        session_store.clear(TOOL)
+                        exam_summary(session, passed=True)
+                        return
                     try:
                         ui.pause("  Press Enter for the next level…")
                     except ui.Abort:
                         session_store.save(TOOL, session, rng, None, 0)
+                        exam_summary(session, passed=False)
                         return
                     break
                 ui.info("Fix your solution and type 'grademe' again.")
@@ -282,13 +300,19 @@ def exam_mode(cfg):
             elif cmd == "new":
                 session.current_ex = draw(rng, STANDARD_LEVELS[session.level],
                                           session.current_ex)
+                # A fresh exercise for this level starts its own clock and
+                # attempt count — otherwise both keep accruing from the
+                # exercise just abandoned, so a solve right after 'new'
+                # would misreport the abandoned exercise's time/attempts.
+                level_started, level_attempts = time.time(), 0
                 show_subject(session.current_ex, cfg, session)
                 ui.commands(EXAM_COMMANDS)
                 ui.info("New exercise drawn for level %d." % session.level)
             elif cmd == "stub":
                 make_stub(session.current_ex, cfg)
             elif cmd in ("quit", "q", "exit"):
-                session_store.save(TOOL, session, rng, session.current_ex, level_attempts)
+                session_store.save(TOOL, session, rng, session.current_ex,
+                                   level_attempts, level_started)
                 exam_summary(session, passed=False)
                 return
             elif cmd == "":
@@ -858,7 +882,7 @@ def main(argv=None):
         if value in DIFFICULTIES:
             training_mode(cfg, difficulty=value)
         elif value:
-            name = resolve_exercise(args.train)
+            name = resolve_exercise(value)
             if not name:
                 return 2
             training_mode(cfg, ex_name=name)

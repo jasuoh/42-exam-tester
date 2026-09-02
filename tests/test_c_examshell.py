@@ -263,5 +263,94 @@ class GradeExerciseHintTests(unittest.TestCase):
         hint.assert_called_once_with(EXERCISES["ft_split"]["hint"]["default"])
 
 
+class TrainCliCaseTests(unittest.TestCase):
+    """Mirrors tests/test_examshell.py's class of the same name — same
+    fix, same regression, both examshell.py's own --train handling."""
+
+    def test_train_resolves_an_uppercase_exercise_name(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(examshell, "training_mode") as training_mode, \
+             contextlib.redirect_stdout(io.StringIO()):
+            rc = examshell.main(["--train", "ARRAY_SUM", "--rendu", tmp])
+        self.assertEqual(rc, 0)
+        training_mode.assert_called_once_with(mock.ANY, ex_name="array_sum")
+
+
+class NewCommandResetsLevelTimingTests(unittest.TestCase):
+    """Mirrors tests/test_examshell.py's class of the same name — same
+    fix, same regression, both examshell.py's exam_mode()."""
+
+    def test_attempts_after_new_do_not_include_the_abandoned_exercise(self):
+        cfg = _cfg("unused-rendu", fuzz=0, seed=None)
+        ask_calls = ["  ", "grademe", "new", "grademe"]
+        captured = {}
+
+        def fake_summary(session, passed):
+            captured["session"] = session
+
+        with mock.patch.object(examshell, "grade_exercise", side_effect=[False, True]), \
+             mock.patch.object(examshell, "exam_summary", side_effect=fake_summary), \
+             mock.patch.object(examshell.session_store, "load", return_value=None), \
+             mock.patch.object(examshell.session_store, "save"), \
+             mock.patch.object(examshell.session_store, "clear"), \
+             mock.patch.object(examshell.ui, "ask", side_effect=ask_calls), \
+             mock.patch.object(examshell.ui, "pause", side_effect=examshell.ui.Abort()), \
+             mock.patch.object(examshell.ui, "clear"), \
+             mock.patch.object(examshell.ui, "banner"), \
+             mock.patch.object(examshell.ui, "status_bar"), \
+             mock.patch.object(examshell.ui, "subject"), \
+             mock.patch.object(examshell.ui, "commands"), \
+             mock.patch.object(examshell.ui, "level_cleared"), \
+             mock.patch.object(examshell.ui, "info"), \
+             contextlib.redirect_stdout(io.StringIO()):
+            examshell.exam_mode(cfg)
+
+        self.assertEqual(captured["session"].history[0][2], 1)
+
+
+class ExamModeAbortAtLevelPauseTests(unittest.TestCase):
+    """Mirrors tests/test_examshell.py's class of the same name — same fix,
+    same regression, both examshell.py's (see src/examshell.py's exam_mode
+    and c_exam/examshell.py's own copy)."""
+
+    def _run(self, pause_side_effect, n_asks):
+        cfg = _cfg("unused-rendu", fuzz=0, seed=None)
+        ask_calls = ["  "] + ["grademe"] * n_asks
+        with mock.patch.object(examshell, "grade_exercise", return_value=True), \
+             mock.patch.object(examshell.session_store, "load", return_value=None), \
+             mock.patch.object(examshell.session_store, "save") as save, \
+             mock.patch.object(examshell.session_store, "clear") as clear, \
+             mock.patch.object(examshell.report_export, "write_exam_report", return_value=None), \
+             mock.patch.object(examshell.stats, "best_exam_time", return_value=None), \
+             mock.patch.object(examshell.stats, "record_exam_complete"), \
+             mock.patch.object(examshell.ui, "ask", side_effect=ask_calls), \
+             mock.patch.object(examshell.ui, "pause", side_effect=pause_side_effect), \
+             mock.patch.object(examshell.ui, "summary") as summary, \
+             mock.patch.object(examshell.ui, "clear"), \
+             mock.patch.object(examshell.ui, "banner"), \
+             mock.patch.object(examshell.ui, "status_bar"), \
+             mock.patch.object(examshell.ui, "subject"), \
+             mock.patch.object(examshell.ui, "commands"), \
+             mock.patch.object(examshell.ui, "level_cleared"), \
+             contextlib.redirect_stdout(io.StringIO()):
+            examshell.exam_mode(cfg)
+        return save, clear, summary
+
+    def test_abort_on_the_final_level_pause_still_shows_a_passed_summary(self):
+        pause_effects = [None] * (N_LEVELS - 1) + [examshell.ui.Abort()]
+        save, clear, summary = self._run(pause_effects, n_asks=N_LEVELS)
+        save.assert_not_called()
+        clear.assert_called_once_with(examshell.TOOL)
+        summary.assert_called_once()
+        self.assertIn("PASSED", summary.call_args[0][0])
+
+    def test_abort_on_a_mid_exam_level_pause_still_shows_an_aborted_summary(self):
+        save, clear, summary = self._run([examshell.ui.Abort()], n_asks=1)
+        save.assert_called_once()
+        clear.assert_not_called()
+        summary.assert_called_once()
+        self.assertIn("ABORTED", summary.call_args[0][0])
+
+
 if __name__ == "__main__":
     unittest.main()

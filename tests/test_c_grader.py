@@ -241,6 +241,17 @@ class RunValgrindCommandTests(unittest.TestCase):
         self.assertFalse(clean)
         self.assertIn("definitely lost", detail)
 
+    def test_traced_programs_own_exit_code_colliding_with_the_sentinel_is_still_clean(self):
+        # --error-exitcode only overrides the exit code when valgrind ITSELF
+        # found something; a clean run passes the traced program's own exit
+        # code straight through, which can coincidentally equal
+        # VALGRIND_ERROR_EXITCODE. Regression test: no "==<pid>==" line in
+        # stderr means valgrind found nothing, regardless of the exit code.
+        (clean, detail), _ = self._run(
+            returncode=grader.VALGRIND_ERROR_EXITCODE, stderr="")
+        self.assertTrue(clean)
+        self.assertEqual(detail, "")
+
     def test_timeout_is_reported_dirty_not_raised(self):
         (clean, detail), _ = self._run(
             returncode=0, side_effect=subprocess.TimeoutExpired(cmd="valgrind", timeout=3))
@@ -398,6 +409,18 @@ class GradeEndToEndTests(unittest.TestCase):
 
     def test_broken_oracle_is_a_graceful_bank_error_not_a_crash(self):
         broken_ex = dict(self.EX, oracle_c="this is not valid C at all {{{")
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, self.EX["oracle_c"])
+            report = grader.grade("ft_strlen", broken_ex, tmp)
+            self.assertEqual(report.fatal, "BANK_ERROR")
+
+    def test_broken_codegen_is_a_graceful_bank_error_not_a_crash(self):
+        # render_call() raises ValueError on an unknown `returns` kind —
+        # regression test for generate_harness() being uncaught in the
+        # live grading path (only selftest() used to catch a codegen
+        # crash; a fuzzed value can hit this even when curated cases
+        # never do, see the module docstring).
+        broken_ex = dict(self.EX, returns="no_such_return_kind")
         with tempfile.TemporaryDirectory() as tmp:
             self._write(tmp, self.EX["oracle_c"])
             report = grader.grade("ft_strlen", broken_ex, tmp)
