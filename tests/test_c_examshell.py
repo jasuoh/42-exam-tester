@@ -7,6 +7,7 @@ covered by tests/test_c_grader.py's end-to-end tests instead."""
 
 import argparse
 import contextlib
+import inspect
 import io
 import os
 import random
@@ -27,7 +28,8 @@ skip_without_cc = unittest.skipUnless(HAVE_CC, "no C compiler on PATH")
 def _cfg(rendu, **overrides):
     args = argparse.Namespace(rendu=rendu, timeout=5, cc="cc",
                               strict_norm=False, show_fails=4, seed=None, fuzz=0,
-                              valgrind=False, strict_valgrind=False)
+                              valgrind=False, strict_valgrind=False,
+                              strict_forbidden=False)
     for key, value in overrides.items():
         setattr(args, key, value)
     return examshell.Config(args)
@@ -81,6 +83,19 @@ class ExerciseEntriesTests(unittest.TestCase):
         entries = examshell.exercise_entries()
         flagged = {name for _, _, name, _, standard in entries if standard}
         self.assertEqual(flagged, {n for n in EXERCISES if EXERCISES[n]["standard"]})
+        self.assertEqual(len(flagged), 56)
+
+    def test_new_exercises_default_to_extra_not_standard(self):
+        # Same opt-IN convention as src/exam_bank.py's own bank — every
+        # exercise must mark "standard": True explicitly, and an entry
+        # that forgets to must fail CLOSED (Extra) rather than silently
+        # becoming eligible for a real `make c-exam` draw. Source-level
+        # check (not a live-dict one: EXERCISES already has the key on
+        # every entry, whether from the source or from this fallback, so
+        # only the source pins down which one actually happened).
+        import c_exam.bank as bank_module
+        src = inspect.getsource(bank_module)
+        self.assertIn('_ex.setdefault("standard", False)', src)
 
     def test_indexes_are_sequential_from_one(self):
         entries = examshell.exercise_entries()
@@ -190,6 +205,24 @@ class MakeStubTests(unittest.TestCase):
                 self.assertIn("t_list", fh.read())
 
 
+class GradeAllValgrindWarningTests(unittest.TestCase):
+    """grade_exercise() already warns once when --valgrind is requested but
+    the binary isn't on PATH — grade_all() used to silently skip the same
+    check, so a whole `--grade-all --valgrind` run gave no indication that
+    every one of its (also silently skipped) leak checks had no effect."""
+
+    def test_warns_once_when_valgrind_is_requested_but_unavailable(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(examshell.grader, "have_valgrind", return_value=False), \
+             mock.patch.object(examshell.ui, "warn") as warn, \
+             mock.patch.object(examshell.ui, "overview_table"), \
+             mock.patch.object(examshell.ui, "note"), \
+             mock.patch.object(examshell.ui, "info"):
+            cfg = _cfg(tmp, valgrind=True)
+            examshell.grade_all(cfg)
+        self.assertTrue(any("valgrind" in call.args[0] for call in warn.call_args_list))
+
+
 @skip_without_cc
 class GradeExerciseHintTests(unittest.TestCase):
     """Mirrors tests/test_examshell.py's GradeExerciseHintTests — same
@@ -261,6 +294,95 @@ class GradeExerciseHintTests(unittest.TestCase):
             for _ in range(examshell.hints.STUCK_THRESHOLD):
                 examshell.grade_exercise("ft_split", rng, cfg, mode="practice")
         hint.assert_called_once_with(EXERCISES["ft_split"]["hint"]["default"])
+
+
+class TrainCliCaseTests(unittest.TestCase):
+    """Mirrors tests/test_examshell.py's class of the same name — same
+    fix, same regression, both examshell.py's own --train handling."""
+
+    def test_train_resolves_an_uppercase_exercise_name(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(examshell, "training_mode") as training_mode, \
+             contextlib.redirect_stdout(io.StringIO()):
+            rc = examshell.main(["--train", "ARRAY_SUM", "--rendu", tmp])
+        self.assertEqual(rc, 0)
+        training_mode.assert_called_once_with(mock.ANY, ex_name="array_sum")
+
+
+class NewCommandResetsLevelTimingTests(unittest.TestCase):
+    """Mirrors tests/test_examshell.py's class of the same name — same
+    fix, same regression, both examshell.py's exam_mode()."""
+
+    def test_attempts_after_new_do_not_include_the_abandoned_exercise(self):
+        cfg = _cfg("unused-rendu", fuzz=0, seed=None)
+        ask_calls = ["  ", "grademe", "new", "grademe"]
+        captured = {}
+
+        def fake_summary(session, passed):
+            captured["session"] = session
+
+        with mock.patch.object(examshell, "grade_exercise", side_effect=[False, True]), \
+             mock.patch.object(examshell, "exam_summary", side_effect=fake_summary), \
+             mock.patch.object(examshell.session_store, "load", return_value=None), \
+             mock.patch.object(examshell.session_store, "save"), \
+             mock.patch.object(examshell.session_store, "clear"), \
+             mock.patch.object(examshell.ui, "ask", side_effect=ask_calls), \
+             mock.patch.object(examshell.ui, "pause", side_effect=examshell.ui.Abort()), \
+             mock.patch.object(examshell.ui, "clear"), \
+             mock.patch.object(examshell.ui, "banner"), \
+             mock.patch.object(examshell.ui, "status_bar"), \
+             mock.patch.object(examshell.ui, "subject"), \
+             mock.patch.object(examshell.ui, "commands"), \
+             mock.patch.object(examshell.ui, "level_cleared"), \
+             mock.patch.object(examshell.ui, "info"), \
+             contextlib.redirect_stdout(io.StringIO()):
+            examshell.exam_mode(cfg)
+
+        self.assertEqual(captured["session"].history[0][2], 1)
+
+
+class ExamModeAbortAtLevelPauseTests(unittest.TestCase):
+    """Mirrors tests/test_examshell.py's class of the same name — same fix,
+    same regression, both examshell.py's (see src/examshell.py's exam_mode
+    and c_exam/examshell.py's own copy)."""
+
+    def _run(self, pause_side_effect, n_asks):
+        cfg = _cfg("unused-rendu", fuzz=0, seed=None)
+        ask_calls = ["  "] + ["grademe"] * n_asks
+        with mock.patch.object(examshell, "grade_exercise", return_value=True), \
+             mock.patch.object(examshell.session_store, "load", return_value=None), \
+             mock.patch.object(examshell.session_store, "save") as save, \
+             mock.patch.object(examshell.session_store, "clear") as clear, \
+             mock.patch.object(examshell.report_export, "write_exam_report", return_value=None), \
+             mock.patch.object(examshell.stats, "best_exam_time", return_value=None), \
+             mock.patch.object(examshell.stats, "record_exam_complete"), \
+             mock.patch.object(examshell.ui, "ask", side_effect=ask_calls), \
+             mock.patch.object(examshell.ui, "pause", side_effect=pause_side_effect), \
+             mock.patch.object(examshell.ui, "summary") as summary, \
+             mock.patch.object(examshell.ui, "clear"), \
+             mock.patch.object(examshell.ui, "banner"), \
+             mock.patch.object(examshell.ui, "status_bar"), \
+             mock.patch.object(examshell.ui, "subject"), \
+             mock.patch.object(examshell.ui, "commands"), \
+             mock.patch.object(examshell.ui, "level_cleared"), \
+             contextlib.redirect_stdout(io.StringIO()):
+            examshell.exam_mode(cfg)
+        return save, clear, summary
+
+    def test_abort_on_the_final_level_pause_still_shows_a_passed_summary(self):
+        pause_effects = [None] * (N_LEVELS - 1) + [examshell.ui.Abort()]
+        save, clear, summary = self._run(pause_effects, n_asks=N_LEVELS)
+        save.assert_not_called()
+        clear.assert_called_once_with(examshell.TOOL)
+        summary.assert_called_once()
+        self.assertIn("PASSED", summary.call_args[0][0])
+
+    def test_abort_on_a_mid_exam_level_pause_still_shows_an_aborted_summary(self):
+        save, clear, summary = self._run([examshell.ui.Abort()], n_asks=1)
+        save.assert_called_once()
+        clear.assert_not_called()
+        summary.assert_called_once()
+        self.assertIn("ABORTED", summary.call_args[0][0])
 
 
 if __name__ == "__main__":

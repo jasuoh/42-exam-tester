@@ -61,6 +61,7 @@ class Config(object):
         self.fuzz = args.fuzz
         self.valgrind = args.valgrind
         self.strict_valgrind = args.strict_valgrind
+        self.strict_forbidden = args.strict_forbidden
 
 
 # ══════════════════════════════════════════════════════════════
@@ -107,7 +108,8 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
                 "macOS; works on the real 42 school machines' Linux)")
     report = grader.grade(ex_name, ex, cfg.rendu, cc=cfg.cc, timeout=cfg.timeout,
                           strict_norm=cfg.strict_norm, rng=rng, fuzz=cfg.fuzz,
-                          valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind)
+                          valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind,
+                          strict_forbidden=cfg.strict_forbidden)
     ui.report(report, cfg.show_fails)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
@@ -120,6 +122,11 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
 
 
 def grade_all(cfg):
+    if cfg.valgrind and not grader.have_valgrind():
+        ui.warn("--valgrind requested but the valgrind binary isn't on PATH — "
+                "skipping the leak/UB check for every exercise below (not "
+                "available on Apple Silicon macOS; works on the real 42 "
+                "school machines' Linux)")
     rows, found, all_ok = [], 0, True
     for _, level, name, _func, _standard in exercise_entries():
         path = os.path.join(cfg.rendu, name + ".c")
@@ -131,7 +138,8 @@ def grade_all(cfg):
         report = grader.grade(name, EXERCISES[name], cfg.rendu, cc=cfg.cc,
                               timeout=cfg.timeout, strict_norm=cfg.strict_norm,
                               rng=rng, fuzz=cfg.fuzz,
-                              valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind)
+                              valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind,
+                              strict_forbidden=cfg.strict_forbidden)
         all_ok = all_ok and report.ok
         label = ("%d/%d" % (report.passed, report.total) if not report.fatal
                  else report.fatal_title)
@@ -240,7 +248,16 @@ def exam_mode(cfg):
         if cfg.seed is not None:
             ui.note("seed %d — this exam is reproducible" % cfg.seed)
 
-    level_started, level_attempts = time.time(), saved.get("level_attempts", 0) if resumed else 0
+    if resumed:
+        level_attempts = saved.get("level_attempts", 0)
+        # Restore how much of this level's clock had already run before
+        # the earlier quit — otherwise a resume always restarts it from
+        # zero, silently dropping the time spent on it pre-quit from
+        # session.history / the exported report (see session_store.save()).
+        level_started = time.time() - saved.get("level_elapsed_seconds", 0)
+    else:
+        level_attempts = 0
+        level_started = time.time()
 
     while session.level <= N_LEVELS:
         if not resumed or session.current_ex is None:
@@ -266,10 +283,19 @@ def exam_mode(cfg):
                                             level_attempts, time.time() - level_started))
                     ui.level_cleared(session.level)
                     session.level += 1
+                    if session.level > N_LEVELS:
+                        try:
+                            ui.pause("  Press Enter to see your summary…")
+                        except ui.Abort:
+                            pass
+                        session_store.clear(TOOL)
+                        exam_summary(session, passed=True)
+                        return
                     try:
                         ui.pause("  Press Enter for the next level…")
                     except ui.Abort:
                         session_store.save(TOOL, session, rng, None, 0)
+                        exam_summary(session, passed=False)
                         return
                     break
                 ui.info("Fix your solution and type 'grademe' again.")
@@ -282,13 +308,19 @@ def exam_mode(cfg):
             elif cmd == "new":
                 session.current_ex = draw(rng, STANDARD_LEVELS[session.level],
                                           session.current_ex)
+                # A fresh exercise for this level starts its own clock and
+                # attempt count — otherwise both keep accruing from the
+                # exercise just abandoned, so a solve right after 'new'
+                # would misreport the abandoned exercise's time/attempts.
+                level_started, level_attempts = time.time(), 0
                 show_subject(session.current_ex, cfg, session)
                 ui.commands(EXAM_COMMANDS)
                 ui.info("New exercise drawn for level %d." % session.level)
             elif cmd == "stub":
                 make_stub(session.current_ex, cfg)
             elif cmd in ("quit", "q", "exit"):
-                session_store.save(TOOL, session, rng, session.current_ex, level_attempts)
+                session_store.save(TOOL, session, rng, session.current_ex,
+                                   level_attempts, level_started)
                 exam_summary(session, passed=False)
                 return
             elif cmd == "":
@@ -716,6 +748,10 @@ def build_parser():
                         "your saved --save-config value)" % grader.DEFAULT_TIMEOUT)
     p.add_argument("--strict-norm", action="store_true",
                    help="fail grading on any compiler warning (-Werror)")
+    p.add_argument("--strict-forbidden", action="store_true",
+                   help="fail grading on a forbidden call, like the real "
+                        "moulinette (default: warning only, like malloc "
+                        "in an ft_strdup-style exercise's forbidden list)")
     p.add_argument("--fuzz", type=int, default=None, metavar="N",
                    help="random extra cases per fuzzable exercise (default: %d, or "
                         "your saved --save-config value) — only \"function\"-kind "
@@ -858,7 +894,7 @@ def main(argv=None):
         if value in DIFFICULTIES:
             training_mode(cfg, difficulty=value)
         elif value:
-            name = resolve_exercise(args.train)
+            name = resolve_exercise(value)
             if not name:
                 return 2
             training_mode(cfg, ex_name=name)

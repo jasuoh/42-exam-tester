@@ -13,6 +13,7 @@ import random
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -241,6 +242,17 @@ class RunValgrindCommandTests(unittest.TestCase):
         self.assertFalse(clean)
         self.assertIn("definitely lost", detail)
 
+    def test_traced_programs_own_exit_code_colliding_with_the_sentinel_is_still_clean(self):
+        # --error-exitcode only overrides the exit code when valgrind ITSELF
+        # found something; a clean run passes the traced program's own exit
+        # code straight through, which can coincidentally equal
+        # VALGRIND_ERROR_EXITCODE. Regression test: no "==<pid>==" line in
+        # stderr means valgrind found nothing, regardless of the exit code.
+        (clean, detail), _ = self._run(
+            returncode=grader.VALGRIND_ERROR_EXITCODE, stderr="")
+        self.assertTrue(clean)
+        self.assertEqual(detail, "")
+
     def test_timeout_is_reported_dirty_not_raised(self):
         (clean, detail), _ = self._run(
             returncode=0, side_effect=subprocess.TimeoutExpired(cmd="valgrind", timeout=3))
@@ -338,6 +350,30 @@ class GradeEndToEndTests(unittest.TestCase):
             report = grader.grade("ft_strlen", self.EX, tmp)
             self.assertEqual(report.fatal, "FORBIDDEN_MAIN")
 
+    def test_forbidden_call_only_warns_by_default(self):
+        ex = dict(self.EX, forbidden=["strlen"])
+        cheat = "#include <string.h>\n" \
+               "int ft_strlen(char *str)\n{\n    return strlen(str);\n}\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, cheat)
+            report = grader.grade("ft_strlen", ex, tmp)
+            self.assertTrue(report.ok, report.failures)
+            self.assertTrue(any("forbidden" in w for w in report.warnings))
+
+    def test_strict_forbidden_fails_a_solution_that_uses_the_forbidden_call(self):
+        # Unlike Python's --strict-imports, a forbidden C call used to only
+        # ever warn — never fail grading, no matter what — so a solution
+        # that just calls the libc function it's supposed to reimplement
+        # still scored 100%.
+        ex = dict(self.EX, forbidden=["strlen"])
+        cheat = "#include <string.h>\n" \
+               "int ft_strlen(char *str)\n{\n    return strlen(str);\n}\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, cheat)
+            report = grader.grade("ft_strlen", ex, tmp, strict_forbidden=True)
+            self.assertEqual(report.fatal, "FORBIDDEN_CALL")
+            self.assertIn("strlen", report.detail)
+
     def test_selftest_guarded_main_does_not_trip_the_check(self):
         # the exact shape c_exam/examshell.py's stub ships — must grade fine
         with tempfile.TemporaryDirectory() as tmp:
@@ -390,6 +426,24 @@ class GradeEndToEndTests(unittest.TestCase):
             self.assertTrue(report.ok, report.failures)
             self.assertEqual(report.total, 2)   # fuzz never applies to "program" kind
 
+    def test_strict_forbidden_fails_a_program_kind_solution_too(self):
+        program_ex = {
+            "function": "echoprog", "kind": "program", "forbidden": ["puts"],
+            "oracle_c": "#include <stdio.h>\n"
+                       "int main(int argc, char **argv)\n{\n"
+                       "    (void)argc;\n    printf(\"%s\\n\", argv[1]);\n"
+                       "    return 0;\n}\n",
+            "cases": [["hi"], ["there"]],
+        }
+        cheat = "#include <stdio.h>\n" \
+               "int main(int argc, char **argv)\n{\n" \
+               "    (void)argc;\n    puts(argv[1]);\n    return 0;\n}\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write_named(tmp, "echoprog.c", cheat)
+            report = grader.grade("echoprog", program_ex, tmp, strict_forbidden=True)
+            self.assertEqual(report.fatal, "FORBIDDEN_CALL")
+            self.assertIn("puts", report.detail)
+
     def _write_named(self, tmp, filename, body):
         path = tmp + "/" + filename
         with open(path, "w", encoding="utf-8") as fh:
@@ -402,6 +456,36 @@ class GradeEndToEndTests(unittest.TestCase):
             self._write(tmp, self.EX["oracle_c"])
             report = grader.grade("ft_strlen", broken_ex, tmp)
             self.assertEqual(report.fatal, "BANK_ERROR")
+
+    def test_broken_codegen_is_a_graceful_bank_error_not_a_crash(self):
+        # render_call() raises ValueError on an unknown `returns` kind —
+        # regression test for generate_harness() being uncaught in the
+        # live grading path (only selftest() used to catch a codegen
+        # crash; a fuzzed value can hit this even when curated cases
+        # never do, see the module docstring).
+        broken_ex = dict(self.EX, returns="no_such_return_kind")
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, self.EX["oracle_c"])
+            report = grader.grade("ft_strlen", broken_ex, tmp)
+            self.assertEqual(report.fatal, "BANK_ERROR")
+
+    def test_duration_includes_a_slow_valgrind_pass(self):
+        # _grade_program's report.duration already included valgrind time
+        # (its one assignment sits after the per-case valgrind loop);
+        # _grade_function's used to be set BEFORE its own valgrind pass
+        # and never updated — regression test for that inconsistency.
+        # Mocked (not @skip_without_valgrind): only grade()'s own
+        # bookkeeping is under test here, not a real valgrind run.
+        def slow_but_clean(*args, **kwargs):
+            time.sleep(0.2)
+            return True, ""
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, self.EX["oracle_c"])
+            with mock.patch.object(grader, "have_valgrind", return_value=True), \
+                 mock.patch.object(grader, "run_valgrind", side_effect=slow_but_clean):
+                report = grader.grade("ft_strlen", self.EX, tmp, valgrind=True)
+            self.assertTrue(report.ok, report.failures)
+            self.assertGreaterEqual(report.duration, 0.2)
 
     @skip_without_valgrind
     def test_valgrind_false_never_runs_it(self):

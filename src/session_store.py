@@ -35,8 +35,14 @@ def _rng_from_json(data):
     return (version, tuple(internal), gauss_next)
 
 
-def save(tool, session, rng, current_ex, level_attempts=0):
-    """Persist enough state to resume exactly where the student left off."""
+def save(tool, session, rng, current_ex, level_attempts=0, level_started=None):
+    """Persist enough state to resume exactly where the student left off.
+
+    `level_started` is the wall-clock time.time() the CURRENT level began —
+    without it, a resume can only restart that level's clock from the
+    moment of resuming, silently dropping whatever time was already spent
+    on it before quitting (see load()'s counterpart, level_elapsed_seconds).
+    """
     data = {
         "login": session.login,
         "level": session.level,
@@ -45,6 +51,7 @@ def save(tool, session, rng, current_ex, level_attempts=0):
         "attempts": session.attempts,
         "history": session.history,
         "level_attempts": level_attempts,
+        "level_elapsed_seconds": (time.time() - level_started) if level_started else 0,
         "elapsed_seconds": time.time() - session.start_time
                           if session.start_time else 0,
         "rng_state": _rng_to_json(rng),

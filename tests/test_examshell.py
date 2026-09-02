@@ -5,6 +5,7 @@ exercise resolution, formatting — not the interactive flow itself."""
 
 import argparse
 import contextlib
+import inspect
 import io
 import os
 import random
@@ -80,6 +81,15 @@ class ExerciseEntriesTests(unittest.TestCase):
         flagged = {name for _, _, name, _, standard in entries if standard}
         self.assertEqual(flagged, {n for n in EXERCISES if EXERCISES[n]["standard"]})
         self.assertEqual(len(flagged), 14)
+
+    def test_new_exercises_default_to_extra_not_standard(self):
+        # Fail-CLOSED by design: an exercise that forgets to mark itself
+        # "standard": True must never silently become eligible for a real
+        # `make exam` draw (see c_exam/bank.py's own copy of this test —
+        # it used to default the opposite way there).
+        import src.exam_bank as bank_module
+        src = inspect.getsource(bank_module)
+        self.assertIn('_ex.setdefault("standard", False)', src)
 
     def test_indexes_are_sequential_from_one(self):
         entries = examshell.exercise_entries()
@@ -297,6 +307,105 @@ class GradeExerciseHintTests(unittest.TestCase):
             with mock.patch.object(examshell.ui, "hint") as hint:
                 examshell.grade_exercise("py_inter", rng, cfg, mode="practice")
         hint.assert_not_called()
+
+
+class TrainCliCaseTests(unittest.TestCase):
+    """--train's exercise-name branch used to resolve against the ORIGINAL
+    (mixed-case) argv value even though a lowercased `value` was already
+    computed right above it for the difficulty check — regression test for
+    that inconsistency (c_exam/examshell.py's main() has the identical
+    bug/fix)."""
+
+    def test_train_resolves_an_uppercase_exercise_name(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(examshell, "training_mode") as training_mode, \
+             contextlib.redirect_stdout(io.StringIO()):
+            rc = examshell.main(["--train", "PY_FIZZBUZZ_LIST", "--rendu", tmp])
+        self.assertEqual(rc, 0)
+        training_mode.assert_called_once_with(mock.ANY, ex_name="py_fizzbuzz_list")
+
+
+class NewCommandResetsLevelTimingTests(unittest.TestCase):
+    """'new' (draw a different exercise for this level) used to leave
+    level_attempts/level_started tied to the exercise just abandoned — a
+    later solve on the freshly drawn one would misattribute the abandoned
+    exercise's own failed attempt (and the time spent on it) to the new
+    one in session.history / the exported report."""
+
+    def test_attempts_after_new_do_not_include_the_abandoned_exercise(self):
+        cfg = _cfg("unused-rendu", fuzz=0, seed=None)
+        ask_calls = ["  ", "grademe", "new", "grademe"]
+        captured = {}
+
+        def fake_summary(session, passed):
+            captured["session"] = session
+
+        with mock.patch.object(examshell, "grade_exercise", side_effect=[False, True]), \
+             mock.patch.object(examshell, "exam_summary", side_effect=fake_summary), \
+             mock.patch.object(examshell.session_store, "load", return_value=None), \
+             mock.patch.object(examshell.session_store, "save"), \
+             mock.patch.object(examshell.session_store, "clear"), \
+             mock.patch.object(examshell.ui, "ask", side_effect=ask_calls), \
+             mock.patch.object(examshell.ui, "pause", side_effect=examshell.ui.Abort()), \
+             mock.patch.object(examshell.ui, "clear"), \
+             mock.patch.object(examshell.ui, "banner"), \
+             mock.patch.object(examshell.ui, "status_bar"), \
+             mock.patch.object(examshell.ui, "subject"), \
+             mock.patch.object(examshell.ui, "commands"), \
+             mock.patch.object(examshell.ui, "level_cleared"), \
+             mock.patch.object(examshell.ui, "info"), \
+             contextlib.redirect_stdout(io.StringIO()):
+            examshell.exam_mode(cfg)
+
+        self.assertEqual(captured["session"].history[0][2], 1)
+
+
+class ExamModeAbortAtLevelPauseTests(unittest.TestCase):
+    """Ctrl-C / Ctrl-D exactly at the "Press Enter for the next level…"
+    pause used to exit exam_mode silently, with no summary at all — every
+    other exit point in the loop (the "quit" command, an abort while
+    typing a command) shows one. Regression test for that inconsistency,
+    plus the specific case of aborting the pause right after the FINAL
+    level: the saved state used to end up with level = N_LEVELS + 1, an
+    out-of-range value the outer `while` loop can never satisfy again."""
+
+    def _run(self, pause_side_effect, n_asks):
+        cfg = _cfg("unused-rendu", fuzz=0, seed=None)
+        ask_calls = ["  "] + ["grademe"] * n_asks   # login (default), then one "grademe" per level
+        with mock.patch.object(examshell, "grade_exercise", return_value=True), \
+             mock.patch.object(examshell.session_store, "load", return_value=None), \
+             mock.patch.object(examshell.session_store, "save") as save, \
+             mock.patch.object(examshell.session_store, "clear") as clear, \
+             mock.patch.object(examshell.report_export, "write_exam_report", return_value=None), \
+             mock.patch.object(examshell.stats, "best_exam_time", return_value=None), \
+             mock.patch.object(examshell.stats, "record_exam_complete"), \
+             mock.patch.object(examshell.ui, "ask", side_effect=ask_calls), \
+             mock.patch.object(examshell.ui, "pause", side_effect=pause_side_effect), \
+             mock.patch.object(examshell.ui, "summary") as summary, \
+             mock.patch.object(examshell.ui, "clear"), \
+             mock.patch.object(examshell.ui, "banner"), \
+             mock.patch.object(examshell.ui, "status_bar"), \
+             mock.patch.object(examshell.ui, "subject"), \
+             mock.patch.object(examshell.ui, "commands"), \
+             mock.patch.object(examshell.ui, "level_cleared"), \
+             contextlib.redirect_stdout(io.StringIO()):
+            examshell.exam_mode(cfg)
+        return save, clear, summary
+
+    def test_abort_on_the_final_level_pause_still_shows_a_passed_summary(self):
+        pause_effects = [None] * (N_LEVELS - 1) + [examshell.ui.Abort()]
+        save, clear, summary = self._run(pause_effects, n_asks=N_LEVELS)
+        save.assert_not_called()
+        clear.assert_called_once_with(examshell.TOOL)
+        summary.assert_called_once()
+        self.assertIn("PASSED", summary.call_args[0][0])
+
+    def test_abort_on_a_mid_exam_level_pause_still_shows_an_aborted_summary(self):
+        save, clear, summary = self._run([examshell.ui.Abort()], n_asks=1)
+        save.assert_called_once()
+        clear.assert_not_called()
+        summary.assert_called_once()
+        self.assertIn("ABORTED", summary.call_args[0][0])
 
 
 if __name__ == "__main__":

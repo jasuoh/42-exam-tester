@@ -13,17 +13,29 @@ convenience, never a reason to fail the exam.
 """
 
 import os
+import re
 import time
 
 from .settings import DATA_DIR
 
 REPORTS_DIR = os.path.join(DATA_DIR, "reports")
 
+# session.login is free-form student input (see ui.ask("  Login...") in
+# both examshell.py's) spliced directly into a filename below — a stray
+# "/" or a ".." component in it must never let the report escape
+# REPORTS_DIR.
+_UNSAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9_.-]+")
+
+
+def _safe_login(login):
+    safe = _UNSAFE_FILENAME_RE.sub("_", login).strip("._")
+    return safe or "student"
+
 
 def write_exam_report(tool, session, n_levels, passed, achievements=()):
     """Write the report, return its path on success or None on failure."""
     stamp = time.strftime("%Y%m%d_%H%M%S")
-    path = os.path.join(REPORTS_DIR, "%s_%s_%s.md" % (tool, stamp, session.login))
+    path = os.path.join(REPORTS_DIR, "%s_%s_%s.md" % (tool, stamp, _safe_login(session.login)))
 
     lines = []
     title = "Exam PASSED" if passed else "Exam aborted"

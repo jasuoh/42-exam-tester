@@ -56,6 +56,12 @@ DEFAULT_FUZZ = 8           # random extra cases per exercise (function-kind, saf
 VALGRIND_TIMEOUT_MULT = 5     # valgrind runs much slower than the bare binary
 VALGRIND_ERROR_EXITCODE = 99
 
+# Every line valgrind itself writes (an error, a leak record, ...) is
+# prefixed "==<pid>==" — see run_valgrind()'s use of this to tell a real
+# finding apart from the traced program's own exit code coincidentally
+# matching VALGRIND_ERROR_EXITCODE.
+_VALGRIND_REPORT_RE = re.compile(r"(?m)^==\d+==")
+
 CASE_DELIM = "===CASE "
 _CASE_RE = re.compile(r"===CASE (\d+)===\n")
 
@@ -794,7 +800,17 @@ def run_valgrind(path, timeout=DEFAULT_TIMEOUT, argv=None):
     except subprocess.TimeoutExpired:
         return False, "valgrind timed out — the program may just be slow " \
                       "under instrumentation, not necessarily an infinite loop"
-    if proc.returncode == VALGRIND_ERROR_EXITCODE:
+    # --error-exitcode only overrides the exit code when valgrind ITSELF
+    # found an error; a clean run passes the TRACED PROGRAM's own exit
+    # code straight through, which can coincidentally equal
+    # VALGRIND_ERROR_EXITCODE (e.g. a program-kind exercise whose correct
+    # solution legitimately exits(99)) and would otherwise misreport a
+    # clean run as leaky. Valgrind always prefixes every one of its own
+    # findings with "==<pid>==", even under -q (which only silences its
+    # startup/summary banners, never an actual finding) — checking for
+    # that is what actually tells "valgrind found something" apart from
+    # "the program's own exit code happened to match".
+    if proc.returncode == VALGRIND_ERROR_EXITCODE and _VALGRIND_REPORT_RE.search(proc.stderr):
         return False, proc.stderr[:800]
     return True, ""
 
@@ -815,21 +831,26 @@ def split_cases(output):
 # ══════════════════════════════════════════════════════════════
 def grade(ex_name, ex, rendu_dir, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT,
           strict_norm=False, filepath=None, rng=None, fuzz=0,
-          valgrind=False, strict_valgrind=False):
+          valgrind=False, strict_valgrind=False, strict_forbidden=False):
     """Grade one exercise. `rng`/`fuzz` only ever apply to "function"-kind
     exercises whose args are all "safe" to randomise (see is_fuzzable) —
     every other exercise is graded on its curated cases alone, same as
     before fuzzing existed. `valgrind` is silently skipped (not an error)
-    when the valgrind binary isn't on PATH — see have_valgrind()."""
+    when the valgrind binary isn't on PATH — see have_valgrind(). A
+    forbidden call (see find_forbidden()) only warns unless
+    `strict_forbidden` — the real exam's own moulinette does fail on one,
+    same as Python's --strict-imports; this project's own default stays
+    lenient so a beginner's warning-only feedback loop isn't lost."""
     if ex.get("kind") == "program":
         return _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                              valgrind, strict_valgrind)
+                              valgrind, strict_valgrind, strict_forbidden)
     return _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                           rng, fuzz, valgrind, strict_valgrind)
+                           rng, fuzz, valgrind, strict_valgrind, strict_forbidden)
 
 
 def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                    rng=None, fuzz=0, valgrind=False, strict_valgrind=False):
+                    rng=None, fuzz=0, valgrind=False, strict_valgrind=False,
+                    strict_forbidden=False):
     report = Report(ex_name, ex["function"])
     path = filepath or os.path.join(rendu_dir, ex_name + ".c")
     started = time.time()
@@ -855,6 +876,8 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
     if forbidden:
         report.warnings.append(
             "forbidden call found for this exercise: %s" % ", ".join(forbidden))
+        if strict_forbidden:
+            return report.fail("FORBIDDEN_CALL", ", ".join(forbidden))
 
     workdir = tempfile.mkdtemp(prefix="c-exam-")
     try:
@@ -865,9 +888,22 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
                 fh.write(header_content(header))
             include_dirs.append(workdir)
 
+        # Codegen itself (render_call(), a return_len callable, ...) can
+        # raise on a value it doesn't expect — reachable even for an
+        # exercise whose curated cases always codegen cleanly, since fuzz
+        # cases exercise it with values the bank author never tried. Same
+        # BANK_ERROR treatment as a reference that fails to compile below:
+        # a bank/codegen bug is never the student's fault, and must never
+        # surface as a raw traceback mid-exam (see the module docstring).
+        try:
+            harness_src = generate_harness(ex, cases)
+        except Exception as exc:
+            return report.fail("BANK_ERROR",
+                               "%s: harness codegen crashed (%s: %s)"
+                               % (ex_name, type(exc).__name__, exc))
         harness_path = os.path.join(workdir, "harness.c")
         with open(harness_path, "w", encoding="utf-8") as fh:
-            fh.write(generate_harness(ex, cases))
+            fh.write(harness_src)
 
         oracle_path = os.path.join(workdir, "oracle.c")
         with open(oracle_path, "w", encoding="utf-8") as fh:
@@ -919,12 +955,17 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
             # binary/process.
             vg_clean, vg_detail = run_valgrind(student_bin, timeout)
             if not vg_clean:
-                message = ("valgrind reported memory error(s) (leaks, invalid "
-                           "reads/writes, ...) — fix them before the real exam, "
-                           "leaked/invalid memory is graded there too:\n" + vg_detail)
+                # Appended before the strict_valgrind fail-out below too —
+                # ui.report() prints warnings even on a fatal Report, and
+                # hints.classify() detects LEAK by scanning report.warnings
+                # for the word (see src/hints.py), which needs it present
+                # here regardless of strict/non-strict.
+                report.warnings.append(
+                    "valgrind reported memory error(s) (leaks, invalid "
+                    "reads/writes, ...) — fix them before the real exam, "
+                    "leaked/invalid memory is graded there too:\n" + vg_detail)
                 if strict_valgrind:
                     return report.fail("VALGRIND_ERRORS", vg_detail)
-                report.warnings.append(message)
 
         n = len(cases)
         ref_chunks = split_cases(ref_out)
@@ -942,13 +983,19 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
                 # list doesn't grow a stray blank line per entry.
                 report.failures.append(
                     CFailure(i, expected.rstrip("\n"), got.rstrip("\n")))
+        # Updated (not just set once above) so a valgrind pass — much
+        # slower than the bare binary, see VALGRIND_TIMEOUT_MULT — is
+        # counted too, the same way _grade_program's single end-of-loop
+        # assignment already does; only the early TIMEOUT/VALGRIND_ERRORS
+        # fatal returns above keep the earlier, valgrind-time-free value.
+        report.duration = time.time() - started
         return report
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
 
 
 def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                   valgrind=False, strict_valgrind=False):
+                   valgrind=False, strict_valgrind=False, strict_forbidden=False):
     """"program"-kind exercises: the student's file compiles ALONE (it IS
     the main()), and is run once per case with that case's argv."""
     report = Report(ex_name, ex["function"])
@@ -965,6 +1012,8 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
     if forbidden:
         report.warnings.append(
             "forbidden call found for this exercise: %s" % ", ".join(forbidden))
+        if strict_forbidden:
+            return report.fail("FORBIDDEN_CALL", ", ".join(forbidden))
 
     workdir = tempfile.mkdtemp(prefix="c-exam-")
     try:
@@ -1020,9 +1069,8 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
                         break
 
         if vg_issues:
-            if strict_valgrind:
-                return report.fail("VALGRIND_ERRORS", "case %d: %s"
-                                   % (vg_issues[0][0], vg_issues[0][1]))
+            # Appended before the strict_valgrind fail-out below too — see
+            # the matching comment in _grade_function.
             more = (" (+%d more case%s)" % (len(vg_issues) - 1,
                     "" if len(vg_issues) == 2 else "s") if len(vg_issues) > 1 else "")
             report.warnings.append(
@@ -1030,6 +1078,9 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
                 "...) on case %d%s — fix them before the real exam, leaked/invalid "
                 "memory is graded there too:\n%s"
                 % (vg_issues[0][0], more, vg_issues[0][1]))
+            if strict_valgrind:
+                return report.fail("VALGRIND_ERRORS", "case %d: %s"
+                                   % (vg_issues[0][0], vg_issues[0][1]))
 
         report.duration = time.time() - started
         return report
