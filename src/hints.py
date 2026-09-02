@@ -36,7 +36,7 @@ import re
 
 STUCK_THRESHOLD = 3
 
-_EMPTYISH_REPRS = ("", "[]", "()", "{}", "None")
+_EMPTYISH_OBJECTS = (None, [], (), {})
 
 # The Python sandbox never appends a "crashed" warning like the C tester
 # does (see grade_exercise() below) — a raised exception is just a failing
@@ -88,7 +88,18 @@ def _as_number(value):
 
 
 def _is_emptyish(value):
-    return str(value).strip() in _EMPTYISH_REPRS
+    """True when `value` represents "nothing" — the real empty Python
+    object (None, [], (), {}, "") when it's still typed (a Python
+    Report's f.expected is — see src/grader.py's Failure), a bare "" when
+    it's already a string (a C tester's raw stdout diff always is, and so
+    is a Python Report's f.got — see RUNNER_TEMPLATE's short_repr()).
+    Deliberately NOT string-matching "None"/"[]"/"()"/"{}" the way an
+    older version of this did: a solution whose genuinely correct answer
+    is the literal string "None" (or "[]", ...) would otherwise be
+    treated as if it returned nothing at all."""
+    if isinstance(value, str):
+        return value.strip() == ""
+    return value in _EMPTYISH_OBJECTS
 
 
 def classify(report):
@@ -103,8 +114,19 @@ def classify(report):
         return TIMEOUT
     if any("crashed" in w for w in report.warnings):
         return CRASH
-    if any("leak" in w.lower() for w in report.warnings):
+    # Valgrind's own leak-summary phrasing ("N bytes in M blocks are
+    # definitely/indirectly/possibly lost") is the only reliable signal
+    # that a valgrind finding was actually a LEAK — the boilerplate
+    # wrapper message around it (see c_exam/grader.py's run_valgrind()
+    # callers) always says "leak" regardless of the real finding, so
+    # grepping for that word used to show the LEAK hint even for e.g. a
+    # plain invalid read/write with zero blocks actually leaked. Any
+    # other valgrind finding is routed to CRASH instead — genuinely the
+    # closer category (memory access, not "wrong logic").
+    if any("lost" in w.lower() for w in report.warnings):
         return LEAK
+    if any("valgrind reported" in w.lower() for w in report.warnings):
+        return CRASH
     if report.fatal or not report.failures:
         return None
     f = report.failures[0]

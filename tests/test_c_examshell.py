@@ -7,6 +7,7 @@ covered by tests/test_c_grader.py's end-to-end tests instead."""
 
 import argparse
 import contextlib
+import inspect
 import io
 import os
 import random
@@ -27,7 +28,8 @@ skip_without_cc = unittest.skipUnless(HAVE_CC, "no C compiler on PATH")
 def _cfg(rendu, **overrides):
     args = argparse.Namespace(rendu=rendu, timeout=5, cc="cc",
                               strict_norm=False, show_fails=4, seed=None, fuzz=0,
-                              valgrind=False, strict_valgrind=False)
+                              valgrind=False, strict_valgrind=False,
+                              strict_forbidden=False)
     for key, value in overrides.items():
         setattr(args, key, value)
     return examshell.Config(args)
@@ -81,6 +83,19 @@ class ExerciseEntriesTests(unittest.TestCase):
         entries = examshell.exercise_entries()
         flagged = {name for _, _, name, _, standard in entries if standard}
         self.assertEqual(flagged, {n for n in EXERCISES if EXERCISES[n]["standard"]})
+        self.assertEqual(len(flagged), 56)
+
+    def test_new_exercises_default_to_extra_not_standard(self):
+        # Same opt-IN convention as src/exam_bank.py's own bank — every
+        # exercise must mark "standard": True explicitly, and an entry
+        # that forgets to must fail CLOSED (Extra) rather than silently
+        # becoming eligible for a real `make c-exam` draw. Source-level
+        # check (not a live-dict one: EXERCISES already has the key on
+        # every entry, whether from the source or from this fallback, so
+        # only the source pins down which one actually happened).
+        import c_exam.bank as bank_module
+        src = inspect.getsource(bank_module)
+        self.assertIn('_ex.setdefault("standard", False)', src)
 
     def test_indexes_are_sequential_from_one(self):
         entries = examshell.exercise_entries()
@@ -188,6 +203,24 @@ class MakeStubTests(unittest.TestCase):
             self.assertIn('#include "list.h"', content)
             with open(tmp + "/list.h", encoding="utf-8") as fh:
                 self.assertIn("t_list", fh.read())
+
+
+class GradeAllValgrindWarningTests(unittest.TestCase):
+    """grade_exercise() already warns once when --valgrind is requested but
+    the binary isn't on PATH — grade_all() used to silently skip the same
+    check, so a whole `--grade-all --valgrind` run gave no indication that
+    every one of its (also silently skipped) leak checks had no effect."""
+
+    def test_warns_once_when_valgrind_is_requested_but_unavailable(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(examshell.grader, "have_valgrind", return_value=False), \
+             mock.patch.object(examshell.ui, "warn") as warn, \
+             mock.patch.object(examshell.ui, "overview_table"), \
+             mock.patch.object(examshell.ui, "note"), \
+             mock.patch.object(examshell.ui, "info"):
+            cfg = _cfg(tmp, valgrind=True)
+            examshell.grade_all(cfg)
+        self.assertTrue(any("valgrind" in call.args[0] for call in warn.call_args_list))
 
 
 @skip_without_cc

@@ -480,8 +480,10 @@ Beyond pass/fail, `grademe` tells you when:
   `--strict-norm` to turn warnings into hard failures with `-Werror`,
   mirroring the Python tool's `--strict-imports`),
 * you used a **forbidden libc call** for that exercise (e.g. `atoi` itself
-  for `ft_atoi`) — a warning, not a hard failure, matching the Python
-  tool's default posture on imports.
+  for `ft_atoi`) — a warning by default (matching the Python tool's
+  default posture on imports), or a hard failure with `--strict-forbidden`
+  (matching the real moulinette, and `--strict-imports` on the Python
+  side).
 
 `--cc` isn't just a convenience flag: every oracle in both C banks is
 also verified against a second compiler (GCC, alongside the default
@@ -656,7 +658,7 @@ python3 -m c_exam --help
 ```
 
 Useful flags: `--rendu DIR`, `--cc COMPILER`, `--timeout SEC`, `--strict-norm`,
-`--fuzz N`, `--valgrind`, `--strict-valgrind`, `--show-fails N`,
+`--strict-forbidden`, `--fuzz N`, `--valgrind`, `--strict-valgrind`, `--show-fails N`,
 `--theme {dark,light,highcontrast}`, `--save-config`, `--no-color`,
 `--no-rich`. Same shared theme/config/stats/resume/report layer as the
 Python tester — see

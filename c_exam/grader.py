@@ -831,21 +831,26 @@ def split_cases(output):
 # ══════════════════════════════════════════════════════════════
 def grade(ex_name, ex, rendu_dir, cc=DEFAULT_CC, timeout=DEFAULT_TIMEOUT,
           strict_norm=False, filepath=None, rng=None, fuzz=0,
-          valgrind=False, strict_valgrind=False):
+          valgrind=False, strict_valgrind=False, strict_forbidden=False):
     """Grade one exercise. `rng`/`fuzz` only ever apply to "function"-kind
     exercises whose args are all "safe" to randomise (see is_fuzzable) —
     every other exercise is graded on its curated cases alone, same as
     before fuzzing existed. `valgrind` is silently skipped (not an error)
-    when the valgrind binary isn't on PATH — see have_valgrind()."""
+    when the valgrind binary isn't on PATH — see have_valgrind(). A
+    forbidden call (see find_forbidden()) only warns unless
+    `strict_forbidden` — the real exam's own moulinette does fail on one,
+    same as Python's --strict-imports; this project's own default stays
+    lenient so a beginner's warning-only feedback loop isn't lost."""
     if ex.get("kind") == "program":
         return _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                              valgrind, strict_valgrind)
+                              valgrind, strict_valgrind, strict_forbidden)
     return _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                           rng, fuzz, valgrind, strict_valgrind)
+                           rng, fuzz, valgrind, strict_valgrind, strict_forbidden)
 
 
 def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                    rng=None, fuzz=0, valgrind=False, strict_valgrind=False):
+                    rng=None, fuzz=0, valgrind=False, strict_valgrind=False,
+                    strict_forbidden=False):
     report = Report(ex_name, ex["function"])
     path = filepath or os.path.join(rendu_dir, ex_name + ".c")
     started = time.time()
@@ -871,6 +876,8 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
     if forbidden:
         report.warnings.append(
             "forbidden call found for this exercise: %s" % ", ".join(forbidden))
+        if strict_forbidden:
+            return report.fail("FORBIDDEN_CALL", ", ".join(forbidden))
 
     workdir = tempfile.mkdtemp(prefix="c-exam-")
     try:
@@ -976,13 +983,19 @@ def _grade_function(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
                 # list doesn't grow a stray blank line per entry.
                 report.failures.append(
                     CFailure(i, expected.rstrip("\n"), got.rstrip("\n")))
+        # Updated (not just set once above) so a valgrind pass — much
+        # slower than the bare binary, see VALGRIND_TIMEOUT_MULT — is
+        # counted too, the same way _grade_program's single end-of-loop
+        # assignment already does; only the early TIMEOUT/VALGRIND_ERRORS
+        # fatal returns above keep the earlier, valgrind-time-free value.
+        report.duration = time.time() - started
         return report
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
 
 
 def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
-                   valgrind=False, strict_valgrind=False):
+                   valgrind=False, strict_valgrind=False, strict_forbidden=False):
     """"program"-kind exercises: the student's file compiles ALONE (it IS
     the main()), and is run once per case with that case's argv."""
     report = Report(ex_name, ex["function"])
@@ -999,6 +1012,8 @@ def _grade_program(ex_name, ex, rendu_dir, cc, timeout, strict_norm, filepath,
     if forbidden:
         report.warnings.append(
             "forbidden call found for this exercise: %s" % ", ".join(forbidden))
+        if strict_forbidden:
+            return report.fail("FORBIDDEN_CALL", ", ".join(forbidden))
 
     workdir = tempfile.mkdtemp(prefix="c-exam-")
     try:

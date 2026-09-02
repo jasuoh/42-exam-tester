@@ -5,6 +5,7 @@ exercise resolution, formatting — not the interactive flow itself."""
 
 import argparse
 import contextlib
+import inspect
 import io
 import os
 import random
@@ -80,6 +81,15 @@ class ExerciseEntriesTests(unittest.TestCase):
         flagged = {name for _, _, name, _, standard in entries if standard}
         self.assertEqual(flagged, {n for n in EXERCISES if EXERCISES[n]["standard"]})
         self.assertEqual(len(flagged), 14)
+
+    def test_new_exercises_default_to_extra_not_standard(self):
+        # Fail-CLOSED by design: an exercise that forgets to mark itself
+        # "standard": True must never silently become eligible for a real
+        # `make exam` draw (see c_exam/bank.py's own copy of this test —
+        # it used to default the opposite way there).
+        import src.exam_bank as bank_module
+        src = inspect.getsource(bank_module)
+        self.assertIn('_ex.setdefault("standard", False)', src)
 
     def test_indexes_are_sequential_from_one(self):
         entries = examshell.exercise_entries()

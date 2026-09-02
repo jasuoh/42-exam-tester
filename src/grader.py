@@ -108,6 +108,7 @@ FATAL_TITLES = {
     "TIMEOUT":         "Timed out (infinite loop?)",
     "BANK_ERROR":      "Internal error in the exercise bank (not your fault — please report this)",
     "VALGRIND_ERRORS": "valgrind found memory error(s) (--strict-valgrind)",
+    "FORBIDDEN_CALL":  "Forbidden call found (--strict-forbidden)",
 }
 
 

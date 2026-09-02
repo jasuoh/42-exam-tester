@@ -61,6 +61,7 @@ class Config(object):
         self.fuzz = args.fuzz
         self.valgrind = args.valgrind
         self.strict_valgrind = args.strict_valgrind
+        self.strict_forbidden = args.strict_forbidden
 
 
 # ══════════════════════════════════════════════════════════════
@@ -107,7 +108,8 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
                 "macOS; works on the real 42 school machines' Linux)")
     report = grader.grade(ex_name, ex, cfg.rendu, cc=cfg.cc, timeout=cfg.timeout,
                           strict_norm=cfg.strict_norm, rng=rng, fuzz=cfg.fuzz,
-                          valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind)
+                          valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind,
+                          strict_forbidden=cfg.strict_forbidden)
     ui.report(report, cfg.show_fails)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
@@ -120,6 +122,11 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
 
 
 def grade_all(cfg):
+    if cfg.valgrind and not grader.have_valgrind():
+        ui.warn("--valgrind requested but the valgrind binary isn't on PATH — "
+                "skipping the leak/UB check for every exercise below (not "
+                "available on Apple Silicon macOS; works on the real 42 "
+                "school machines' Linux)")
     rows, found, all_ok = [], 0, True
     for _, level, name, _func, _standard in exercise_entries():
         path = os.path.join(cfg.rendu, name + ".c")
@@ -131,7 +138,8 @@ def grade_all(cfg):
         report = grader.grade(name, EXERCISES[name], cfg.rendu, cc=cfg.cc,
                               timeout=cfg.timeout, strict_norm=cfg.strict_norm,
                               rng=rng, fuzz=cfg.fuzz,
-                              valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind)
+                              valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind,
+                              strict_forbidden=cfg.strict_forbidden)
         all_ok = all_ok and report.ok
         label = ("%d/%d" % (report.passed, report.total) if not report.fatal
                  else report.fatal_title)
@@ -740,6 +748,10 @@ def build_parser():
                         "your saved --save-config value)" % grader.DEFAULT_TIMEOUT)
     p.add_argument("--strict-norm", action="store_true",
                    help="fail grading on any compiler warning (-Werror)")
+    p.add_argument("--strict-forbidden", action="store_true",
+                   help="fail grading on a forbidden call, like the real "
+                        "moulinette (default: warning only, like malloc "
+                        "in an ft_strdup-style exercise's forbidden list)")
     p.add_argument("--fuzz", type=int, default=None, metavar="N",
                    help="random extra cases per fuzzable exercise (default: %d, or "
                         "your saved --save-config value) — only \"function\"-kind "

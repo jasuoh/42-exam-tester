@@ -16,11 +16,16 @@ for how each is graded):
 Every "standard" exercise here mirrors a real, publicly documented Exam
 Rank 02 subject (names, prototypes and behaviour cross-checked against
 several independent public exam-prep repositories) — the exact pool and
-level placement still varies by campus/date. A handful of exercises are
-marked "standard": False ("Extra", mirroring the Python bank's own
-Standard/Extra split): these are this project's own invented additions
-for broader text-manipulation practice, not verified against any real
-exam sheet, and `make c-exam` never draws them — only practice mode does.
+level placement still varies by campus/date. Same opt-IN convention as
+the Python bank (see src/exam_bank.py's own docstring): every entry
+marks itself "standard": True explicitly, and the index-building loop
+below defaults an exercise with no such key to False (Extra) — so a new
+exercise a contributor forgets to mark never silently becomes eligible
+for a real `make c-exam` draw. A handful of exercises are marked
+"standard": False ("Extra"): these are this project's own invented
+additions for broader text-manipulation practice, not verified against
+any real exam sheet, and `make c-exam` never draws them — only practice
+mode does.
 
 Common fields:
   - level      : which exam level it belongs to (1..N_LEVELS)
@@ -75,6 +80,7 @@ EXERCISES = {
     # ── LEVEL 1 ────────────────────────────────────────────────
     "ft_putstr": {
         "level": 1, "function": "ft_putstr",
+        "standard": True,
         "prototype": "void ft_putstr(char *str);",
         "args": ["str"], "returns": "void",
         "subject": _sub_c("ft_putstr", "void ft_putstr(char *str);", "write", """
@@ -104,6 +110,7 @@ EXERCISES = {
     },
     "ft_swap": {
         "level": 1, "function": "ft_swap",
+        "standard": True,
         "prototype": "void ft_swap(int *a, int *b);",
         "args": ["int_ptr", "int_ptr"], "returns": "void",
         "print_after_args": [0, 1],
@@ -128,6 +135,7 @@ EXERCISES = {
     },
     "rotone": {
         "level": 1, "function": "rotone", "kind": "program",
+        "standard": True,
         "subject": _sub_c("rotone", "int main(int argc, char **argv);", "write", """
         Write a PROGRAM (your own main(), argc/argv — not a function
         someone else calls) that takes a string and displays it, replacing
@@ -177,6 +185,7 @@ EXERCISES = {
     },
     "fizzbuzz": {
         "level": 1, "function": "fizzbuzz", "kind": "program",
+        "standard": True,
         "hint": ("Check the 'multiple of both' case before (or instead "
                 "of) the separate multiple-of-3 and multiple-of-5 checks "
                 "— an if/elif chain that checks %3 then %5 will never "
@@ -219,6 +228,7 @@ EXERCISES = {
     },
     "first_word": {
         "level": 1, "function": "first_word", "kind": "program",
+        "standard": True,
         "subject": _sub_c("first_word", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays its first
@@ -266,6 +276,7 @@ EXERCISES = {
     },
     "ft_strcpy": {
         "level": 1, "function": "ft_strcpy",
+        "standard": True,
         "prototype": "char *ft_strcpy(char *s1, char *s2);",
         "args": ["buf", "str"], "returns": "str", "forbidden": ["strcpy"],
         "hint": ("The terminating null byte has to be copied too, not "
@@ -302,6 +313,7 @@ EXERCISES = {
     },
     "ft_strlen": {
         "level": 1, "function": "ft_strlen",
+        "standard": True,
         "prototype": "int ft_strlen(char *str);",
         "args": ["str"], "returns": "int", "forbidden": ["strlen"],
         "subject": _sub_c("ft_strlen", "int ft_strlen(char *str);", "None", """
@@ -326,6 +338,7 @@ EXERCISES = {
     },
     "rev_print": {
         "level": 1, "function": "rev_print", "kind": "program",
+        "standard": True,
         "subject": _sub_c("rev_print", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it reversed,
@@ -365,6 +378,7 @@ EXERCISES = {
     },
     "search_and_replace": {
         "level": 1, "function": "search_and_replace", "kind": "program",
+        "standard": True,
         "subject": _sub_c("search_and_replace",
                          "int main(int argc, char **argv);", "write", """
         Write a PROGRAM called search_and_replace that takes 3 arguments:
@@ -415,6 +429,7 @@ EXERCISES = {
     },
     "ulstr": {
         "level": 1, "function": "ulstr", "kind": "program",
+        "standard": True,
         "subject": _sub_c("ulstr", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and reverses the case of
@@ -462,6 +477,7 @@ EXERCISES = {
     # ── LEVEL 2 ────────────────────────────────────────────────
     "ft_atoi": {
         "level": 2, "function": "ft_atoi",
+        "standard": True,
         "prototype": "int ft_atoi(const char *str);",
         "args": ["str"], "returns": "int", "forbidden": ["atoi"],
         "hint": ("Order matters: skip whitespace FIRST, then look for a "
@@ -511,6 +527,7 @@ EXERCISES = {
     },
     "is_power_of_2": {
         "level": 2, "function": "is_power_of_2",
+        "standard": True,
         "prototype": "int is_power_of_2(unsigned int n);",
         "args": ["int"], "returns": "int",
         "hint": ("The classic n & (n - 1) trick breaks for n = 0, since "
@@ -539,6 +556,7 @@ EXERCISES = {
     },
     "max": {
         "level": 2, "function": "max",
+        "standard": True,
         "prototype": "int max(int *tab, unsigned int len);",
         "args": ["int_arr"], "returns": "int",
         "subject": _sub_c("max", "int max(int *tab, unsigned int len);", "None", """
@@ -575,6 +593,7 @@ EXERCISES = {
     },
     "rot_13": {
         "level": 1, "function": "rot_13", "kind": "program",
+        "standard": True,
         "hint": ("Only letters shift — everything else (digits, spaces, "
                 "punctuation) passes through untouched. And the shift "
                 "has to wrap around within its own case ('z' -> 'm', "
@@ -625,6 +644,7 @@ EXERCISES = {
     },
     "alpha_mirror": {
         "level": 2, "function": "alpha_mirror", "kind": "program",
+        "standard": True,
         "subject": _sub_c("alpha_mirror", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it with every
@@ -670,6 +690,7 @@ EXERCISES = {
     },
     "camel_to_snake": {
         "level": 2, "function": "camel_to_snake", "kind": "program",
+        "standard": True,
         "subject": _sub_c("camel_to_snake", "int main(int argc, char **argv);",
                          "malloc, realloc, write", """
         Write a PROGRAM that takes a single lowerCamelCase string (each
@@ -718,6 +739,7 @@ EXERCISES = {
     },
     "do_op": {
         "level": 2, "function": "do_op", "kind": "program",
+        "standard": True,
         "subject": _sub_c("do_op", "int main(int argc, char **argv);",
                          "atoi, printf, write", """
         Write a PROGRAM that takes three arguments: a base-10 integer, an
@@ -768,6 +790,7 @@ EXERCISES = {
     },
     "ft_strcmp": {
         "level": 2, "function": "ft_strcmp",
+        "standard": True,
         "prototype": "int ft_strcmp(char *s1, char *s2);",
         "args": ["str", "str"], "returns": "strcmp_sign",
         "forbidden": ["strcmp"],
@@ -799,6 +822,7 @@ EXERCISES = {
     },
     "ft_strcspn": {
         "level": 2, "function": "ft_strcspn",
+        "standard": True,
         "prototype": "size_t ft_strcspn(const char *s, const char *reject);",
         "args": ["str", "str"], "returns": "int", "forbidden": ["strcspn"],
         "subject": _sub_c("ft_strcspn",
@@ -844,6 +868,7 @@ EXERCISES = {
     },
     "ft_strdup": {
         "level": 2, "function": "ft_strdup",
+        "standard": True,
         "prototype": "char *ft_strdup(char *src);",
         "args": ["str"], "returns": "str_owned", "forbidden": ["strdup"],
         "hint": ("The malloc size needs room for the null terminator too "
@@ -886,6 +911,7 @@ EXERCISES = {
     },
     "ft_strpbrk": {
         "level": 2, "function": "ft_strpbrk",
+        "standard": True,
         "prototype": "char *ft_strpbrk(const char *s1, const char *s2);",
         "args": ["str", "str"], "returns": "str", "forbidden": ["strpbrk"],
         "subject": _sub_c("ft_strpbrk",
@@ -927,6 +953,7 @@ EXERCISES = {
     },
     "ft_strrev": {
         "level": 2, "function": "ft_strrev",
+        "standard": True,
         "prototype": "char *ft_strrev(char *str);",
         "args": ["buf"], "returns": "str",
         "subject": _sub_c("ft_strrev", "char *ft_strrev(char *str);", "None", """
@@ -965,6 +992,7 @@ EXERCISES = {
     },
     "ft_strspn": {
         "level": 2, "function": "ft_strspn",
+        "standard": True,
         "prototype": "size_t ft_strspn(const char *s, const char *accept);",
         "args": ["str", "str"], "returns": "int", "forbidden": ["strspn"],
         "subject": _sub_c("ft_strspn",
@@ -1010,6 +1038,7 @@ EXERCISES = {
     },
     "last_word": {
         "level": 2, "function": "last_word", "kind": "program",
+        "standard": True,
         "subject": _sub_c("last_word", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays its last
@@ -1062,6 +1091,7 @@ EXERCISES = {
     },
     "print_bits": {
         "level": 2, "function": "print_bits",
+        "standard": True,
         "prototype": "void print_bits(unsigned char octet);",
         "args": ["int"], "returns": "void",
         "subject": _sub_c("print_bits", "void print_bits(unsigned char octet);",
@@ -1094,6 +1124,7 @@ EXERCISES = {
     },
     "snake_to_camel": {
         "level": 2, "function": "snake_to_camel", "kind": "program",
+        "standard": True,
         "subject": _sub_c("snake_to_camel", "int main(int argc, char **argv);",
                          "malloc, free, realloc, write", """
         Write a PROGRAM that takes a single snake_case string (words
@@ -1146,6 +1177,7 @@ EXERCISES = {
     },
     "swap_bits": {
         "level": 2, "function": "swap_bits",
+        "standard": True,
         "prototype": "unsigned char swap_bits(unsigned char octet);",
         "args": ["int"], "returns": "int",
         "subject": _sub_c("swap_bits",
@@ -1173,6 +1205,7 @@ EXERCISES = {
     },
     "union": {
         "level": 2, "function": "union", "kind": "program",
+        "standard": True,
         "hint": ("Dedup against everything printed so far, not just "
                 "within the string you're currently scanning — a "
                 "character repeated inside the SAME string (e.g. 'aaa') "
@@ -1249,6 +1282,7 @@ EXERCISES = {
     },
     "wdmatch": {
         "level": 2, "function": "wdmatch", "kind": "program",
+        "standard": True,
         "subject": _sub_c("wdmatch", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes two strings and checks whether the
@@ -1297,6 +1331,7 @@ EXERCISES = {
     },
     "epur_str": {
         "level": 3, "function": "epur_str", "kind": "program",
+        "standard": True,
         "subject": _sub_c("epur_str", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it with exactly
@@ -1357,6 +1392,7 @@ EXERCISES = {
     },
     "expand_str": {
         "level": 3, "function": "expand_str", "kind": "program",
+        "standard": True,
         "subject": _sub_c("expand_str", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it with exactly
@@ -1417,6 +1453,7 @@ EXERCISES = {
     },
     "ft_atoi_base": {
         "level": 3, "function": "ft_atoi_base",
+        "standard": True,
         "prototype": "int ft_atoi_base(const char *str, int str_base);",
         "args": ["str", "int"], "returns": "int",
         "hint": ("A '-' only counts as the sign if it's the very first "
@@ -1486,6 +1523,7 @@ EXERCISES = {
     },
     "ft_range": {
         "level": 3, "function": "ft_range",
+        "standard": True,
         "prototype": "int *ft_range(int start, int end);",
         "args": ["int", "int"], "returns": "int_arr",
         "return_len": lambda a: abs(a[1] - a[0]) + 1,
@@ -1530,6 +1568,7 @@ EXERCISES = {
     },
     "ft_rrange": {
         "level": 3, "function": "ft_rrange",
+        "standard": True,
         "prototype": "int *ft_rrange(int start, int end);",
         "args": ["int", "int"], "returns": "int_arr",
         "return_len": lambda a: abs(a[1] - a[0]) + 1,
@@ -1575,6 +1614,7 @@ EXERCISES = {
     },
     "paramsum": {
         "level": 3, "function": "paramsum", "kind": "program",
+        "standard": True,
         "subject": _sub_c("paramsum", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that displays the number of arguments passed to
@@ -1598,6 +1638,7 @@ EXERCISES = {
     },
     "print_hex": {
         "level": 3, "function": "print_hex", "kind": "program",
+        "standard": True,
         "forbidden": ["atoi"],
         "subject": _sub_c("print_hex", "int main(int argc, char **argv);",
                          "write", """
@@ -1650,6 +1691,7 @@ EXERCISES = {
     },
     "rstr_capitalizer": {
         "level": 3, "function": "rstr_capitalizer", "kind": "program",
+        "standard": True,
         "subject": _sub_c("rstr_capitalizer",
                          "int main(int argc, char **argv);", "write", """
         Write a PROGRAM that takes one or more strings and, for each one,
@@ -1744,6 +1786,7 @@ EXERCISES = {
     },
     "str_capitalizer": {
         "level": 3, "function": "str_capitalizer", "kind": "program",
+        "standard": True,
         "subject": _sub_c("str_capitalizer",
                          "int main(int argc, char **argv);", "write", """
         Write a PROGRAM that takes one or more strings and, for each one,
@@ -1809,6 +1852,7 @@ EXERCISES = {
     },
     "tab_mult": {
         "level": 3, "function": "tab_mult", "kind": "program",
+        "standard": True,
         "forbidden": ["atoi"],
         "subject": _sub_c("tab_mult", "int main(int argc, char **argv);",
                          "write", """
@@ -1849,6 +1893,7 @@ EXERCISES = {
     # ── LEVEL 4 ────────────────────────────────────────────────
     "ft_split": {
         "level": 4, "function": "ft_split",
+        "standard": True,
         "prototype": "char **ft_split(char *str);",
         "args": ["str"], "returns": "str_array", "forbidden": ["malloc"],
         "hint": {
@@ -1957,6 +2002,7 @@ EXERCISES = {
     },
     "ft_list_size": {
         "level": 3, "function": "ft_list_size",
+        "standard": True,
         "prototype": "int ft_list_size(t_list *begin_list);",
         "args": ["int_list"], "returns": "int",
         "subject": _sub_c("ft_list_size",
@@ -1990,6 +2036,7 @@ EXERCISES = {
     },
     "hidenp": {
         "level": 3, "function": "hidenp", "kind": "program",
+        "standard": True,
         "subject": _sub_c("hidenp", "int main(int argc, char **argv);", "write", """
         Write a PROGRAM named hidenp that takes two strings and displays 1
         followed by a newline if the first string is "hidden" in the
@@ -2035,6 +2082,7 @@ EXERCISES = {
     },
     "pgcd": {
         "level": 3, "function": "pgcd", "kind": "program",
+        "standard": True,
         "forbidden": ["atoi"],
         "subject": _sub_c("pgcd", "int main(int argc, char **argv);",
                          "printf, atoi, malloc, free", """
@@ -2081,6 +2129,7 @@ EXERCISES = {
     },
     "lcm": {
         "level": 3, "function": "lcm",
+        "standard": True,
         "prototype": "unsigned int lcm(unsigned int a, unsigned int b);",
         "args": ["int", "int"], "returns": "int",
         "subject": _sub_c("lcm",
@@ -2119,6 +2168,7 @@ EXERCISES = {
     },
     "add_prime_sum": {
         "level": 3, "function": "add_prime_sum", "kind": "program",
+        "standard": True,
         "forbidden": ["atoi"],
         "subject": _sub_c("add_prime_sum", "int main(int argc, char **argv);",
                          "write, exit", """
@@ -2184,6 +2234,7 @@ EXERCISES = {
     # ── LEVEL 4 ────────────────────────────────────────────────
     "sort_list": {
         "level": 4, "function": "sort_list",
+        "standard": True,
         "prototype": "t_list *sort_list(t_list *lst, int (*cmp)(int, int));",
         "args": ["int_list", "cmp_ascending"], "returns": "int_list",
         "subject": _sub_c("sort_list",
@@ -2237,6 +2288,7 @@ EXERCISES = {
     },
     "sort_int_tab": {
         "level": 4, "function": "sort_int_tab",
+        "standard": True,
         "prototype": "void sort_int_tab(int *tab, unsigned int size);",
         "args": ["int_arr"], "returns": "void", "print_after_args": [0],
         "subject": _sub_c("sort_int_tab",
@@ -2281,6 +2333,7 @@ EXERCISES = {
     },
     "reverse_bits": {
         "level": 2, "function": "reverse_bits",
+        "standard": True,
         "prototype": "unsigned char reverse_bits(unsigned char octet);",
         "args": ["int"], "returns": "int",
         "subject": _sub_c("reverse_bits",
@@ -2315,6 +2368,7 @@ EXERCISES = {
     },
     "repeat_alpha": {
         "level": 1, "function": "repeat_alpha", "kind": "program",
+        "standard": True,
         "subject": _sub_c("repeat_alpha", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it, repeating
@@ -2375,6 +2429,7 @@ EXERCISES = {
     },
     "fprime": {
         "level": 4, "function": "fprime", "kind": "program",
+        "standard": True,
         "forbidden": ["atoi"],
         "subject": _sub_c("fprime", "int main(int argc, char **argv);",
                          "printf, atoi", """
@@ -2435,6 +2490,7 @@ EXERCISES = {
     },
     "ft_itoa": {
         "level": 4, "function": "ft_itoa",
+        "standard": True,
         "prototype": "char *ft_itoa(int nbr);",
         "args": ["int"], "returns": "str_owned",
         "hint": ("INT_MIN is the nasty edge case: you can't fix its "
@@ -2495,6 +2551,7 @@ EXERCISES = {
     },
     "rev_wstr": {
         "level": 4, "function": "rev_wstr", "kind": "program",
+        "standard": True,
         "subject": _sub_c("rev_wstr", "int main(int argc, char **argv);",
                          "write, malloc, free", """
         Write a PROGRAM that takes a string with words separated by
@@ -2563,6 +2620,7 @@ EXERCISES = {
     },
     "rostring": {
         "level": 4, "function": "rostring", "kind": "program",
+        "standard": True,
         "subject": _sub_c("rostring", "int main(int argc, char **argv);",
                          "write, malloc, free", """
         Write a PROGRAM that takes a string and displays it rotated one
@@ -2645,6 +2703,7 @@ EXERCISES = {
     },
     "ft_list_foreach": {
         "level": 4, "function": "ft_list_foreach",
+        "standard": True,
         "prototype": "void ft_list_foreach(t_list *begin_list, void (*f)(void *));",
         "args": ["voidlist", "cb_accumulate"], "returns": "foreach_sum",
         "subject": _sub_c("ft_list_foreach",
@@ -2678,6 +2737,7 @@ EXERCISES = {
     },
     "ft_list_remove_if": {
         "level": 4, "function": "ft_list_remove_if",
+        "standard": True,
         "prototype": "void ft_list_remove_if(t_list **begin_list, "
                      "void *data_ref, int (*cmp)(void *, void *));",
         "hint": {
@@ -2749,6 +2809,7 @@ EXERCISES = {
     },
     "flood_fill": {
         "level": 4, "function": "flood_fill",
+        "standard": True,
         "prototype": "void flood_fill(char **tab, t_point size, "
                      "t_point begin);",
         "args": ["char_grid", "point", "point"], "returns": "void",
@@ -3047,7 +3108,7 @@ for _name, _ex in EXERCISES.items():
     LEVELS[_lvl].append(_name)
     _ex.setdefault("args", [])
     _ex.setdefault("kind", "function")
-    _ex.setdefault("standard", True)
+    _ex.setdefault("standard", False)
 
 for _lvl, _pool in LEVELS.items():
     if not _pool:

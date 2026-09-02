@@ -388,7 +388,8 @@ class HintsTests(unittest.TestCase):
     def test_leak_warning_hint(self):
         report = self._report(warnings=[
             "valgrind reported memory error(s) (leaks, invalid reads/"
-            "writes, ...) on case 3"])
+            "writes, ...) on case 3:\n"
+            "40 bytes in 1 blocks are definitely lost in loss record 1 of 1"])
         self.assertIn("leak", hints.diagnose(report))
 
     def test_leak_warning_hint_still_applies_under_strict_valgrind(self):
@@ -399,8 +400,28 @@ class HintsTests(unittest.TestCase):
         report = self._report(
             fatal="VALGRIND_ERRORS",
             warnings=["valgrind reported memory error(s) (leaks, invalid "
-                      "reads/writes, ...) on case 3"])
+                      "reads/writes, ...) on case 3:\n"
+                      "40 bytes in 1 blocks are definitely lost"])
         self.assertIn("leak", hints.diagnose(report))
+
+    def test_non_leak_valgrind_finding_gets_the_crash_hint_not_leak(self):
+        # The boilerplate wrapper message ALWAYS says "leak(s)" regardless
+        # of the real finding (see c_exam/grader.py's run_valgrind()
+        # callers) — a plain invalid read/write with zero blocks actually
+        # leaked used to still trigger the LEAK hint ("trace every malloc
+        # to a matching free"), which is wrong guidance for this bug.
+        report = self._report(warnings=[
+            "valgrind reported memory error(s) (leaks, invalid reads/"
+            "writes, ...) on case 3:\n"
+            "Invalid write of size 4 at 0x1091A8: ft_strcpy"])
+        self.assertIn("memory access", hints.diagnose(report))
+
+    def test_a_solution_that_legitimately_returns_the_string_none_is_not_emptyish(self):
+        # An older version of this string-matched "None"/"[]"/"()"/"{}"
+        # unconditionally, so a solution whose genuinely correct answer IS
+        # the literal string "None" got treated as if it returned nothing.
+        report = self._report([Failure([], "None", "something else")])
+        self.assertIsNone(hints.diagnose(report))
 
     def test_crash_is_checked_before_leak(self):
         # A run can't be both, but if warnings ever carried both a crash
