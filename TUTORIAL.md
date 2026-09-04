@@ -1,17 +1,82 @@
-# Tutorial: the quality-of-life features
+# Tutorial: running it, testing it, and the quality-of-life features
 
-This walks through the extras described in the README's
+Step 1 and 2 cover running the tool via the Makefile and checking that the
+tool itself is working correctly (`make test`). Everything from step 3 on
+walks through the extras described in the README's
 [Quality-of-life features](README.md#-quality-of-life-features-both-testers)
-section, step by step. Everything here applies to **both** testers —
-examples below use `python3 -m src` (or `make …`); swap in
-`python3 -m c_exam` (or `make c-…`) for the C tester and it behaves
-identically, since both share the same `src/settings.py`, `src/stats.py`,
-`src/session_store.py` and `src/report_export.py`.
+section. Everything here applies to **both** testers — examples below use
+`python3 -m src` (or `make …`); swap in `python3 -m c_exam` (or `make
+c-…`) for the C tester and it behaves identically, since both share the
+same `src/settings.py`, `src/stats.py`, `src/session_store.py`,
+`src/report_export.py` and `src/hints.py`.
 
-None of this is required. The exam and practice flow work exactly as they
-always have if you never touch any of it.
+None of steps 3 onward is required. The exam and practice flow work
+exactly as they always have if you never touch any of it.
 
-## 1. Pick a theme, save it once
+## 1. Just running it
+
+The Makefile is the easiest way in — no need to remember any `python3 -m`
+invocation:
+
+```bash
+make install   # optional, once: creates venv/ and installs rich for the nicer TUI
+make run       # interactive menu: exam · practice · list · training · stats
+```
+
+`make run` with no arguments drops you into the same menu you'd get from
+`python3 -m src` directly — pick a mode with a number, or `q` to quit. Once
+you know what you want, the other targets skip the menu:
+
+```bash
+make exam                    # jump straight into the exam
+make practice EX=py_inter    # drill one exercise directly, no picker
+make list                    # print the exercise pool and exit
+make stats                   # your local practice history
+```
+
+`make` with no target (or `make help`) prints the full list of targets for
+both testers, with what each one does. Everything here is `make …`; swap
+in `make c-…` for the C tester (`make c-run`, `make c-exam`, …) — it's the
+same menu, same flow, just against `c_rendu/` and a real `cc`/`gcc`/`clang`
+instead of `rendu/`.
+
+## 2. Making sure the tool itself is correct
+
+Two separate checks, and they check different things — run them after
+*you* change something in the tool, not as part of normal practice:
+
+```bash
+make unit   # tests the tool's own logic (grading, comparison, CLI, ...)
+make check  # tests the exercise banks (every reference solution must score 100%)
+make test   # both, one after the other
+```
+
+`make unit` runs the `tests/` suite with stdlib `unittest` — no extra
+dependency needed. It exercises things like the type-strict `deep_eq`
+comparison, import detection, and exercise-name resolution, i.e. the
+tester's own code, not any particular exercise.
+
+`make check` instead runs every exercise's own reference solution back
+through the real grading sandbox — the same one your `rendu/` file runs
+through — and requires each one to still score 100%, and that every
+fuzzer still produces valid cases, and that no level/difficulty group is
+empty. This is what actually validates the exercise pool's content, and
+it's what to run after touching `exam_bank.py` or `training_bank.py`.
+
+The C tester has the matching pair, `make c-unit` and `make c-check` (`make
+c-check` additionally compiles and runs every reference solution for
+real), and `make c-test` for both together.
+
+```bash
+make test    # Python: unit + check
+make c-test  # C: c-unit + c-check
+```
+
+A green `make test` (and `make c-test`) is what "this tool is working
+correctly" looks like — worth running after pulling changes, or before
+trusting a fresh clone.
+
+## 3. Pick a theme, save it once
 
 Three themes exist: `dark` (the original, default), `light` (for a
 white/light terminal background), and `highcontrast` (colour-blind
@@ -69,7 +134,7 @@ precondition — `make c-check`/`python3 -m c_exam --check` marks which
 ones with `(+fuzz)`, and grading itself announces the real case count
 either way (`"… (28 tests)"`).
 
-## 2. Practice, then check `--stats`
+## 4. Practice, then check `--stats`
 
 Every `grademe` — in an exam, in practice, in training mode — and every
 `--grade EXERCISE` quietly appends one line to `~/.examshell/stats.jsonl`.
@@ -103,7 +168,7 @@ make stats
 Use this to spot which exercises actually need more reps, instead of
 guessing from memory. It's purely local — nothing is uploaded anywhere.
 
-## 3. Let an exam save itself when you `quit`
+## 5. Let an exam save itself when you `quit`
 
 Start an exam, clear a level or two, then quit early:
 
@@ -129,7 +194,7 @@ The save is also cleared automatically the moment you finish an exam
 (pass or fail all the way through), so a resume prompt never lingers
 after a completed run.
 
-## 4. Filter the exercise picker with `/text`
+## 6. Filter the exercise picker with `/text`
 
 Open practice mode with no specific exercise:
 
@@ -162,7 +227,38 @@ a stale global index. Type `/` alone to clear the filter and see
 everything again. Training mode's picker works the same way, alongside
 its existing `e`/`m`/`h` difficulty filter.
 
-## 5. Read your session report, collect a badge
+## 7. Get stuck, get a nudge
+
+Fail the **same** exercise three times in a row in practice or training
+mode (tracked via the stats history from step 2) and the next failing
+report ends with one extra line:
+
+```bash
+make practice EX=py_prime_finder
+# ... grademe, wrong, grademe again, still wrong, grademe a third time ...
+```
+
+```
+✖  ████████░░░░░░░░  17/36 tests passed   47%
+💡 Think about the edge cases first: 0, 1 and negative numbers are never
+   prime — if it's only wrong for small n, that's almost always it.
+```
+
+Two sources feed this, in order: a hand-written hint on the exercise
+itself when one exists (and it can vary by *how* you failed — a crash and
+a Valgrind leak on the same C exercise often call for different advice),
+otherwise a generic guess from the shape of the failure alone (an
+off-by-one, a sign flip, an unhandled empty input, a crash, a timeout, a
+leak). The generic one is deliberately hedged ("could be…") and stays
+silent rather than guess wrong when nothing matches.
+
+It never shows up during `--exam`/`make exam` — getting unstuck without a
+crutch under time pressure is exactly what the real thing tests, so
+practice and training are where this builds that muscle instead of
+short-circuiting it. Pass the exercise (or move to a different one) and
+the streak resets.
+
+## 8. Read your session report, collect a badge
 
 After any exam run — passed or aborted — look at the last line printed:
 
@@ -202,10 +298,13 @@ motivation, not part of the score.
 ## Everything at once
 
 ```bash
+make install               # once
+make test                  # confirm the tool + exercise banks are sound
 python3 -m src --theme highcontrast --timeout 6 --save-config
-make exam
+make run                   # or straight to: make exam
 # ... solve a couple of levels, then `quit` ...
 make exam                 # offers to resume
 make practice              # try /text filtering in the picker
+# ... fail the same exercise 3x in a row for a hint ...
 make stats                 # see your history so far
 ```
