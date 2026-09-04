@@ -44,6 +44,14 @@ this repo has no version numbers, so entries are grouped by date instead.
   Python's built-in sort defeats the point of the exercise (implement a
   stable multi-key ordering yourself). Its hint was rewritten to match:
   it now points at a hand-rolled insertion sort instead of `sorted(key=...)`.
+- Curated `"hint"` entries for the 44 C exam exercises (`c_exam/bank.py`)
+  that had none — every one of the 59 exercises now nudges a stuck student
+  with something specific to what it actually does, instead of falling all
+  the way through to `hints.diagnose()`'s generic, pattern-matched guess.
+  41 are plain strings; 2 (`rev_wstr`, `rostring`) use a `"crash"`/`"leak"`/
+  `"default"` dict split, since both extract words into per-word `malloc`'d
+  buffers where a sizing bug and a missing `free` are genuinely different
+  mistakes worth nudging differently.
 
 ### Fixed
 - **`py_bracket_validator`** carried `"level": 1` while living in the
