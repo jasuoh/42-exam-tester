@@ -13,6 +13,7 @@ Colour is turned off automatically when stdout is not a TTY, when TERM is
 "dumb", or when NO_COLOR is set (https://no-color.org).
 """
 
+import contextlib
 import os
 import shutil
 import sys
@@ -224,6 +225,23 @@ def note(msg):
     _line(msg, "dim", "GRAY")
 
 
+@contextlib.contextmanager
+def spinner(msg):
+    """A live animated status line for a blocking call that can take a
+    few seconds with no other feedback (grading — compiling a C
+    exercise, running a big fuzz batch, an optional valgrind pass — all
+    happen inside one synchronous call with nothing printed until it
+    returns). Rich has a real spinner primitive for this; the plain ANSI
+    path has no live terminal control worth building for a single line,
+    so it falls back to the same static note() line this replaced."""
+    if _rich:
+        with _console.status("[dim]%s[/dim]" % _esc(msg), spinner="dots"):
+            yield
+    else:
+        note(msg)
+        yield
+
+
 def warn(msg):
     _line("⚠  " + msg, "yellow", "YELLOW")
 
@@ -240,6 +258,13 @@ def hint(msg):
     """A stuck-student nudge (see hints.py) — deliberately calmer than
     warn()/error(): this isn't a problem with the run, just a suggestion."""
     _line("💡 " + msg, "cyan", "CYAN")
+
+
+def badge_unlocked(emoji, label):
+    """A just-earned achievement (see achievements.py) — shown the moment
+    it's detected, not just tucked away in --stats, so it lands like the
+    small reward it's meant to be."""
+    _line("%s New badge: %s!" % (emoji, label), "bold yellow", "YELLOW", "BOLD")
 
 
 def _line(msg, rich_style, *ansi):
@@ -459,6 +484,71 @@ def commands(rows):
     print(IND0 + c("Commands:", "CYAN"))
     for cmd, desc in rows:
         print(IND1 + c(cmd.ljust(9), "BOLD", "CYAN") + c("- " + desc, "GRAY"))
+
+
+def _pass_rate_tier(rate):
+    """Colour tier for a pass rate: solid / shaky / struggling — used so a
+    weak spot jumps out of a stats table without reading every number."""
+    if rate >= 0.8:
+        return "green"
+    if rate >= 0.5:
+        return "yellow"
+    return "red"
+
+
+def stats_table(rows):
+    """rows: [(name, passes, attempts), …] — per-exercise practice
+    history, with a colour-coded pass-rate bar (green solid, yellow
+    shaky, red struggling) so weak spots are visible at a glance instead
+    of having to read every "N/M passed" number."""
+    if _rich:
+        t = Table(box=None, show_header=False, pad_edge=False)
+        t.add_column(style="bold white", no_wrap=True)
+        t.add_column(no_wrap=True)
+        t.add_column(justify="right", style="dim")
+        for name, passes, attempts in rows:
+            rate = (passes / attempts) if attempts else 0.0
+            style = _pass_rate_tier(rate)
+            bar = _bar(passes, attempts, 12)
+            t.add_row(_esc(name), "[%s]%s[/%s]" % (style, bar, style),
+                      "%d/%d" % (passes, attempts))
+        _console.print(Panel(t, title="[dim]per-exercise[/dim]", title_align="left",
+                             border_style="grey37", box=box.ROUNDED, padding=(0, 1)))
+        return
+    name_width = max((len(name) for name, _, _ in rows), default=0) + 2
+    for name, passes, attempts in rows:
+        rate = (passes / attempts) if attempts else 0.0
+        style = _pass_rate_tier(rate).upper()
+        bar = _bar(passes, attempts, 12)
+        print(IND0 + c(name.ljust(name_width), "WHITE") + c(bar, style)
+              + "  " + c("%d/%d" % (passes, attempts), "GRAY"))
+
+
+def badges_table(rows):
+    """rows: [(emoji, label, description, earned), …] — the FULL badge
+    roster, not just earned ones: seeing what you don't have yet is part
+    of the motivation. An earned badge shows its real emoji in full
+    colour; a locked one is dimmed with a padlock instead — the
+    description still says how to earn it, nothing is a secret here."""
+    if _rich:
+        t = Table(box=None, show_header=False, pad_edge=False)
+        t.add_column(no_wrap=True)
+        t.add_column(style="bold white", no_wrap=True)
+        t.add_column(style="dim")
+        for emoji, label, desc, earned in rows:
+            if earned:
+                t.add_row(emoji, _esc(label), _esc(desc))
+            else:
+                t.add_row("🔒", "[dim]%s[/dim]" % _esc(label), _esc(desc))
+        _console.print(Panel(t, title="[dim]badges[/dim]", title_align="left",
+                             border_style="grey37", box=box.ROUNDED, padding=(0, 1)))
+        return
+    label_width = max((len(label) for _, label, _, _ in rows), default=0) + 2
+    for emoji, label, desc, earned in rows:
+        icon = emoji if earned else "🔒"
+        style = ("WHITE", "BOLD") if earned else ("GRAY",)
+        print(IND0 + icon + " " + c(label.ljust(label_width), *style)
+              + c(desc, "GRAY"))
 
 
 def menu(rows):

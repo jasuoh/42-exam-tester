@@ -25,7 +25,7 @@ import random
 import shlex
 import time
 
-from src import hints, report_export, session_store, settings, stats, ui
+from src import achievements, hints, report_export, session_store, settings, stats, ui
 
 from . import grader
 from .bank import EXERCISES, LEVELS, N_LEVELS, STANDARD_LEVELS
@@ -106,18 +106,22 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
     ex = ALL_EXERCISES[ex_name]
     fuzzed = cfg.fuzz if grader.is_fuzzable(ex) else 0
     n = len(ex["cases"]) + fuzzed
-    ui.note("Compiling & grading %s … (%d tests)" % (ex_name, n))
     if cfg.valgrind and not grader.have_valgrind():
         ui.warn("--valgrind requested but the valgrind binary isn't on PATH — "
                 "skipping the leak/UB check (not available on Apple Silicon "
                 "macOS; works on the real 42 school machines' Linux)")
-    report = grader.grade(ex_name, ex, cfg.rendu, cc=cfg.cc, timeout=cfg.timeout,
-                          strict_norm=cfg.strict_norm, rng=rng, fuzz=cfg.fuzz,
-                          valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind,
-                          strict_forbidden=cfg.strict_forbidden)
+    with ui.spinner("Compiling & grading %s … (%d tests)" % (ex_name, n)):
+        report = grader.grade(ex_name, ex, cfg.rendu, cc=cfg.cc, timeout=cfg.timeout,
+                              strict_norm=cfg.strict_norm, rng=rng, fuzz=cfg.fuzz,
+                              valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind,
+                              strict_forbidden=cfg.strict_forbidden)
     ui.report(report, cfg.show_fails, cfg.diff)
+    before_badges = achievements.unlocked(TOOL, N_LEVELS)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
+    for _bid, emoji, label, _desc in achievements.new_since(
+            before_badges, achievements.unlocked(TOOL, N_LEVELS)):
+        ui.badge_unlocked(emoji, label)
     if not report.ok and mode != "exam":
         if stats.consecutive_fails(TOOL, ex_name) >= hints.STUCK_THRESHOLD:
             text = hints.hint_for(ex, report)
@@ -140,11 +144,12 @@ def grade_all(cfg):
             continue
         found += 1
         rng = random.Random(cfg.seed)
-        report = grader.grade(name, EXERCISES[name], cfg.rendu, cc=cfg.cc,
-                              timeout=cfg.timeout, strict_norm=cfg.strict_norm,
-                              rng=rng, fuzz=cfg.fuzz,
-                              valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind,
-                              strict_forbidden=cfg.strict_forbidden)
+        with ui.spinner("Compiling & grading %s …" % name):
+            report = grader.grade(name, EXERCISES[name], cfg.rendu, cc=cfg.cc,
+                                  timeout=cfg.timeout, strict_norm=cfg.strict_norm,
+                                  rng=rng, fuzz=cfg.fuzz,
+                                  valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind,
+                                  strict_forbidden=cfg.strict_forbidden)
         all_ok = all_ok and report.ok
         label = ("%d/%d" % (report.passed, report.total) if not report.fatal
                  else report.fatal_title)
@@ -338,16 +343,6 @@ def exam_mode(cfg):
     exam_summary(session, passed=True)
 
 
-def _achievements(seconds):
-    badges = []
-    prior_best = stats.best_exam_time(TOOL)
-    if prior_best is None:
-        badges.append("🎉 First full clear!")
-    elif seconds < prior_best:
-        badges.append("⏱ New personal best time!")
-    return badges
-
-
 def exam_summary(session, passed):
     ui.clear()
     banner()
@@ -360,20 +355,27 @@ def exam_summary(session, passed):
                      % (name, attempts, "" if attempts == 1 else "s",
                         fmt_duration(seconds))))
 
-    achievements = []
+    badge_lines = []
     if passed:
         seconds = time.time() - session.start_time if session.start_time else 0
-        if session.history and all(a == 1 for _, _, a, _ in session.history):
-            achievements.append("🏅 Flawless — no retries")
-        achievements.extend(_achievements(seconds))
-        rows.append(("Badges", ", ".join(achievements) if achievements else "—"))
+        # Both computed BEFORE this run is persisted, so they reflect
+        # history up to (not including) this exam — see
+        # achievements.unlocked()'s before/after convention.
+        before = achievements.unlocked(TOOL, N_LEVELS)
+        new_best = achievements.is_new_best_time(TOOL, seconds)
         stats.record_exam_complete(TOOL, seconds, session.attempts, session.score())
+        after = achievements.unlocked(TOOL, N_LEVELS)
+        badge_lines = ["%s %s!" % (emoji, label)
+                       for _bid, emoji, label, _desc in achievements.new_since(before, after)]
+        if new_best:
+            badge_lines.append("⏱ New personal best time!")
+        rows.append(("Badges", ", ".join(badge_lines) if badge_lines else "—"))
 
     title = ("🎉  EXAM PASSED — all %d levels cleared!" % N_LEVELS if passed
              else "EXAM ABORTED — %d/%d levels cleared" % (len(session.passed), N_LEVELS))
     ui.summary(title, rows, passed)
 
-    report_path = report_export.write_exam_report(TOOL, session, N_LEVELS, passed, achievements)
+    report_path = report_export.write_exam_report(TOOL, session, N_LEVELS, passed, badge_lines)
     if report_path:
         ui.note("Session report saved to %s" % report_path)
 
@@ -675,11 +677,21 @@ def show_stats():
         rows.append(("Best exam time", fmt_duration(summary["best_seconds"])))
     ui.summary("Your practice history", rows, passed=True)
     if summary["per_exercise"]:
-        per_ex_rows = [(name, "%d/%d passed" % (row["passes"], row["attempts"]))
-                       for name, row in sorted(summary["per_exercise"].items())]
-        ui.commands(per_ex_rows)
+        # Worst-first: the whole point of the colour-coded bar is to make a
+        # weak spot jump out, so put it where it's seen first, same spirit
+        # as stats.weakest_exercises() / --train weak.
+        per_ex_rows = sorted(
+            ((name, row["passes"], row["attempts"])
+             for name, row in summary["per_exercise"].items()),
+            key=lambda r: r[1] / r[2])
+        ui.stats_table(per_ex_rows)
     else:
         ui.note("no grading history yet — practice or grade something first")
+    print()
+    earned = {b[0] for b in achievements.unlocked(TOOL, N_LEVELS)}
+    badge_rows = [(emoji, label, desc, bid in earned)
+                  for bid, emoji, label, desc, _check in achievements.BADGES]
+    ui.badges_table(badge_rows)
 
 
 # ══════════════════════════════════════════════════════════════

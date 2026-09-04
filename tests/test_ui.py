@@ -74,6 +74,20 @@ class FirstDiffIndexTests(unittest.TestCase):
         self.assertEqual(ui.first_diff_index("abc", "xyz"), 0)
 
 
+class PassRateTierTests(unittest.TestCase):
+    def test_solid_at_and_above_80_percent(self):
+        self.assertEqual(ui._pass_rate_tier(0.8), "green")
+        self.assertEqual(ui._pass_rate_tier(1.0), "green")
+
+    def test_shaky_between_50_and_80_percent(self):
+        self.assertEqual(ui._pass_rate_tier(0.5), "yellow")
+        self.assertEqual(ui._pass_rate_tier(0.79), "yellow")
+
+    def test_struggling_below_50_percent(self):
+        self.assertEqual(ui._pass_rate_tier(0.0), "red")
+        self.assertEqual(ui._pass_rate_tier(0.49), "red")
+
+
 class SplitSubjectTests(unittest.TestCase):
     def setUp(self):
         self.subject = (

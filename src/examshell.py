@@ -26,7 +26,7 @@ import os
 import random
 import time
 
-from . import grader, hints, report_export, session_store, settings, stats, ui
+from . import achievements, grader, hints, report_export, session_store, settings, stats, ui
 from .bank_common import signature_of as _signature_of
 from .exam_bank import EXERCISES, LEVELS, N_LEVELS, STANDARD_LEVELS
 from .training_bank import DIFFICULTIES, TRAINING_BY_DIFFICULTY, TRAINING_EXERCISES
@@ -99,12 +99,16 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
         ui.error("exercise bank is broken: %s" % exc)
         return False
 
-    ui.note("Grading %s … (%d tests)" % (ex_name, len(tests)))
-    report = grader.grade(ex_name, ex, cfg.rendu, timeout=cfg.timeout,
-                          strict_imports=cfg.strict_imports, tests=tests)
+    with ui.spinner("Grading %s … (%d tests)" % (ex_name, len(tests))):
+        report = grader.grade(ex_name, ex, cfg.rendu, timeout=cfg.timeout,
+                              strict_imports=cfg.strict_imports, tests=tests)
     ui.report(report, cfg.show_fails, cfg.diff)
+    before_badges = achievements.unlocked(TOOL, N_LEVELS)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
+    for _bid, emoji, label, _desc in achievements.new_since(
+            before_badges, achievements.unlocked(TOOL, N_LEVELS)):
+        ui.badge_unlocked(emoji, label)
     if not report.ok and mode != "exam":
         if stats.consecutive_fails(TOOL, ex_name) >= hints.STUCK_THRESHOLD:
             text = hints.hint_for(ex, report)
@@ -136,8 +140,9 @@ def grade_all(cfg):
             all_ok = False
             rows.append((level, name, "ko", "bank error"))
             continue
-        report = grader.grade(name, ex, cfg.rendu, timeout=cfg.timeout,
-                              strict_imports=cfg.strict_imports, tests=tests)
+        with ui.spinner("Grading %s … (%d tests)" % (name, len(tests))):
+            report = grader.grade(name, ex, cfg.rendu, timeout=cfg.timeout,
+                                  strict_imports=cfg.strict_imports, tests=tests)
         all_ok = all_ok and report.ok
         label = ("%d/%d" % (report.passed, report.total) if not report.fatal
                  else report.fatal_title)
@@ -331,18 +336,6 @@ def exam_mode(cfg):
     exam_summary(session, passed=True)
 
 
-def _achievements(seconds):
-    """Badges computed against this student's own history (never other
-    students') — a first full clear, or a new personal-best time."""
-    badges = []
-    prior_best = stats.best_exam_time(TOOL)
-    if prior_best is None:
-        badges.append("🎉 First full clear!")
-    elif seconds < prior_best:
-        badges.append("⏱ New personal best time!")
-    return badges
-
-
 def exam_summary(session, passed):
     ui.clear()
     ui.banner()
@@ -355,20 +348,27 @@ def exam_summary(session, passed):
                      % (name, attempts, "" if attempts == 1 else "s",
                         fmt_duration(seconds))))
 
-    achievements = []
+    badge_lines = []
     if passed:
         seconds = time.time() - session.start_time if session.start_time else 0
-        if session.history and all(a == 1 for _, _, a, _ in session.history):
-            achievements.append("🏅 Flawless — no retries")
-        achievements.extend(_achievements(seconds))
-        rows.append(("Badges", ", ".join(achievements) if achievements else "—"))
+        # Both computed BEFORE this run is persisted, so they reflect
+        # history up to (not including) this exam — see
+        # achievements.unlocked()'s before/after convention.
+        before = achievements.unlocked(TOOL, N_LEVELS)
+        new_best = achievements.is_new_best_time(TOOL, seconds)
         stats.record_exam_complete(TOOL, seconds, session.attempts, session.score())
+        after = achievements.unlocked(TOOL, N_LEVELS)
+        badge_lines = ["%s %s!" % (emoji, label)
+                       for _bid, emoji, label, _desc in achievements.new_since(before, after)]
+        if new_best:
+            badge_lines.append("⏱ New personal best time!")
+        rows.append(("Badges", ", ".join(badge_lines) if badge_lines else "—"))
 
     title = ("🎉  EXAM PASSED — all %d levels cleared!" % N_LEVELS if passed
              else "EXAM ABORTED — %d/%d levels cleared" % (len(session.passed), N_LEVELS))
     ui.summary(title, rows, passed)
 
-    report_path = report_export.write_exam_report(TOOL, session, N_LEVELS, passed, achievements)
+    report_path = report_export.write_exam_report(TOOL, session, N_LEVELS, passed, badge_lines)
     if report_path:
         ui.note("Session report saved to %s" % report_path)
 
@@ -652,11 +652,21 @@ def show_stats():
         rows.append(("Best exam time", fmt_duration(summary["best_seconds"])))
     ui.summary("Your practice history", rows, passed=True)
     if summary["per_exercise"]:
-        per_ex_rows = [(name, "%d/%d passed" % (row["passes"], row["attempts"]))
-                       for name, row in sorted(summary["per_exercise"].items())]
-        ui.commands(per_ex_rows)
+        # Worst-first: the whole point of the colour-coded bar is to make a
+        # weak spot jump out, so put it where it's seen first, same spirit
+        # as stats.weakest_exercises() / --train weak.
+        per_ex_rows = sorted(
+            ((name, row["passes"], row["attempts"])
+             for name, row in summary["per_exercise"].items()),
+            key=lambda r: r[1] / r[2])
+        ui.stats_table(per_ex_rows)
     else:
         ui.note("no grading history yet — practice or grade something first")
+    print()
+    earned = {b[0] for b in achievements.unlocked(TOOL, N_LEVELS)}
+    badge_rows = [(emoji, label, desc, bid in earned)
+                  for bid, emoji, label, desc, _check in achievements.BADGES]
+    ui.badges_table(badge_rows)
 
 
 # ══════════════════════════════════════════════════════════════

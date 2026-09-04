@@ -8,6 +8,28 @@ this repo has no version numbers, so entries are grouped by date instead.
 ## Unreleased
 
 ### Added
+- **Achievements** (`src/achievements.py`, shared by both testers) — 10
+  badges (First Blood, Perfectionist, Comeback Kid, Redemption, Full
+  Coverage, Night Owl, Early Bird, Century, Exam Cleared, Flawless Exam),
+  each a pure function of the student's own `stats.jsonl` history —
+  nothing new is persisted. A newly-earned badge is announced the moment
+  it happens (after any `--grade`/practice/train/exam call, not just at
+  exam completion); `--stats` now shows the full roster, earned and
+  locked, with a description of how to unlock each one. This replaces
+  and generalizes the old ad-hoc "First full clear!" / "Flawless — no
+  retries" logic that lived duplicated in both `examshell.py`'s and only
+  ever showed at the very end of a full exam run.
+- Colour-coded pass-rate bars in `--stats`'s per-exercise table (green
+  solid / yellow shaky / red struggling), sorted worst-first — it
+  previously showed bare "N/M passed" text despite the bar primitive
+  already existing elsewhere in `ui.py`.
+- A live spinner while grading is in progress (`ui.spinner()`, wraps the
+  blocking `grader.grade()` call) — compiling a C exercise, running a
+  big fuzz batch, or an optional valgrind pass can take a few seconds
+  with zero prior feedback; now there's a visible "still working" signal
+  instead of a silent wait. Plain (non-rich) terminals keep the old
+  static note, since there's no live terminal control worth building for
+  a single line there.
 - `LICENSE` (MIT) and `[project]` metadata in `pyproject.toml` (name,
   version, description, license, author, dependencies) — the repo had
   neither, which for a public GitHub repo defaults to "all rights
