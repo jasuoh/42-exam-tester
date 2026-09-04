@@ -8,6 +8,15 @@ this repo has no version numbers, so entries are grouped by date instead.
 ## Unreleased
 
 ### Added
+- `LICENSE` (MIT) and `[project]` metadata in `pyproject.toml` (name,
+  version, description, license, author, dependencies) — the repo had
+  neither, which for a public GitHub repo defaults to "all rights
+  reserved" regardless of visibility. README gets a license badge and a
+  short License section to match.
+- A one-line legend (`e=easy · m=medium · h=hard · w=weak · a=all`)
+  under the training-pool table in both testers — the filter keys were
+  only ever shown bare in the prompt ("e/m/h/w to filter") with no
+  explanation of what they stood for.
 - `--train weak` (both testers, plus a 'w' key next to e/m/h in the
   interactive training picker) — drills the training exercises you've
   actually gotten wrong at least once, worst-first (an active fail streak

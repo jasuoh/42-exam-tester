@@ -9,6 +9,7 @@
 *Real sandboxed grading. Real edge cases. Real compiler. Zero internet required.*
 
 [![CI](https://github.com/jasuoh/42-exam-rank03-tester/actions/workflows/ci.yml/badge.svg)](https://github.com/jasuoh/42-exam-rank03-tester/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue?logo=python&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/dependencies-none%20required-brightgreen)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
@@ -762,6 +763,12 @@ hints (`src/settings.py`, `src/stats.py`, `src/session_store.py`,
 [Quality-of-life features](#️-quality-of-life-features-both-testers).
 
 <br>
+
+---
+
+## 📄 License
+
+[MIT](LICENSE) — do whatever you want with it, just keep the copyright notice.
 
 ---
 

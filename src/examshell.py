@@ -498,6 +498,7 @@ def training_mode(cfg, ex_name=None, difficulty=None):
         ui.banner()
         print()
         ui.training_table(shown, numbered=True)
+        ui.note("keys: e=easy · m=medium · h=hard · w=weak (needs practice) · a=all")
         label = ("all" if not difficulty else difficulty)
         if difficulty == "weak" and not entries:
             ui.note("no weak spots yet — nothing attempted in training/practice "
