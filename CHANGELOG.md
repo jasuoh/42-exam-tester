@@ -105,6 +105,16 @@ this repo has no version numbers, so entries are grouped by date instead.
   `py_anagram`, the even-length-center gap in
   `py_longest_palindromic_substring`) — pointing at what to check, never
   handing over the solution.
+- Curated `"hint"` entries for all 9 `c_exam/training_bank.py` exercises
+  (`array_sum`, `find_max`, `is_palindrome_num`, `count_pairs_sum`,
+  `kadane_max_sum`, `count_unique`, `lis_length`, `count_inversions`,
+  `max_gap`) — previously none of them had one, so a stuck student only
+  ever got `hints.diagnose()`'s generic pattern-matched guess. Each hint
+  targets the actual technique or edge case for that exercise (e.g.
+  Kadane's classic all-negative-array bug, the strictly-increasing
+  comparison in `lis_length`'s DP, sorting a copy in `max_gap`).
+  `lis_length` and `max_gap` (the two that `malloc`/`free`) get a
+  crash/leak/default split like `ft_split`'s; the rest are plain strings.
 
 ### Fixed
 - **`py_bracket_validator`** carried `"level": 1` while living in the
