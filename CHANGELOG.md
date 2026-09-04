@@ -8,6 +8,33 @@ this repo has no version numbers, so entries are grouped by date instead.
 ## Unreleased
 
 ### Added
+- **Achievements** (`src/achievements.py`, shared by both testers) — 10
+  badges (First Blood, Perfectionist, Comeback Kid, Redemption, Full
+  Coverage, Night Owl, Early Bird, Century, Exam Cleared, Flawless Exam),
+  each a pure function of the student's own `stats.jsonl` history —
+  nothing new is persisted. A newly-earned badge is announced the moment
+  it happens (after any `--grade`/practice/train/exam call, not just at
+  exam completion); `--stats` now shows the full roster, earned and
+  locked, with a description of how to unlock each one. This replaces
+  and generalizes the old ad-hoc "First full clear!" / "Flawless — no
+  retries" logic that lived duplicated in both `examshell.py`'s and only
+  ever showed at the very end of a full exam run.
+- Colour-coded pass-rate bars in `--stats`'s per-exercise table (green
+  solid / yellow shaky / red struggling), sorted worst-first — it
+  previously showed bare "N/M passed" text despite the bar primitive
+  already existing elsewhere in `ui.py`.
+- A live spinner while grading is in progress (`ui.spinner()`, wraps the
+  blocking `grader.grade()` call) — compiling a C exercise, running a
+  big fuzz batch, or an optional valgrind pass can take a few seconds
+  with zero prior feedback; now there's a visible "still working" signal
+  instead of a silent wait. Plain (non-rich) terminals keep the old
+  static note, since there's no live terminal control worth building for
+  a single line there.
+- Curated `"hint"` text for all 20 Python `TRAINING_EXERCISES` entries,
+  which previously had none — each nudges toward the exercise's actual
+  technique or gotcha (e.g. the two-pointer trick, which DP recurrence
+  to use, why a greedy approach fails) instead of falling back to
+  `hints.diagnose()`'s generic, exercise-blind guess.
 - `LICENSE` (MIT) and `[project]` metadata in `pyproject.toml` (name,
   version, description, license, author, dependencies) — the repo had
   neither, which for a public GitHub repo defaults to "all rights
@@ -34,6 +61,29 @@ this repo has no version numbers, so entries are grouped by date instead.
   the plain-text UI, a reverse-video highlight on the diverging tail in
   the rich UI). Useful once a value is long enough that eyeballing two
   side-by-side reprs stops working. New pure helper: `ui.first_diff_index()`.
+- `--diff` now also shows the student's own submitted function next to a
+  failing test, syntax-highlighted (a `rich.syntax.Syntax` panel, or a
+  dimmed plain-text block with a `── your f() ──`-style header when rich
+  isn't available) — so you can see your code and the mismatch without
+  alt-tabbing to your editor. Shown once per report, not once per
+  failure, and — unlike `hints.py`'s stuck-student nudges — never
+  suppressed during `--exam`: it's just the student's own code, already
+  open in their editor, not a crutch. New `extract_function_source()` in
+  both `src/grader.py` (ast-based) and `c_exam/grader.py` (best-effort
+  brace-matching over the comment/string-stripped source, reusing
+  `_strip_comments_and_strings()`); both return `None` on any failure
+  (syntax error, function not found, unbalanced braces) rather than
+  raising, since this is a purely cosmetic display.
+- `--diff` now diffs a `list`/`tuple` `Failure` element-by-element instead
+  of character-by-character once it has more than one element — "index 2:
+  expected 3, got 4" is far more useful than "character 47 differs" once
+  a value is a 20-item list. Same idea for a multi-line value (most often
+  a C `CFailure`'s multi-line stdout): a `difflib`-based line diff instead
+  of the flat char pointer. Both render as a small `-`/`+` block in place
+  of the usual single-line pointer, in both the rich and plain UIs; a
+  short scalar (a plain string, int, float, bool, or anything single-line)
+  still gets the existing char-pointer treatment, unchanged. New pure
+  helpers in `src/ui.py`: `structural_diff()`, `line_diff()`.
 - `find_forbidden_calls()` in `src/grader.py` — an AST-based check, the
   Python-side counterpart to `c_exam/grader.py`'s existing `find_forbidden()`.
   Lets an exercise declare a `"forbidden"` tuple of names; grading fails
@@ -44,6 +94,35 @@ this repo has no version numbers, so entries are grouped by date instead.
   Python's built-in sort defeats the point of the exercise (implement a
   stable multi-key ordering yourself). Its hint was rewritten to match:
   it now points at a hand-rolled insertion sort instead of `sorted(key=...)`.
+- **Curated hints for the remaining 38 exam exercises.** Only 6 of the 44
+  entries in the Python exam bank had a hand-written `"hint"`; a student
+  stuck on any of the other 38 fell straight through to the generic,
+  pattern-matched `hints.diagnose()` fallback, which has no idea what the
+  exercise is actually about and is often unhelpful. Every exercise now
+  carries a short, exercise-specific nudge grounded in its own spec and
+  reference implementation (e.g. the empty-list/modulo-by-zero trap in
+  `py_twist_sequence`, the `set()`-collapses-duplicates trap in
+  `py_anagram`, the even-length-center gap in
+  `py_longest_palindromic_substring`) — pointing at what to check, never
+  handing over the solution.
+- Curated `"hint"` entries for all 9 `c_exam/training_bank.py` exercises
+  (`array_sum`, `find_max`, `is_palindrome_num`, `count_pairs_sum`,
+  `kadane_max_sum`, `count_unique`, `lis_length`, `count_inversions`,
+  `max_gap`) — previously none of them had one, so a stuck student only
+  ever got `hints.diagnose()`'s generic pattern-matched guess. Each hint
+  targets the actual technique or edge case for that exercise (e.g.
+  Kadane's classic all-negative-array bug, the strictly-increasing
+  comparison in `lis_length`'s DP, sorting a copy in `max_gap`).
+  `lis_length` and `max_gap` (the two that `malloc`/`free`) get a
+  crash/leak/default split like `ft_split`'s; the rest are plain strings.
+- Curated `"hint"` entries for the 44 C exam exercises (`c_exam/bank.py`)
+  that had none — every one of the 59 exercises now nudges a stuck student
+  with something specific to what it actually does, instead of falling all
+  the way through to `hints.diagnose()`'s generic, pattern-matched guess.
+  41 are plain strings; 2 (`rev_wstr`, `rostring`) use a `"crash"`/`"leak"`/
+  `"default"` dict split, since both extract words into per-word `malloc`'d
+  buffers where a sizing bug and a missing `free` are genuinely different
+  mistakes worth nudging differently.
 
 ### Fixed
 - **`py_bracket_validator`** carried `"level": 1` while living in the

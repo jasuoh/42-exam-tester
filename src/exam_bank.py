@@ -639,6 +639,12 @@ EXERCISES = {
     "py_inter": {
         "level": 1, "function": "inter", "standard": True,
         "oracle": _ref_inter, "fuzz": _fuzz_inter,
+        "hint": ("Build the result by scanning s1 (not s2) and keep a "
+                "character only the first time you meet it — a set "
+                "intersection is tempting but sets don't preserve order, "
+                "so you'd still need to re-sort by position in s1 "
+                "afterwards; just walk s1 once, keeping a character when "
+                "it's in s2 and not already in your result."),
         "subject": _sub("py_inter", """
         Write a function that returns a string with the characters that appear
         in BOTH strings, without repetitions, in the order of their first
@@ -662,6 +668,10 @@ EXERCISES = {
     "py_vowel_counter": {
         "level": 1, "function": "vowel_counter",
         "oracle": _ref_vowel_counter, "fuzz": _fuzz_vowel_counter,
+        "hint": ("Check both cases of each vowel (or lowercase the "
+                "character before comparing) — and leave 'y' out of your "
+                "vowel set entirely, even though some people count it as "
+                "one, this exercise doesn't."),
         "subject": _sub("py_vowel_counter", """
         Write a function that counts the vowels (a, e, i, o, u) in a string,
         case-insensitively. Accented letters and 'y' do not count.
@@ -683,6 +693,11 @@ EXERCISES = {
     "py_capitalizer": {
         "level": 1, "function": "capitalizer",
         "oracle": _ref_capitalizer, "fuzz": _fuzz_capitalizer,
+        "hint": ("Split on \" \" specifically, not a bare .split() — a "
+                "bare split collapses consecutive spaces and silently "
+                "drops the empty 'words' they create, which this "
+                "exercise expects you to keep untouched. Rejoin with "
+                "\" \".join() so the original spacing is preserved."),
         "subject": _sub("py_capitalizer", """
         Write a function that capitalizes the first letter of every word and
         lowercases the rest. Words are separated by single spaces: runs of
@@ -707,6 +722,11 @@ EXERCISES = {
     "py_leet_speak": {
         "level": 1, "function": "leet_speak",
         "oracle": _ref_leet_speak, "fuzz": _fuzz_leet_speak,
+        "hint": ("Only a/e/i/o get replaced — 'u' and 'U' must stay "
+                "exactly as they are, unlike some leetspeak conventions "
+                "you might know that also turn u into something else. "
+                "Every other character (consonants, digits, "
+                "punctuation) passes through unchanged, case included."),
         "subject": _sub("py_leet_speak", """
         Write a function that turns text into leetspeak by replacing
         vowels with digits: a/A -> 4, e/E -> 3, i/I -> 1, o/O -> 0.
@@ -728,6 +748,13 @@ EXERCISES = {
     "py_char_frequency": {
         "level": 1, "function": "char_frequency",
         "oracle": _ref_char_frequency, "fuzz": _fuzz_char_frequency,
+        "hint": ("Tie-breaking matters: when several characters share "
+                "the highest count, return whichever one reaches that "
+                "count first while scanning left to right — count "
+                "everything in one pass, then scan again and take the "
+                "first character whose count equals the maximum. Don't "
+                "sort by count, that can silently reorder tied "
+                "characters. Handle the empty string separately."),
         "subject": _sub("py_char_frequency", """
         Write a function that returns the most frequent character in a
         string (case-sensitive). If several characters are tied for the
@@ -751,6 +778,11 @@ EXERCISES = {
     "py_string_reverser": {
         "level": 1, "function": "string_reverser",
         "oracle": _ref_string_reverser, "fuzz": _fuzz_string_reverser,
+        "hint": ("If you're building the result with an index-based "
+                "loop instead of slicing, check your bounds carefully — "
+                "starting the range at len(text) instead of "
+                "len(text) - 1, or getting the stop condition wrong, is "
+                "the classic off-by-one here."),
         "subject": _sub("py_string_reverser", """
         Write a function that returns a string reversed.
 
@@ -769,6 +801,9 @@ EXERCISES = {
     "py_char_counter": {
         "level": 1, "function": "char_counter",
         "oracle": _ref_char_counter, "fuzz": _fuzz_char_counter,
+        "hint": ("Comparison is case-sensitive — don't lowercase text "
+                "or ch before comparing, 'o' and 'O' are different "
+                "characters here."),
         "subject": _sub("py_char_counter", """
         Write a function that counts how many times a character appears in
         a string. ch is always a single character; comparison is
@@ -825,6 +860,11 @@ EXERCISES = {
     "py_mirror_matrix": {
         "level": 2, "function": "mirror_matrix", "standard": True,
         "oracle": _ref_mirror_matrix, "fuzz": _fuzz_mirror_matrix,
+        "hint": ("It's each individual row that gets reversed, not the "
+                "order of the rows themselves. Build a brand new list "
+                "of lists rather than reversing rows in place (e.g. "
+                "with row.reverse()), and check that an empty matrix "
+                "and rows of length 0 don't blow up."),
         "subject": _sub("py_mirror_matrix", """
         Given a 2D matrix (list of lists), return a NEW matrix where each row
         is reversed.
@@ -846,6 +886,11 @@ EXERCISES = {
     "py_digit_extractor": {
         "level": 2, "function": "digit_extractor",
         "oracle": _ref_digit_extractor, "fuzz": _fuzz_digit_extractor,
+        "hint": ("Convert each digit character to an actual int in "
+                "your result, not just keep it as a one-character "
+                "string — digit_extractor needs a list of ints, not "
+                "strings. Preserve extraction order left to right, and "
+                "an input with no digits at all returns an empty list."),
         "subject": _sub("py_digit_extractor", """
         Write a function that extracts every digit character from a string,
         in order, and returns them as a list of integers. Non-digit
@@ -867,6 +912,11 @@ EXERCISES = {
     "py_case_counter": {
         "level": 2, "function": "case_counter",
         "oracle": _ref_case_counter, "fuzz": _fuzz_case_counter,
+        "hint": ("The return order is [uppercase_count, "
+                "lowercase_count] — double check you're not swapping "
+                "them. Use str.isupper()/str.islower() rather than "
+                "hand-rolled 'A'-'Z' range checks, so digits, spaces "
+                "and punctuation correctly count as neither."),
         "subject": _sub("py_case_counter", """
         Write a function that counts upper-case and lower-case letters in a
         string. Digits, spaces and punctuation count as neither.
@@ -889,6 +939,11 @@ EXERCISES = {
     "py_run_length_encoder": {
         "level": 2, "function": "run_length_encoder",
         "oracle": _ref_run_length_encoder, "fuzz": _fuzz_run_length_encoder,
+        "hint": ("Always emit the count even when a run is exactly 1 "
+                "character long — some RLE variants omit a lone '1', "
+                "but here 'abc' must become 'a1b1c1', not 'abc'. Handle "
+                "the empty string as a special case up front, since "
+                "there's no first character to start a run with."),
         "subject": _sub("py_run_length_encoder", """
         Write a function that run-length-encodes a string: each maximal
         run of the same character becomes that character followed by its
@@ -909,6 +964,12 @@ EXERCISES = {
     "py_second_largest": {
         "level": 2, "function": "second_largest",
         "oracle": _ref_second_largest, "fuzz": _fuzz_second_largest,
+        "hint": ("Dedupe before picking the second-largest value — if "
+                "you just sort the raw list and take the second "
+                "element, a duplicated maximum (e.g. [5, 5, 4]) will "
+                "wrongly give you the max again instead of the real "
+                "second-distinct value. Convert to a set first, and "
+                "remember fewer than two distinct values means None."),
         "subject": _sub("py_second_largest", """
         Write a function that returns the second-largest DISTINCT value in
         a list of integers. Duplicates of the largest value do not count
@@ -932,6 +993,11 @@ EXERCISES = {
     "py_even_odd_counter": {
         "level": 2, "function": "even_odd_counter",
         "oracle": _ref_even_odd_counter, "fuzz": _fuzz_even_odd_counter,
+        "hint": ("Zero counts as even, and Python's % already handles "
+                "negative numbers correctly for this check (-3 % 2 == "
+                "1, no need for abs()) — just make sure the return "
+                "order is [even_count, odd_count], and an empty list "
+                "gives [0, 0]."),
         "subject": _sub("py_even_odd_counter", """
         Write a function that counts how many even and how many odd
         numbers are in a list of integers.
@@ -954,6 +1020,11 @@ EXERCISES = {
     "py_sum_of_squares": {
         "level": 2, "function": "sum_of_squares",
         "oracle": _ref_sum_of_squares, "fuzz": _fuzz_sum_of_squares,
+        "hint": ("Square each number individually and then add the "
+                "squares together — don't sum the list first and "
+                "square that total once, e.g. summing [10, -10] first "
+                "would give 0**2 = 0, which is wrong; the two squares "
+                "(100 + 100) must be added separately."),
         "subject": _sub("py_sum_of_squares", """
         Write a function that returns the sum of the squares of every
         number in a list. An empty list returns 0.
@@ -973,6 +1044,13 @@ EXERCISES = {
     "py_longest_common_prefix": {
         "level": 2, "function": "longest_common_prefix",
         "oracle": _ref_longest_common_prefix, "fuzz": _fuzz_longest_common_prefix,
+        "hint": ("Start by assuming the whole first string is the "
+                "prefix, then shrink it one character at a time until "
+                "every other string starts with it (str.startswith is "
+                "handy here) — that naturally handles the empty-list "
+                "and 'one string is shorter/empty' cases as soon as the "
+                "prefix shrinks to \"\". Comparison is case-sensitive: "
+                "\"ABC\" and \"abc\" share no prefix at all."),
         "subject": _sub("py_longest_common_prefix", """
         Write a function that returns the longest string that is a prefix
         of every string in a list. An empty list, or no common prefix at
@@ -997,6 +1075,12 @@ EXERCISES = {
         "level": 2, "function": "camel_to_snake_converter",
         "oracle": _ref_camel_to_snake_converter,
         "fuzz": _fuzz_camel_to_snake_converter,
+        "hint": ("A leading upper-case letter still gets an underscore "
+                "in front of it — don't special-case away a leading "
+                "underscore the way some snake_case libraries do; "
+                "\"AlreadyUpper\" really does become \"_already_upper\". "
+                "Digits and any underscore already in the input pass "
+                "through unchanged."),
         "subject": _sub("py_camel_to_snake_converter", """
         Write a function that converts a lowerCamelCase string to
         snake_case: every upper-case letter is replaced by an underscore
@@ -1023,6 +1107,15 @@ EXERCISES = {
     "py_number_base_converter": {
         "level": 3, "function": "number_base_converter", "standard": True,
         "oracle": _ref_number_base_converter, "fuzz": _fuzz_number_base_converter,
+        "hint": ("\"ERROR\" covers three separate things — check them "
+                "all: a base outside 2..36, an empty digit body "
+                "(including a lone '-' with nothing after it), and any "
+                "digit character that isn't valid in from_base (e.g. "
+                "'2' in base 2, or a letter whose value is >= "
+                "from_base). Also compute the decimal value first and "
+                "check whether it's zero BEFORE reattaching the '-' "
+                "sign — \"-0\" as input must come back as \"0\", not "
+                "\"-0\"."),
         "subject": _sub("py_number_base_converter", """
         Write a function that converts a number from one base to another.
         Both bases go from 2 to 36 inclusive. Digits are 0-9 then A-Z for the
@@ -1058,6 +1151,12 @@ EXERCISES = {
     "py_pattern_tracker": {
         "level": 3, "function": "pattern_tracker", "standard": True,
         "oracle": _ref_pattern_tracker, "fuzz": _fuzz_pattern_tracker,
+        "hint": ("This does NOT wrap around — '9' followed by '0' is "
+                "not a valid pair even though 9 + 1 mod 10 == 0, so "
+                "don't build the check with modular arithmetic. Also "
+                "make sure both characters in a pair are digits before "
+                "comparing their values, rather than assuming the "
+                "whole string is numeric."),
         "subject": _sub("py_pattern_tracker", """
         Write a function that counts valid consecutive digit pairs in a string.
         A valid pair is two adjacent digits where the second is exactly one
@@ -1080,6 +1179,13 @@ EXERCISES = {
     "py_hidenp": {
         "level": 3, "function": "hidenp", "standard": True,
         "oracle": _ref_hidenp, "fuzz": _fuzz_hidenp,
+        "hint": ("Membership alone isn't enough — just checking that "
+                "every character of 'small' exists somewhere in 'big' "
+                "would wrongly accept hidenp('aec', 'abcde'), which "
+                "must be False because the order doesn't match. Walk "
+                "through 'big' with a pointer that only ever moves "
+                "forward, advancing it past each character of 'small' "
+                "in turn."),
         "subject": _sub("py_hidenp", """
         Write a function that checks whether 'small' is a subsequence of 'big'.
         A subsequence means all characters of 'small' appear in 'big' in the
@@ -1105,6 +1211,12 @@ EXERCISES = {
     "py_word_reverser": {
         "level": 3, "function": "word_reverser",
         "oracle": _ref_word_reverser, "fuzz": _fuzz_word_reverser,
+        "hint": ("Split on \" \" specifically, not a bare .split() — a "
+                "bare split collapses consecutive spaces and drops the "
+                "empty 'words' they create, which this exercise expects "
+                "you to keep (an empty word reversed is still empty). "
+                "Reverse each piece independently, then rejoin with "
+                "single spaces."),
         "subject": _sub("py_word_reverser", """
         Write a function that reverses each word in a sentence but keeps
         the words in their original order. Words are separated by single
@@ -1127,6 +1239,11 @@ EXERCISES = {
     "py_run_length_decoder": {
         "level": 3, "function": "run_length_decoder",
         "oracle": _ref_run_length_decoder, "fuzz": _fuzz_run_length_decoder,
+        "hint": ("Counts can be more than one digit long — after each "
+                "character, keep consuming digit characters greedily "
+                "(a while loop, not just peeking at one) until you hit "
+                "a non-digit or the end of the string; 'z10' means ten "
+                "z's, not 'z1' followed by a stray '0'."),
         "subject": _sub("py_run_length_decoder", """
         Write a function that decodes a run-length-encoded string: each
         character is followed by a run of digits giving its repeat count
@@ -1147,6 +1264,14 @@ EXERCISES = {
     "py_binary_gap": {
         "level": 3, "function": "binary_gap",
         "oracle": _ref_binary_gap, "fuzz": _fuzz_binary_gap,
+        "hint": ("Only zeros with a 1 on BOTH sides count — zeros "
+                "trailing after the last 1 bit (like in 32 -> 100000) "
+                "must be ignored even though they're the longest run of "
+                "zeros in the binary string. bin(n)[2:] plus splitting "
+                "on '1' isolates each internal run cleanly, but drop "
+                "the first and last piece of that split — those sit "
+                "before the first 1 and after the last 1, not between "
+                "two of them."),
         "subject": _sub("py_binary_gap", """
         Write a function that finds the longest run of consecutive zeros
         that is surrounded by ones on both sides in the binary
@@ -1170,6 +1295,12 @@ EXERCISES = {
         "level": 3, "function": "string_rotation_checker",
         "oracle": _ref_string_rotation_checker,
         "fuzz": _fuzz_string_rotation_checker,
+        "hint": ("Check that s1 and s2 have the same length FIRST — "
+                "the classic 's2 in (s1 + s1)' trick only works once "
+                "you already know the lengths match. Skip that check "
+                "and a shorter string like 'ab' would look like it's "
+                "'inside' the doubled longer string and wrongly pass as "
+                "a rotation of 'abc'."),
         "subject": _sub("py_string_rotation_checker", """
         Write a function that checks whether s2 is a rotation of s1 — i.e.
         s2 can be obtained by moving some prefix of s1 to its end (zero
@@ -1196,6 +1327,13 @@ EXERCISES = {
     "py_anagram": {
         "level": 4, "function": "anagram", "standard": True,
         "oracle": _ref_anagram, "fuzz": _fuzz_anagram,
+        "hint": ("Don't compare using set() — a set collapses "
+                "duplicate letters, so 'abc' and 'abcc' would "
+                "incorrectly look equal even though the counts differ "
+                "(this exercise tests exactly that case). Sort each "
+                "cleaned string, or count letters with a dict/Counter, "
+                "so multiplicities are preserved; lowercase and strip "
+                "spaces from both first."),
         "subject": _sub("py_anagram", """
         Write a function that checks whether two strings are anagrams.
         They must contain exactly the same letters in the same amounts,
@@ -1220,6 +1358,12 @@ EXERCISES = {
     "py_shadow_merge": {
         "level": 4, "function": "shadow_merge", "standard": True,
         "oracle": _ref_shadow_merge, "fuzz": _fuzz_shadow_merge,
+        "hint": ("If you're doing a manual two-pointer merge (rather "
+                "than just concatenating and sorting), remember to "
+                "append whatever's left over in the other list once one "
+                "pointer runs off the end — a common bug is stopping as "
+                "soon as either list is exhausted and silently dropping "
+                "the remaining tail of the other one."),
         "subject": _sub("py_shadow_merge", """
         Write a function that merges two already-sorted lists into one sorted
         list.
@@ -1241,6 +1385,12 @@ EXERCISES = {
         "level": 4, "function": "string_permutation_checker", "standard": True,
         "oracle": _ref_string_permutation_checker,
         "fuzz": _fuzz_string_permutation_checker,
+        "hint": ("Unlike a typical anagram check, this one is fully "
+                "case-sensitive — don't lowercase the strings first, "
+                "'Abc' and 'abc' must NOT count as permutations of each "
+                "other. Otherwise it's the same idea: compare sorted "
+                "character sequences (or counts) rather than sets, so "
+                "repeated characters are handled correctly too."),
         "subject": _sub("py_string_permutation_checker", """
         Write a function that determines whether two strings are permutations
         of each other. CASE-SENSITIVE. Whitespace and punctuation count as
@@ -1264,6 +1414,13 @@ EXERCISES = {
     "py_unique_elements": {
         "level": 4, "function": "unique_elements",
         "oracle": _ref_unique_elements, "fuzz": _fuzz_unique_elements,
+        "hint": ("This is not the same as deduping a list — an item "
+                "that appears more than once must be dropped entirely, "
+                "including its first occurrence, not just its later "
+                "repeats (unique_elements([1,2,2,3,4,4,5]) is [1, 3, "
+                "5], not [1, 2, 3, 4, 5]). Count occurrences first, "
+                "then filter the original list keeping only items "
+                "whose total count is exactly 1."),
         "subject": _sub("py_unique_elements", """
         Write a function that returns the elements that appear exactly once
         in a list, in their original order. Elements that repeat are
@@ -1286,6 +1443,12 @@ EXERCISES = {
     "py_pangram_checker": {
         "level": 4, "function": "pangram_checker",
         "oracle": _ref_pangram_checker, "fuzz": _fuzz_pangram_checker,
+        "hint": ("Filter down to alphabetic characters before counting "
+                "distinct letters (ch.isalpha()) — otherwise digits, "
+                "spaces and punctuation inflate the count of unique "
+                "symbols, and a genuine pangram like 'The 5 boxing "
+                "wizards jump quickly!' could fail the ==26 check even "
+                "though every letter is actually present."),
         "subject": _sub("py_pangram_checker", """
         Write a function that checks whether a string is a pangram: it
         must contain every letter of the alphabet at least once,
@@ -1310,6 +1473,12 @@ EXERCISES = {
     "py_max_subarray_sum": {
         "level": 4, "function": "max_subarray_sum",
         "oracle": _ref_max_subarray_sum, "fuzz": _fuzz_max_subarray_sum,
+        "hint": ("Initialize your running/best sums to the first "
+                "element, not 0 — starting from 0 breaks the "
+                "all-negative case (max_subarray_sum([-1,-2,-3]) must "
+                "be -1, the largest single element, since 0 isn't a "
+                "sum any contiguous non-empty subarray can actually "
+                "produce there)."),
         "subject": _sub("py_max_subarray_sum", """
         Write a function that returns the largest possible sum of a
         contiguous (non-empty) subarray of a list of integers. If every
@@ -1332,6 +1501,14 @@ EXERCISES = {
     "py_roman_numeral": {
         "level": 4, "function": "roman_numeral",
         "oracle": _ref_roman_numeral, "fuzz": _fuzz_roman_numeral,
+        "hint": ("Don't build this with just the seven base symbols "
+                "(I, V, X, L, C, D, M) — you also need the six "
+                "subtractive combinations (CM=900, CD=400, XC=90, "
+                "XL=40, IX=9, IV=4), or numbers like 1994 (which needs "
+                "CM, XC and IV all in the same result) will come out "
+                "wrong. A greedy loop over a value/symbol table ordered "
+                "largest-to-smallest, including those combos, handles "
+                "every case in one pass."),
         "subject": _sub("py_roman_numeral", """
         Write a function that converts an integer (always between 1 and
         3999 inclusive) to its Roman numeral representation.
@@ -1353,6 +1530,14 @@ EXERCISES = {
     "py_string_sculptor": {
         "level": 5, "function": "string_sculptor", "standard": True,
         "oracle": _ref_string_sculptor, "fuzz": _fuzz_string_sculptor,
+        "hint": ("Two different things happen for non-letters: "
+                "whitespace (space/tab/newline) resets the alternation "
+                "back to lowercase-next, but other non-alpha characters "
+                "(digits, punctuation) are simply skipped — they "
+                "neither toggle the case nor reset it, the toggle just "
+                "continues across them (e.g. 'abc123def' -> "
+                "'aBc123DeF', the 'd' continues the toggle state from "
+                "before the digits)."),
         "subject": _sub("py_string_sculptor", """
         Write a function that alternates the case of ALPHABETIC characters
         only. Non-alphabetic characters stay unchanged and are NOT counted in
@@ -1376,6 +1561,13 @@ EXERCISES = {
     "py_twist_sequence": {
         "level": 5, "function": "twist_sequence", "standard": True,
         "oracle": _ref_twist_sequence, "fuzz": _fuzz_twist_sequence,
+        "hint": ("Handle the empty list first, before you do "
+                "k %= len(arr) — computing that modulo when the array "
+                "is empty divides by zero and crashes. Also don't skip "
+                "the modulo step itself: k can be larger than (or a "
+                "multiple of) the array's length, so reduce it first, "
+                "and return a brand new list rather than rotating arr "
+                "in place."),
         "subject": _sub("py_twist_sequence", """
         Write a function that rotates an array to the RIGHT by k positions.
         Rotating right by k means the last k elements move to the front.
@@ -1399,6 +1591,11 @@ EXERCISES = {
     "py_matrix_transposer": {
         "level": 5, "function": "matrix_transposer",
         "oracle": _ref_matrix_transposer, "fuzz": _fuzz_matrix_transposer,
+        "hint": ("If you use zip(*matrix) to transpose (a clean "
+                "built-in trick), remember zip returns tuples — wrap "
+                "each resulting row in list(...), since the expected "
+                "output is a list of lists, not tuples. Also handle the "
+                "empty-matrix case explicitly ([] -> [])."),
         "subject": _sub("py_matrix_transposer", """
         Write a function that transposes a matrix (rows become columns).
         The matrix is rectangular: every row has the same length.
@@ -1420,6 +1617,12 @@ EXERCISES = {
     "py_longest_word": {
         "level": 5, "function": "longest_word",
         "oracle": _ref_longest_word, "fuzz": _fuzz_longest_word,
+        "hint": ("When several words are tied for longest, keep the "
+                "FIRST one you saw — use strict '>' (not '>=') when "
+                "comparing a new candidate against your current best, "
+                "otherwise a later tied word overwrites the correct "
+                "answer (longest_word('aaa bbb ccc') must stay 'aaa', "
+                "not 'ccc')."),
         "subject": _sub("py_longest_word", """
         Write a function that returns the longest word in a sentence.
         Words are separated by (possibly several) spaces; if two words are
@@ -1443,6 +1646,12 @@ EXERCISES = {
     "py_zigzag_flatten": {
         "level": 5, "function": "zigzag_flatten",
         "oracle": _ref_zigzag_flatten, "fuzz": _fuzz_zigzag_flatten,
+        "hint": ("It's individual rows that get reversed on every "
+                "other pass, not the overall flattened list — row 0 "
+                "goes left-to-right, row 1 right-to-left, row 2 "
+                "left-to-right again, and so on. Use the row's own "
+                "0-based index to decide direction, not a separate "
+                "running counter that could drift out of sync."),
         "subject": _sub("py_zigzag_flatten", """
         Write a function that flattens a matrix into a single list in a
         zigzag (boustrophedon) order: the first row left-to-right, the
@@ -1490,6 +1699,14 @@ EXERCISES = {
     "py_bracket_validator": {
         "level": 6, "function": "bracket_validator", "standard": True,
         "oracle": _ref_bracket_validator, "fuzz": _fuzz_bracket_validator,
+        "hint": ("Two failure modes to catch, not just one: a closing "
+                "bracket that doesn't match what's on top of your stack "
+                "(or with nothing on the stack at all, like '}{'), AND "
+                "leftover unmatched opening brackets once you've "
+                "scanned the whole string (like '((())' — three opens, "
+                "two closes). Don't forget to check the stack is "
+                "completely empty at the end, not just that you never "
+                "hit a mismatch during the loop."),
         "subject": _sub("py_bracket_validator", """
         Write a function that checks whether the brackets in a string are
         valid. Valid means every opening bracket has a matching closing bracket
@@ -1513,6 +1730,13 @@ EXERCISES = {
     "py_whisper_cipher": {
         "level": 6, "function": "whisper_cipher", "standard": True,
         "oracle": _ref_whisper_cipher, "fuzz": _fuzz_whisper_cipher,
+        "hint": ("Python's % already wraps negative shifts correctly "
+                "(no need for an extra +26 correction like you might "
+                "add in other languages) — the real trap is keeping "
+                "the two alphabets separate: subtract the right base "
+                "(97 for lowercase, 65 for uppercase) before applying "
+                "the shift and modulo, or you'll break the case of the "
+                "output while wrapping it."),
         "subject": _sub("py_whisper_cipher", """
         Write a function that creates a Caesar cipher by shifting letters by a
         given amount. Non-alphabetic characters stay unchanged. The shift can
@@ -1586,6 +1810,14 @@ EXERCISES = {
         "level": 6, "function": "longest_palindromic_substring",
         "oracle": _ref_longest_palindromic_substring,
         "fuzz": _fuzz_longest_palindromic_substring,
+        "hint": ("Expanding around a center only catches odd-length "
+                "palindromes (a single middle character) unless you "
+                "also try each adjacent PAIR as a center for "
+                "even-length ones — 'cbbd' -> 'bb' needs that second "
+                "kind of center, or you'd miss it entirely. When "
+                "several substrings tie for the longest length, keep "
+                "the first (leftmost) one — use strict '>' when "
+                "updating your best-so-far, not '>='."),
         "subject": _sub("py_longest_palindromic_substring", """
         Write a function that returns the longest contiguous substring
         that reads the same forwards and backwards. Comparison is

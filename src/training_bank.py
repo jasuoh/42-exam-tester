@@ -361,6 +361,10 @@ TRAINING_EXERCISES = {
     "py_fizzbuzz_list": {
         "difficulty": "easy", "function": "fizzbuzz_list",
         "oracle": _ref_fizzbuzz_list, "fuzz": _fuzz_fizzbuzz_list,
+        "hint": ("Check the multiple-of-15 case (both 3 and 5) before "
+                "checking 3 or 5 alone — if your 'multiple of 3' branch "
+                "fires first, 15 will print 'Fizz' and never reach "
+                "'FizzBuzz'."),
         "subject": _sub("py_fizzbuzz_list", """
         Write the classic FizzBuzz. Return a list of strings for every
         number from 1 to n (inclusive): "Fizz" for multiples of 3, "Buzz"
@@ -381,6 +385,11 @@ TRAINING_EXERCISES = {
     "py_first_unique_char": {
         "difficulty": "easy", "function": "first_unique_char",
         "oracle": _ref_first_unique_char, "fuzz": _fuzz_first_unique_char,
+        "hint": ("Count how many times each character appears first (one "
+                "pass), then scan the string again looking for the first "
+                "one whose count is 1 — checking uniqueness by rescanning "
+                "the rest of the string for every character works but is "
+                "needlessly O(n^2) and easy to get the index wrong on."),
         "subject": _sub("py_first_unique_char", """
         Write a function that returns the index of the first character in
         a string that does not repeat anywhere else in it. Case-sensitive.
@@ -401,6 +410,10 @@ TRAINING_EXERCISES = {
     "py_missing_number": {
         "difficulty": "easy", "function": "missing_number",
         "oracle": _ref_missing_number, "fuzz": _fuzz_missing_number,
+        "hint": ("The list has n elements but the values range over "
+                "0..n (n+1 possible values) — the expected sum is "
+                "n*(n+1)//2, not (n-1)*n//2, so double check which n "
+                "you're using before subtracting the actual sum."),
         "subject": _sub("py_missing_number", """
         You are given a list of n distinct integers taken from the range
         0..n (inclusive) with exactly one of them missing, in any order.
@@ -422,6 +435,11 @@ TRAINING_EXERCISES = {
     "py_contains_duplicate": {
         "difficulty": "easy", "function": "contains_duplicate",
         "oracle": _ref_contains_duplicate, "fuzz": _fuzz_contains_duplicate,
+        "hint": ("Comparing every pair of elements works but is O(n^2) "
+                "and can time out on larger fuzz inputs — putting the "
+                "elements in a set and comparing its size to the "
+                "original list's length answers the question in one "
+                "pass."),
         "subject": _sub("py_contains_duplicate", """
         Write a function that returns True if any value appears at least
         twice in the list, False if every value is distinct.
@@ -441,6 +459,10 @@ TRAINING_EXERCISES = {
     "py_single_number": {
         "difficulty": "easy", "function": "single_number",
         "oracle": _ref_single_number, "fuzz": _fuzz_single_number,
+        "hint": ("XOR every element together: a value XORed with itself "
+                "is 0, so every paired-up number cancels out and only "
+                "the lone one survives — no counting dict needed, and it "
+                "works even with negative numbers."),
         "subject": _sub("py_single_number", """
         Every element in the list appears exactly twice, except one which
         appears exactly once. Find and return that one element.
@@ -460,6 +482,10 @@ TRAINING_EXERCISES = {
     "py_climbing_stairs": {
         "difficulty": "easy", "function": "climbing_stairs",
         "oracle": _ref_climbing_stairs, "fuzz": _fuzz_climbing_stairs,
+        "hint": ("This is just Fibonacci: ways(n) = ways(n-1) + ways(n-2), "
+                "because your last move was either a 1-step or a 2-step. "
+                "Both n=0 and n=1 have exactly one way, so seed your two "
+                "base cases to 1, not 0 and 1."),
         "subject": _sub("py_climbing_stairs", """
         You are climbing a staircase of n steps. Each move you can climb
         either 1 or 2 steps. Return the number of distinct ways to reach
@@ -481,6 +507,12 @@ TRAINING_EXERCISES = {
     "py_group_anagrams": {
         "difficulty": "medium", "function": "group_anagrams",
         "oracle": _ref_group_anagrams, "fuzz": _fuzz_group_anagrams,
+        "hint": ("Two words are anagrams exactly when their sorted "
+                "letters are identical, so use that sorted string as a "
+                "dict key to bucket words together — but the OUTPUT group "
+                "order must follow each key's first appearance in the "
+                "input, not dict insertion order from a different pass "
+                "or a sorted-keys order."),
         "subject": _sub("py_group_anagrams", """
         Write a function that groups words that are anagrams of each
         other. Two words are anagrams if they contain exactly the same
@@ -506,6 +538,12 @@ TRAINING_EXERCISES = {
     "py_product_except_self": {
         "difficulty": "medium", "function": "product_except_self",
         "oracle": _ref_product_except_self, "fuzz": _fuzz_product_except_self,
+        "hint": ("Division-based solutions (multiply everything, divide "
+                "by lst[i]) break the moment there's a 0 in the list, and "
+                "division is against the rules here anyway. Instead do "
+                "two passes: a running prefix product left-to-right, then "
+                "a running suffix product right-to-left, multiplying them "
+                "into the result."),
         "subject": _sub("py_product_except_self", """
         Write a function that returns a new list where each element is the
         product of every OTHER element in the input list. Do not use
@@ -526,6 +564,10 @@ TRAINING_EXERCISES = {
     "py_kth_largest": {
         "difficulty": "medium", "function": "kth_largest",
         "oracle": _ref_kth_largest, "fuzz": _fuzz_kth_largest,
+        "hint": ("k=1 means the largest, not the smallest, and k counts "
+                "each duplicate value separately rather than treating "
+                "equal values as one rank — sorting descending and "
+                "indexing at k-1 handles both of those automatically."),
         "subject": _sub("py_kth_largest", """
         Write a function that returns the k-th largest element in a list
         of integers (k = 1 means the single largest). Duplicate values
@@ -547,6 +589,13 @@ TRAINING_EXERCISES = {
     "py_three_sum": {
         "difficulty": "medium", "function": "three_sum",
         "oracle": _ref_three_sum, "fuzz": _fuzz_three_sum,
+        "hint": ("Sort first, then fix one number and two-pointer the "
+                "rest of the list from both ends toward the middle "
+                "(move the low pointer up when the sum's too small, the "
+                "high pointer down when it's too big). After sorting, "
+                "skip over a fixed value (or a pointer value) that's "
+                "equal to the one you just used, or you'll emit the same "
+                "triplet more than once."),
         "subject": _sub("py_three_sum", """
         Write a function that finds every unique triplet of elements in a
         list that adds up to zero. Sort each triplet's own three values
@@ -570,6 +619,13 @@ TRAINING_EXERCISES = {
     "py_spiral_matrix": {
         "difficulty": "medium", "function": "spiral_matrix",
         "oracle": _ref_spiral_matrix, "fuzz": _fuzz_spiral_matrix,
+        "hint": ("Peel the matrix like an onion: take the whole top row, "
+                "then the last element of every remaining row, then the "
+                "bottom row reversed, then the first element of every "
+                "remaining row (top to bottom), and repeat on what's "
+                "left. Re-check that inner loop's guards after each peel "
+                "— a matrix with only one row or one column left is where "
+                "this usually double-counts or crashes."),
         "subject": _sub("py_spiral_matrix", """
         Write a function that returns every element of a matrix in
         clockwise spiral order, starting from the top-left corner, as a
@@ -593,6 +649,12 @@ TRAINING_EXERCISES = {
         "difficulty": "medium", "function": "container_with_most_water",
         "oracle": _ref_container_with_most_water,
         "fuzz": _fuzz_container_with_most_water,
+        "hint": ("Checking every pair of lines is O(n^2) and will time "
+                "out on longer inputs. Use two pointers starting at the "
+                "opposite ends: at each step the shorter of the two lines "
+                "is the bottleneck, so move that pointer inward (moving "
+                "the taller one can only ever shrink the width without "
+                "raising the height)."),
         "subject": _sub("py_container_with_most_water", """
         Each value in the list is the height of a vertical line at that
         index. Together with the x-axis, any two lines form a container.
@@ -615,6 +677,12 @@ TRAINING_EXERCISES = {
     "py_string_compression": {
         "difficulty": "medium", "function": "string_compression",
         "oracle": _ref_string_compression, "fuzz": _fuzz_string_compression,
+        "hint": ("Walk the list tracking the current run's character and "
+                "count; when the character changes, flush the previous "
+                "run to the result — but only append the count when it's "
+                "greater than 1, a run of length 1 gets just the bare "
+                "character. Don't forget to flush the last run after the "
+                "loop ends, it never triggers a character-change."),
         "subject": _sub("py_string_compression", """
         Write a function that compresses a list of single characters:
         each maximal run of the same character becomes that character
@@ -642,6 +710,13 @@ TRAINING_EXERCISES = {
     "py_merge_intervals": {
         "difficulty": "hard", "function": "merge_intervals",
         "oracle": _ref_merge_intervals, "fuzz": _fuzz_merge_intervals,
+        "hint": ("Sort the intervals by start first — unsorted, deciding "
+                "whether two intervals overlap means checking every pair. "
+                "Sorted, you only need to compare each interval to the "
+                "last one you've kept: if it starts at or before that "
+                "one's end, extend its end (with max, not just overwrite "
+                "it — a contained interval like [2,3] inside [1,10] must "
+                "not shrink the merged end)."),
         "subject": _sub("py_merge_intervals", """
         Write a function that merges every pair of overlapping intervals.
         Each interval is [start, end] with start <= end. Two intervals
@@ -667,6 +742,13 @@ TRAINING_EXERCISES = {
         "difficulty": "hard", "function": "longest_increasing_subsequence",
         "oracle": _ref_longest_increasing_subsequence,
         "fuzz": _fuzz_longest_increasing_subsequence,
+        "hint": ("Classic DP: dp[i] = the length of the longest "
+                "increasing subsequence ENDING at index i. For each i, "
+                "look back at every j < i and, whenever lst[j] < lst[i], "
+                "try dp[j] + 1. The answer is the max of the whole dp "
+                "array, not dp[-1] — the longest subsequence doesn't have "
+                "to end at the last element. Every step is strictly "
+                "increasing, so equal values never extend a run."),
         "subject": _sub("py_longest_increasing_subsequence", """
         Write a function that returns the LENGTH of the longest strictly
         increasing subsequence of a list of integers. The subsequence does
@@ -688,6 +770,13 @@ TRAINING_EXERCISES = {
     "py_trapping_rain_water": {
         "difficulty": "hard", "function": "trapping_rain_water",
         "oracle": _ref_trapping_rain_water, "fuzz": _fuzz_trapping_rain_water,
+        "hint": ("The water trapped above any single bar is bounded by "
+                "the taller of its two neighbouring walls, not just its "
+                "immediate neighbour: water[i] = min(tallest bar to the "
+                "left of i, tallest bar to the right of i) - heights[i] "
+                "(never negative). Precompute the running max-so-far from "
+                "the left and from the right, then combine them per "
+                "index."),
         "subject": _sub("py_trapping_rain_water", """
         Given a list of non-negative bar heights (width 1 each), compute
         how many units of water are trapped between the bars after rain.
@@ -708,6 +797,14 @@ TRAINING_EXERCISES = {
     "py_coin_change": {
         "difficulty": "hard", "function": "coin_change",
         "oracle": _ref_coin_change, "fuzz": _fuzz_coin_change,
+        "hint": ("A greedy 'always take the biggest coin that fits' "
+                "strategy fails on some denominations (e.g. coins "
+                "[1,3,4] for amount 6: greedy picks 4+1+1=3 coins, but "
+                "3+3=2 is better) — build a DP table instead, where "
+                "dp[a] is the fewest coins to make amount a, trying every "
+                "coin against every smaller amount. Initialize "
+                "unreachable amounts to infinity (not 0), and remember "
+                "dp[0] = 0."),
         "subject": _sub("py_coin_change", """
         You have an unlimited supply of each coin denomination in `coins`.
         Return the minimum number of coins needed to make exactly
@@ -728,6 +825,14 @@ TRAINING_EXERCISES = {
     "py_edit_distance": {
         "difficulty": "hard", "function": "edit_distance",
         "oracle": _ref_edit_distance, "fuzz": _fuzz_edit_distance,
+        "hint": ("Build a 2D DP table where dp[i][j] is the edit distance "
+                "between s1's first i characters and s2's first j: when "
+                "the current characters match, dp[i][j] = dp[i-1][j-1] "
+                "(no edit needed); otherwise it's 1 + the best of the "
+                "three neighbours (delete, insert, substitute). Row 0 and "
+                "column 0 aren't zero everywhere — they're 0,1,2,3...  "
+                "since turning \"\" into a j-length string always costs "
+                "j insertions."),
         "subject": _sub("py_edit_distance", """
         Write a function that returns the minimum number of single-
         character insertions, deletions or substitutions needed to turn
@@ -750,6 +855,16 @@ TRAINING_EXERCISES = {
         "difficulty": "hard", "function": "largest_rectangle_histogram",
         "oracle": _ref_largest_rectangle_histogram,
         "fuzz": _fuzz_largest_rectangle_histogram,
+        "hint": ("Trying every pair of bars as the rectangle's edges is "
+                "O(n^2) and will time out. Use a monotonic stack of "
+                "INDICES (not heights) kept increasing by height: when "
+                "the next bar is shorter than the bar on top of the "
+                "stack, that top bar can't extend any further right, so "
+                "pop it and compute its area using the current index and "
+                "whatever index is now exposed below it on the stack as "
+                "its left/right boundaries. Append a sentinel 0-height bar "
+                "at the end so every remaining bar on the stack gets "
+                "popped and considered."),
         "subject": _sub("py_largest_rectangle_histogram", """
         Each value in the list is the height of a histogram bar of width
         1, all standing side by side. Return the area of the largest
@@ -771,6 +886,14 @@ TRAINING_EXERCISES = {
         "difficulty": "hard", "function": "longest_common_subsequence",
         "oracle": _ref_longest_common_subsequence,
         "fuzz": _fuzz_longest_common_subsequence,
+        "hint": ("A 2D DP table again: dp[i][j] is the LCS length of "
+                "s1's first i chars and s2's first j chars. When "
+                "s1[i-1] == s2[j-1], extend the diagonal (dp[i-1][j-1] + "
+                "1); otherwise take the better of dropping one character "
+                "from either string (max(dp[i-1][j], dp[i][j-1])) — "
+                "never both at once, that undercounts. This is not "
+                "'longest common SUBSTRING': the matched characters don't "
+                "need to be contiguous."),
         "subject": _sub("py_longest_common_subsequence", """
         Write a function that returns the LENGTH of the longest common
         subsequence of two strings: the longest sequence of characters

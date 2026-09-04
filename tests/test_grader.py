@@ -178,6 +178,49 @@ class FindForbiddenCallsTests(unittest.TestCase):
         self.assertEqual(grader.find_forbidden_calls(path, ("sorted",)), [])
 
 
+class ExtractFunctionSourceTests(unittest.TestCase):
+    def _write(self, source):
+        fd, path = tempfile.mkstemp(suffix=".py")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(source)
+        self.addCleanup(os.remove, path)
+        return path
+
+    def test_extracts_the_named_function(self):
+        path = self._write("def other(x):\n    return 0\n\n\n"
+                           "def demo(x):\n    return x + 1\n")
+        src = grader.extract_function_source(path, "demo")
+        self.assertIn("def demo(x):", src)
+        self.assertIn("return x + 1", src)
+        self.assertNotIn("def other", src)
+
+    def test_function_not_found_returns_none(self):
+        path = self._write("def other(x):\n    return 0\n")
+        self.assertIsNone(grader.extract_function_source(path, "demo"))
+
+    def test_missing_file_returns_none_not_an_exception(self):
+        self.assertIsNone(grader.extract_function_source("/no/such/file.py", "demo"))
+
+    def test_syntax_error_returns_none_not_an_exception(self):
+        path = self._write("def broken(:\n")
+        self.assertIsNone(grader.extract_function_source(path, "broken"))
+
+    def test_last_definition_wins_on_redefinition(self):
+        path = self._write("def demo(x):\n    return 1\n\n\n"
+                           "def demo(x):\n    return 2\n")
+        src = grader.extract_function_source(path, "demo")
+        self.assertIn("return 2", src)
+        self.assertNotIn("return 1", src)
+
+    def test_extracted_source_is_valid_python_on_its_own(self):
+        path = self._write("def demo(x):\n    if x:\n        return x\n    return 0\n")
+        src = grader.extract_function_source(path, "demo")
+        namespace = {}
+        exec(compile(src, "<test>", "exec"), namespace)
+        self.assertEqual(namespace["demo"](5), 5)
+        self.assertEqual(namespace["demo"](0), 0)
+
+
 class OracleSourceTests(unittest.TestCase):
     def test_function_is_renamed_and_stays_valid_python(self):
         ex = {"oracle": _ref_demo, "function": "demo"}

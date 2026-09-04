@@ -288,7 +288,11 @@ class GradeExerciseHintTests(unittest.TestCase):
     def test_hint_appears_once_the_threshold_is_reached(self):
         cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
         rng = random.Random(0)
-        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+        # ft_strlen now has its own curated hint (see c_exam/bank.py) —
+        # blank it out for this test so hint_for() falls through to the
+        # generic diagnose() path this test is actually exercising.
+        with mock.patch.dict(EXERCISES["ft_strlen"], {"hint": None}), \
+             mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
              mock.patch.object(examshell.ui, "hint") as hint, \
              contextlib.redirect_stdout(io.StringIO()):
             for _ in range(examshell.hints.STUCK_THRESHOLD):

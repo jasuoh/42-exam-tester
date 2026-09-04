@@ -741,6 +741,89 @@ def find_forbidden(stripped_src, forbidden_names):
 
 
 # ══════════════════════════════════════════════════════════════
+#  STATIC CHECK  ·  source display (--diff's inline code panel)
+# ══════════════════════════════════════════════════════════════
+_SIG_START_RE_TEMPLATE = r"(?m)^[^\n{}]*\b%s\s*\("
+
+
+def _real_chars(src):
+    """Yield (original_index, char) for every character of `src` that is
+    NOT inside a comment or a string/char literal — same skip rules as
+    _strip_comments_and_strings(), but yielding ORIGINAL offsets instead
+    of building a stripped copy, so a caller can locate a token safely
+    (ignoring a stray '{'/'(' inside a string or comment) and then slice
+    the UNTOUCHED original text once it knows where that token really is."""
+    i, n = 0, len(src)
+    while i < n:
+        two = src[i:i + 2]
+        if two == "/*":
+            end = src.find("*/", i + 2)
+            i = n if end == -1 else end + 2
+        elif two == "//":
+            end = src.find("\n", i)
+            i = n if end == -1 else end
+        elif src[i] in "\"'":
+            quote = src[i]
+            j = i + 1
+            while j < n and src[j] != quote:
+                j += 2 if src[j] == "\\" else 1
+            i = j + 1
+        else:
+            yield i, src[i]
+            i += 1
+
+
+def extract_function_source(filepath, function_name):
+    """Best-effort brace-matching extraction of one function's definition
+    from the student's C file, for --diff's inline code panel — with the
+    student's ORIGINAL formatting, comments and string literals intact
+    (via _real_chars() above), not a stripped approximation: this is
+    shown back to the student as "your own code", and a printf() whose
+    string argument silently vanished would look like the tool is
+    broken, not like a deliberate simplification.
+
+    There's no C parser available here (see _strip_comments_and_strings()'s
+    own docstring for the same trade-off this project already accepts
+    elsewhere), so this scans a comment/string-free VIEW of the source for
+    '<something> function_name(' at the start of a line, then counts
+    braces the same comment/string-safe way — but every position used to
+    slice the final result maps back to the real, original source.
+
+    Returns None on any failure (file unreadable, function not found,
+    unbalanced braces) — must never be able to crash grading.
+    """
+    try:
+        with open(filepath, encoding="utf-8", errors="replace") as fh:
+            src = fh.read()
+    except OSError:
+        return None
+    real = list(_real_chars(src))
+    filtered = "".join(ch for _, ch in real)
+    sig_re = re.compile(_SIG_START_RE_TEMPLATE % re.escape(function_name))
+    m = sig_re.search(filtered)
+    if not m:
+        return None
+    sig_start = real[m.start()][0]
+    # Resume the same real-char scan right after the signature match to
+    # find the function's opening brace, then count depth from there —
+    # both steps skip string/comment content via _real_chars(), and both
+    # report positions in the ORIGINAL source.
+    tail = [(i, ch) for i, ch in real if i >= real[m.end() - 1][0]]
+    depth = 0
+    body_start = None
+    for i, ch in tail:
+        if ch == "{":
+            if body_start is None:
+                body_start = i
+            depth += 1
+        elif ch == "}" and body_start is not None:
+            depth -= 1
+            if depth == 0:
+                return src[sig_start:i + 1].strip()
+    return None
+
+
+# ══════════════════════════════════════════════════════════════
 #  COMPILE  ·  RUN
 # ══════════════════════════════════════════════════════════════
 def compile_c(sources, output, cc=DEFAULT_CC, extra_flags=(), include_dirs=()):

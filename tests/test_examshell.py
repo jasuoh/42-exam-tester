@@ -254,12 +254,17 @@ class GradeExerciseHintTests(unittest.TestCase):
     # grade_exercise()'s wiring (streak threshold, exam exclusion) — the
     # heuristic's own accuracy is HintsTests' job in test_shared.py, and
     # coupling both here would make this test flaky against unrelated
-    # changes to diagnose()'s pattern matching.
+    # changes to diagnose()'s pattern matching. py_inter now carries its
+    # own curated hint (see exam_bank.py), which would otherwise short-
+    # circuit hints.diagnose() entirely (see hints.hint_for()) — these
+    # tests stub it back to None so the diagnose() mock stays the one
+    # and only hint source, same as before py_inter had a curated hint.
 
     def test_no_hint_before_the_threshold(self):
         cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
         rng = random.Random(0)
-        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+        with mock.patch.dict(EXERCISES["py_inter"], {"hint": None}), \
+             mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
              mock.patch.object(examshell.ui, "hint") as hint, \
              contextlib.redirect_stdout(io.StringIO()):
             for _ in range(examshell.hints.STUCK_THRESHOLD - 1):
@@ -269,7 +274,8 @@ class GradeExerciseHintTests(unittest.TestCase):
     def test_hint_appears_once_the_threshold_is_reached(self):
         cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
         rng = random.Random(0)
-        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+        with mock.patch.dict(EXERCISES["py_inter"], {"hint": None}), \
+             mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
              mock.patch.object(examshell.ui, "hint") as hint, \
              contextlib.redirect_stdout(io.StringIO()):
             for _ in range(examshell.hints.STUCK_THRESHOLD):
@@ -279,7 +285,8 @@ class GradeExerciseHintTests(unittest.TestCase):
     def test_never_hints_during_exam_mode(self):
         cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
         rng = random.Random(0)
-        with mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
+        with mock.patch.dict(EXERCISES["py_inter"], {"hint": None}), \
+             mock.patch.object(examshell.hints, "diagnose", return_value="a hint"), \
              mock.patch.object(examshell.ui, "hint") as hint, \
              contextlib.redirect_stdout(io.StringIO()):
             for _ in range(examshell.hints.STUCK_THRESHOLD + 2):
@@ -289,7 +296,8 @@ class GradeExerciseHintTests(unittest.TestCase):
     def test_no_hint_when_diagnose_finds_no_pattern(self):
         cfg = _cfg(self._rendu_with_wrong_solution(), fuzz=0, seed=0)
         rng = random.Random(0)
-        with mock.patch.object(examshell.hints, "diagnose", return_value=None), \
+        with mock.patch.dict(EXERCISES["py_inter"], {"hint": None}), \
+             mock.patch.object(examshell.hints, "diagnose", return_value=None), \
              mock.patch.object(examshell.ui, "hint") as hint, \
              contextlib.redirect_stdout(io.StringIO()):
             for _ in range(examshell.hints.STUCK_THRESHOLD):
@@ -315,7 +323,8 @@ class GradeExerciseHintTests(unittest.TestCase):
         rendu = self._rendu_with_wrong_solution()
         cfg = _cfg(rendu, fuzz=0, seed=0)
         rng = random.Random(0)
-        with contextlib.redirect_stdout(io.StringIO()):
+        with mock.patch.dict(EXERCISES["py_inter"], {"hint": None}), \
+             contextlib.redirect_stdout(io.StringIO()):
             for _ in range(examshell.hints.STUCK_THRESHOLD - 1):
                 examshell.grade_exercise("py_inter", rng, cfg, mode="practice")
             with open(os.path.join(rendu, "py_inter.py"), "w", encoding="utf-8") as fh:

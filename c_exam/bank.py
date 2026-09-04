@@ -83,6 +83,10 @@ EXERCISES = {
         "standard": True,
         "prototype": "void ft_putstr(char *str);",
         "args": ["str"], "returns": "void",
+        "hint": ("write() needs an explicit byte count — walk the string "
+                "yourself to find its length (or write one character at a "
+                "time inside the loop) instead of guessing a fixed size; "
+                "an empty string should simply write zero bytes."),
         "subject": _sub_c("ft_putstr", "void ft_putstr(char *str);", "write", """
         Write a function that displays a string on the standard output.
 
@@ -114,6 +118,11 @@ EXERCISES = {
         "prototype": "void ft_swap(int *a, int *b);",
         "args": ["int_ptr", "int_ptr"], "returns": "void",
         "print_after_args": [0, 1],
+        "hint": ("Swap the VALUES the two pointers point to (*a and *b), "
+                "not the pointers themselves — and save the first one "
+                "into a temporary variable before you overwrite it, or "
+                "you'll lose it and end up with both holding the same "
+                "value."),
         "subject": _sub_c("ft_swap", "void ft_swap(int *a, int *b);", "None", """
         Write a function that swaps the contents of two integers, the
         addresses of which are passed as parameters.
@@ -136,6 +145,9 @@ EXERCISES = {
     "rotone": {
         "level": 1, "function": "rotone", "kind": "program",
         "standard": True,
+        "hint": ("Both 'z' and 'Z' need to wrap back to the start of "
+                "their own case instead of just doing c + 1, which would "
+                "overshoot past 'z' into '{' or past 'Z' into '['."),
         "subject": _sub_c("rotone", "int main(int argc, char **argv);", "write", """
         Write a PROGRAM (your own main(), argc/argv — not a function
         someone else calls) that takes a string and displays it, replacing
@@ -242,6 +254,11 @@ EXERCISES = {
     "first_word": {
         "level": 1, "function": "first_word", "kind": "program",
         "standard": True,
+        "hint": ("Skip any leading spaces/tabs before you start copying "
+                "the word, and stop the moment you hit the next "
+                "separator (or the end of the string) — a string of only "
+                "whitespace has no first word, so the output is just a "
+                "newline."),
         "subject": _sub_c("first_word", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays its first
@@ -329,6 +346,11 @@ EXERCISES = {
         "standard": True,
         "prototype": "int ft_strlen(char *str);",
         "args": ["str"], "returns": "int", "forbidden": ["strlen"],
+        "hint": ("Your counter must stop at the terminating null byte "
+                "without counting it — advance while the current "
+                "character is non-zero rather than looping to a fixed "
+                "bound, and check the empty string by hand: the loop "
+                "body should never execute, so the answer is already 0."),
         "subject": _sub_c("ft_strlen", "int ft_strlen(char *str);", "None", """
         Write a function that returns the length of a string.
 
@@ -352,6 +374,11 @@ EXERCISES = {
     "rev_print": {
         "level": 1, "function": "rev_print", "kind": "program",
         "standard": True,
+        "hint": ("Find the string's length first, then walk backwards "
+                "starting from the LAST character (index length - 1) "
+                "down to 0 — starting the backward walk at `length` "
+                "itself reads one byte past the string as your first "
+                "output character."),
         "subject": _sub_c("rev_print", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it reversed,
@@ -392,6 +419,10 @@ EXERCISES = {
     "search_and_replace": {
         "level": 1, "function": "search_and_replace", "kind": "program",
         "standard": True,
+        "hint": ("Only the FIRST character of the search and replacement "
+                "arguments matters, even if a longer string is passed "
+                "for either one — and argc must be exactly 4 (program "
+                "name, string, search-char, replace-char), not 3."),
         "subject": _sub_c("search_and_replace",
                          "int main(int argc, char **argv);", "write", """
         Write a PROGRAM called search_and_replace that takes 3 arguments:
@@ -443,6 +474,11 @@ EXERCISES = {
     "ulstr": {
         "level": 1, "function": "ulstr", "kind": "program",
         "standard": True,
+        "hint": ("Case-swap only actual letters — leave digits, spaces "
+                "and punctuation untouched — and make sure your two "
+                "range checks ('a'-'z' and 'A'-'Z') are mutually "
+                "exclusive, or a character could get flipped back to its "
+                "original case in the same pass."),
         "subject": _sub_c("ulstr", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and reverses the case of
@@ -572,6 +608,11 @@ EXERCISES = {
         "standard": True,
         "prototype": "int max(int *tab, unsigned int len);",
         "args": ["int_arr"], "returns": "int",
+        "hint": ("Initialize your running best to tab[0], not to 0 — "
+                "starting from 0 gives the wrong answer whenever every "
+                "element is negative. Handle len == 0 as its own special "
+                "case before touching tab[0], since there's no element "
+                "there to read."),
         "subject": _sub_c("max", "int max(int *tab, unsigned int len);", "None", """
         Write a function that returns the largest number in an array of
         `len` integers. An empty array (len == 0) returns 0.
@@ -658,6 +699,12 @@ EXERCISES = {
     "alpha_mirror": {
         "level": 2, "function": "alpha_mirror", "kind": "program",
         "standard": True,
+        "hint": ("The mirror formula is 'z' - (c - 'a') for lowercase "
+                "letters (and the 'Z'/'A' equivalent for uppercase) — "
+                "check it against a couple of pairs by hand ('a' should "
+                "become 'z', 'm' should become 'n') since a sign flip "
+                "here silently mirrors the wrong direction instead of "
+                "crashing."),
         "subject": _sub_c("alpha_mirror", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it with every
@@ -704,6 +751,10 @@ EXERCISES = {
     "camel_to_snake": {
         "level": 2, "function": "camel_to_snake", "kind": "program",
         "standard": True,
+        "hint": ("Each uppercase letter becomes an underscore PLUS its "
+                "lowercase self, in that order — insert the '_' right "
+                "before the letter, not after, or every word boundary "
+                "ends up shifted by one character."),
         "subject": _sub_c("camel_to_snake", "int main(int argc, char **argv);",
                          "malloc, realloc, write", """
         Write a PROGRAM that takes a single lowerCamelCase string (each
@@ -754,6 +805,12 @@ EXERCISES = {
     "do_op": {
         "level": 2, "function": "do_op", "kind": "program",
         "standard": True,
+        "hint": ("The operator is a single character — read it with "
+                "argv[2][0], not by comparing the whole argv[2] string — "
+                "and since the subject guarantees valid inputs that fit "
+                "in an int, a plain if/else if chain over '+', '-', '*', "
+                "'/', '%' is all you need, no overflow handling "
+                "required."),
         "subject": _sub_c("do_op", "int main(int argc, char **argv);",
                          "atoi, printf, write", """
         Write a PROGRAM that takes three arguments: a base-10 integer, an
@@ -808,6 +865,12 @@ EXERCISES = {
         "prototype": "int ft_strcmp(char *s1, char *s2);",
         "args": ["str", "str"], "returns": "strcmp_sign",
         "forbidden": ["strcmp"],
+        "hint": ("Cast each character to `unsigned char` before "
+                "subtracting — comparing them as plain (signed) `char` "
+                "gives the wrong sign whenever a string contains a byte "
+                ">= 128 — and only the SIGN of your return value is "
+                "checked, so you don't need to reproduce glibc's exact "
+                "magnitude."),
         "subject": _sub_c("ft_strcmp", "int ft_strcmp(char *s1, char *s2);",
                          "None", """
         Reproduce the behaviour of the standard strcmp(): compare two
@@ -839,6 +902,10 @@ EXERCISES = {
         "standard": True,
         "prototype": "size_t ft_strcspn(const char *s, const char *reject);",
         "args": ["str", "str"], "returns": "int", "forbidden": ["strcspn"],
+        "hint": ("ft_strcspn stops at the first character of `s` that "
+                "DOES appear in `reject` — it's the complement of "
+                "strspn, so a natural bug is copying strspn's stop "
+                "condition and forgetting to flip found/not-found."),
         "subject": _sub_c("ft_strcspn",
                          "size_t ft_strcspn(const char *s, const char *reject);",
                          "None", """
@@ -928,6 +995,11 @@ EXERCISES = {
         "standard": True,
         "prototype": "char *ft_strpbrk(const char *s1, const char *s2);",
         "args": ["str", "str"], "returns": "str", "forbidden": ["strpbrk"],
+        "hint": ("Return a POINTER into s1 (s1 + i), not an index or the "
+                "matched character itself — and if nothing in s1 "
+                "matches anything in s2 (including when s2 is empty), "
+                "you must return NULL rather than s1 or a pointer past "
+                "its end."),
         "subject": _sub_c("ft_strpbrk",
                          "char *ft_strpbrk(const char *s1, const char *s2);",
                          "None", """
@@ -970,6 +1042,10 @@ EXERCISES = {
         "standard": True,
         "prototype": "char *ft_strrev(char *str);",
         "args": ["buf"], "returns": "str",
+        "hint": ("Watch the empty-string case: computing the last index "
+                "as strlen(str) - 1 without checking for length 0 first "
+                "walks off the front of the buffer with a negative "
+                "index instead of leaving an empty string untouched."),
         "subject": _sub_c("ft_strrev", "char *ft_strrev(char *str);", "None", """
         Write a function that reverses a string IN PLACE and returns it.
 
@@ -1009,6 +1085,11 @@ EXERCISES = {
         "standard": True,
         "prototype": "size_t ft_strspn(const char *s, const char *accept);",
         "args": ["str", "str"], "returns": "int", "forbidden": ["strspn"],
+        "hint": ("ft_strspn measures how many characters from the START "
+                "of `s` are ALL found in `accept` — stop at the very "
+                "first character that ISN'T in `accept`, the opposite "
+                "check from strcspn's 'first character that IS in "
+                "reject'."),
         "subject": _sub_c("ft_strspn",
                          "size_t ft_strspn(const char *s, const char *accept);",
                          "None", """
@@ -1053,6 +1134,11 @@ EXERCISES = {
     "last_word": {
         "level": 2, "function": "last_word", "kind": "program",
         "standard": True,
+        "hint": ("Scan from the END of the string: first skip past any "
+                "trailing spaces/tabs, then walk backward while you're "
+                "still inside the last word — only skipping LEADING "
+                "whitespace (like first_word does) breaks as soon as "
+                "the input has trailing spaces."),
         "subject": _sub_c("last_word", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays its last
@@ -1108,6 +1194,10 @@ EXERCISES = {
         "standard": True,
         "prototype": "void print_bits(unsigned char octet);",
         "args": ["int"], "returns": "void",
+        "hint": ("Print from bit 7 down to bit 0 (most significant "
+                "first): test `(octet >> i) & 1` with i counting DOWN "
+                "from 7 to 0 — counting i up from 0 instead prints the "
+                "bits in reverse order."),
         "subject": _sub_c("print_bits", "void print_bits(unsigned char octet);",
                          "write", """
         Write a function that prints a byte in binary (8 characters, '0'
@@ -1139,6 +1229,12 @@ EXERCISES = {
     "snake_to_camel": {
         "level": 2, "function": "snake_to_camel", "kind": "program",
         "standard": True,
+        "hint": ("Underscores themselves must never appear in the "
+                "output — consume each '_' silently and just remember, "
+                "with a flag, that the NEXT letter needs to be "
+                "uppercased, then clear that flag once you've used it "
+                "so only the letter right after an underscore gets "
+                "capitalized."),
         "subject": _sub_c("snake_to_camel", "int main(int argc, char **argv);",
                          "malloc, free, realloc, write", """
         Write a PROGRAM that takes a single snake_case string (words
@@ -1194,6 +1290,11 @@ EXERCISES = {
         "standard": True,
         "prototype": "unsigned char swap_bits(unsigned char octet);",
         "args": ["int"], "returns": "int",
+        "hint": ("Mask out each nibble before you shift it: "
+                "(octet & 0xF0) >> 4 for the upper half, "
+                "(octet & 0x0F) << 4 for the lower half — shifting "
+                "first and masking after (or not masking at all) lets "
+                "bits from one half bleed into the other."),
         "subject": _sub_c("swap_bits",
                          "unsigned char swap_bits(unsigned char octet);",
                          "None", """
@@ -1297,6 +1398,12 @@ EXERCISES = {
     "wdmatch": {
         "level": 2, "function": "wdmatch", "kind": "program",
         "standard": True,
+        "hint": ("This is a subsequence check, not 'do these characters "
+                "appear somewhere' — walk both strings with two "
+                "indices, only advancing the first string's index on a "
+                "match, and it's a match only if that index reaches the "
+                "end of the first string by the time the second one "
+                "runs out."),
         "subject": _sub_c("wdmatch", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes two strings and checks whether the
@@ -1352,6 +1459,12 @@ EXERCISES = {
     "epur_str": {
         "level": 3, "function": "epur_str", "kind": "program",
         "standard": True,
+        "hint": ("Don't write a space the instant you see one — set a "
+                "'need a space before the next word' flag instead, and "
+                "only emit it once you actually reach the next "
+                "non-space character. That naturally collapses runs of "
+                "whitespace and avoids a trailing space when the input "
+                "ends in whitespace."),
         "subject": _sub_c("epur_str", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it with exactly
@@ -1413,6 +1526,12 @@ EXERCISES = {
     "expand_str": {
         "level": 3, "function": "expand_str", "kind": "program",
         "standard": True,
+        "hint": ("Same idea as collapsing whitespace to a single space, "
+                "except each boundary between words prints exactly "
+                "three spaces — track a 'separator pending' flag and "
+                "only emit those three spaces once you reach the start "
+                "of the next word, so trailing whitespace at the end "
+                "never produces a dangling separator."),
         "subject": _sub_c("expand_str", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it with exactly
@@ -1639,6 +1758,9 @@ EXERCISES = {
     "paramsum": {
         "level": 3, "function": "paramsum", "kind": "program",
         "standard": True,
+        "hint": ("argc counts the program's own name too — the number "
+                "of actual arguments passed is argc - 1, not argc "
+                "itself."),
         "subject": _sub_c("paramsum", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that displays the number of arguments passed to
@@ -1675,6 +1797,13 @@ EXERCISES = {
         "level": 3, "function": "print_hex", "kind": "program",
         "standard": True,
         "forbidden": ["atoi"],
+        "hint": ("atoi is forbidden, so parse the decimal argument "
+                "yourself before converting it to hex. Peeling off "
+                "digits with n % 16 and n /= 16 produces them "
+                "least-significant first, so collect them into a buffer "
+                "and print it backwards — and n == 0 needs its own "
+                "special case, since that peeling loop produces zero "
+                "digits for it."),
         "subject": _sub_c("print_hex", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a non-negative base-10 number and
@@ -1727,6 +1856,11 @@ EXERCISES = {
     "rstr_capitalizer": {
         "level": 3, "function": "rstr_capitalizer", "kind": "program",
         "standard": True,
+        "hint": ("'Last letter' means the last ALPHABETIC character of "
+                "the word, not simply its last character — a word like "
+                "'test.' or 'end!' needs a first pass to locate its last "
+                "actual letter before you can safely uppercase that one "
+                "and lowercase the rest."),
         "subject": _sub_c("rstr_capitalizer",
                          "int main(int argc, char **argv);", "write", """
         Write a PROGRAM that takes one or more strings and, for each one,
@@ -1822,6 +1956,12 @@ EXERCISES = {
     "str_capitalizer": {
         "level": 3, "function": "str_capitalizer", "kind": "program",
         "standard": True,
+        "hint": ("Track a 'start of a new word' flag that gets set on "
+                "every separator character and cleared right after you "
+                "write the first letter of the next word — that way "
+                "multiple separators in a row (or the very start of the "
+                "string) don't cause you to lose track of where a word "
+                "begins."),
         "subject": _sub_c("str_capitalizer",
                          "int main(int argc, char **argv);", "write", """
         Write a PROGRAM that takes one or more strings and, for each one,
@@ -1889,6 +2029,12 @@ EXERCISES = {
         "level": 3, "function": "tab_mult", "kind": "program",
         "standard": True,
         "forbidden": ["atoi"],
+        "hint": ("atoi is forbidden, so you need your own "
+                "decimal-string-to-int conversion for the argument — "
+                "and since i * n can need more digits than n itself (up "
+                "to two digits more), make sure your own "
+                "number-printing routine handles multi-digit values "
+                "correctly, not just single digits."),
         "subject": _sub_c("tab_mult", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a strictly positive int and displays
@@ -2082,6 +2228,10 @@ EXERCISES = {
         "standard": True,
         "prototype": "int ft_list_size(t_list *begin_list);",
         "args": ["int_list"], "returns": "int",
+        "hint": ("Walk the list with a counter that increments once per "
+                "node until you hit NULL — an empty list (begin_list "
+                "itself NULL) should return 0 immediately, without "
+                "dereferencing anything."),
         "subject": _sub_c("ft_list_size",
                          "int ft_list_size(t_list *begin_list);", "None", """
         Write a function that returns the number of elements in the
@@ -2114,6 +2264,12 @@ EXERCISES = {
     "hidenp": {
         "level": 3, "function": "hidenp", "kind": "program",
         "standard": True,
+        "hint": ("Same subsequence idea as wdmatch: advance through s2 "
+                "one character at a time, but only advance your "
+                "position in s1 when the characters match. The "
+                "empty-string case falls out naturally as 'hidden' "
+                "since your s1 index never has to move to reach its own "
+                "end — don't special-case it away by mistake."),
         "subject": _sub_c("hidenp", "int main(int argc, char **argv);", "write", """
         Write a PROGRAM named hidenp that takes two strings and displays 1
         followed by a newline if the first string is "hidden" in the
@@ -2163,6 +2319,11 @@ EXERCISES = {
     "pgcd": {
         "level": 3, "function": "pgcd", "kind": "program",
         "standard": True,
+        "hint": ("Classic Euclidean algorithm: repeatedly replace (a, b) "
+                "with (b, a % b) until b hits 0 — a common slip is "
+                "overwriting a with b's value before you've saved a's "
+                "OLD value into a temporary, which corrupts the very "
+                "modulo you still needed to compute."),
         "subject": _sub_c("pgcd", "int main(int argc, char **argv);",
                          "printf, atoi, malloc, free", """
         Write a PROGRAM that takes two strings representing two strictly
@@ -2211,6 +2372,11 @@ EXERCISES = {
         "standard": True,
         "prototype": "unsigned int lcm(unsigned int a, unsigned int b);",
         "args": ["int", "int"], "returns": "int",
+        "hint": ("Compute a / gcd(a, b) * b, not (a * b) / gcd(a, b) — "
+                "dividing first keeps the intermediate value smaller and "
+                "avoids needless overflow. And treat a == 0 or b == 0 as "
+                "its own special case returning 0, rather than feeding "
+                "a 0 into your GCD loop."),
         "subject": _sub_c("lcm",
                          "unsigned int lcm(unsigned int a, unsigned int b);",
                          "None", """
@@ -2249,6 +2415,14 @@ EXERCISES = {
         "level": 3, "function": "add_prime_sum", "kind": "program",
         "standard": True,
         "forbidden": ["atoi"],
+        "hint": ("atoi is forbidden, so you need your own decimal "
+                "parser for argv[1] — and both a missing argument and "
+                "something that doesn't parse as a valid positive "
+                "number must fall back to printing plain '0' plus a "
+                "newline, not a crash or a garbage sum. Also make sure "
+                "your primality check explicitly rules out values below "
+                "2, since the trial-division loop alone won't naturally "
+                "exclude 0 or 1."),
         "subject": _sub_c("add_prime_sum", "int main(int argc, char **argv);",
                          "write, exit", """
         Write a PROGRAM that takes a positive integer as argument and
@@ -2338,6 +2512,13 @@ EXERCISES = {
         "standard": True,
         "prototype": "t_list *sort_list(t_list *lst, int (*cmp)(int, int));",
         "args": ["int_list", "cmp_ascending"], "returns": "int_list",
+        "hint": ("cmp returns non-zero when its two arguments are "
+                "ALREADY in the right order — swap only when it returns "
+                "0, which is easy to get backwards (swapping when it "
+                "returns non-zero instead) and quietly sorts everything "
+                "the wrong way. Swap the node `data` values in place "
+                "rather than relinking `next` pointers, so the list's "
+                "structure never has to change."),
         "subject": _sub_c("sort_list",
                          "t_list *sort_list(t_list *lst, int (*cmp)(int, int));",
                          "None", """
@@ -2392,6 +2573,12 @@ EXERCISES = {
         "standard": True,
         "prototype": "void sort_int_tab(int *tab, unsigned int size);",
         "args": ["int_arr"], "returns": "void", "print_after_args": [0],
+        "hint": ("size is unsigned — if your inner loop bound is "
+                "written as `size - 1` on its own (instead of "
+                "`size - i`, shrinking each pass), that expression "
+                "underflows to a huge number the instant size is 0, and "
+                "you'll read/write past the end of an empty array "
+                "instead of doing nothing."),
         "subject": _sub_c("sort_int_tab",
                          "void sort_int_tab(int *tab, unsigned int size);",
                          "None", """
@@ -2437,6 +2624,12 @@ EXERCISES = {
         "standard": True,
         "prototype": "unsigned char reverse_bits(unsigned char octet);",
         "args": ["int"], "returns": "int",
+        "hint": ("Build the result one bit at a time: take octet's "
+                "lowest bit, shift it into the result from the right "
+                "with `(res << 1) | (octet & 1)`, then shift octet "
+                "right and repeat for exactly 8 iterations — get either "
+                "shift direction backwards and you un-reverse it "
+                "instead."),
         "subject": _sub_c("reverse_bits",
                          "unsigned char reverse_bits(unsigned char octet);",
                          "None", """
@@ -2470,6 +2663,10 @@ EXERCISES = {
     "repeat_alpha": {
         "level": 1, "function": "repeat_alpha", "kind": "program",
         "standard": True,
+        "hint": ("The repeat count is the letter's 1-based alphabet "
+                "position ('a' -> 1, 'b' -> 2, ...) — using the raw "
+                "c - 'a' value (0-based) makes 'a' repeat zero times "
+                "instead of once."),
         "subject": _sub_c("repeat_alpha", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays it, repeating
@@ -2531,6 +2728,13 @@ EXERCISES = {
     "fprime": {
         "level": 4, "function": "fprime", "kind": "program",
         "standard": True,
+        "hint": ("After the trial-division loop stops (once d*d > n), "
+                "whatever's left in n still needs printing unless "
+                "nothing was ever found — that single check handles "
+                "both a leftover prime bigger than sqrt(the original n) "
+                "and the n == 1 input, so don't only print factors from "
+                "inside the while loop or primes (and 1) print nothing "
+                "at all."),
         "subject": _sub_c("fprime", "int main(int argc, char **argv);",
                          "printf, atoi", """
         Write a PROGRAM that takes a positive int and displays its prime
@@ -2652,6 +2856,23 @@ EXERCISES = {
     "rev_wstr": {
         "level": 4, "function": "rev_wstr", "kind": "program",
         "standard": True,
+        "hint": {
+            "crash": ("If you malloc a buffer per extracted word, its "
+                     "size has to include room for the null terminator "
+                     "(word length + 1) — sizing it to exactly the "
+                     "word's length overflows the buffer the moment you "
+                     "write that terminator."),
+            "leak": ("You end up mallocing one buffer per word as you "
+                     "walk backward through the string — free each one "
+                     "once you've written it out, or a multi-word input "
+                     "leaks once per extra word instead of just once."),
+            "default": ("Walk from the END of the string extracting "
+                        "words in reverse order, and print a separating "
+                        "space before every word EXCEPT the very first "
+                        "one you output — unconditionally printing a "
+                        "leading space before each word leaves a stray "
+                        "space at the front of the result."),
+        },
         "subject": _sub_c("rev_wstr", "int main(int argc, char **argv);",
                          "write, malloc, free", """
         Write a PROGRAM that takes a string with words separated by
@@ -2721,6 +2942,23 @@ EXERCISES = {
     "rostring": {
         "level": 4, "function": "rostring", "kind": "program",
         "standard": True,
+        "hint": {
+            "crash": ("If you malloc a buffer to save the first word "
+                     "before printing the rest, size it for that word's "
+                     "length plus one for the null terminator — off by "
+                     "one there corrupts the heap as soon as you write "
+                     "the terminating byte."),
+            "leak": ("Free whatever you malloc'd to hold the saved "
+                     "first word once you're done printing it at the "
+                     "end — it's easy to allocate it, use it, and then "
+                     "just fall through to return without freeing it."),
+            "default": ("Save where the FIRST word ends before you "
+                        "print anything else, so you can still print "
+                        "that same word again at the very end — and a "
+                        "single-word input (no other words to rotate "
+                        "ahead of it) should come out completely "
+                        "unchanged, not with a stray trailing space."),
+        },
         "subject": _sub_c("rostring", "int main(int argc, char **argv);",
                          "write, malloc, free", """
         Write a PROGRAM that takes a string and displays it rotated one
@@ -2806,6 +3044,11 @@ EXERCISES = {
         "standard": True,
         "prototype": "void ft_list_foreach(t_list *begin_list, void (*f)(void *));",
         "args": ["voidlist", "cb_accumulate"], "returns": "foreach_sum",
+        "hint": ("Call the callback as (*f)(begin_list->data) — pass the "
+                "node's data, not the node itself — and make sure you "
+                "advance to begin_list->next every iteration, or you'll "
+                "spin on the first node forever instead of stopping at "
+                "NULL."),
         "subject": _sub_c("ft_list_foreach",
                          "void ft_list_foreach(t_list *begin_list, "
                          "void (*f)(void *));", "None", """
@@ -2984,6 +3227,10 @@ EXERCISES = {
     "count_vowels": {
         "level": 1, "function": "count_vowels", "kind": "program",
         "standard": False,
+        "hint": ("Only a, e, i, o, u count as vowels (not 'y') — "
+                "normalize the character's case before comparing (or "
+                "compare against both cases) so 'A' and 'a' are both "
+                "counted correctly."),
         "subject": _sub_c("count_vowels", "int main(int argc, char **argv);",
                          "write", """
         Write a PROGRAM that takes a string and displays how many vowels
@@ -3046,6 +3293,11 @@ EXERCISES = {
     "is_palindrome_str": {
         "level": 2, "function": "is_palindrome_str", "kind": "program",
         "standard": False,
+        "hint": ("A string with zero letters must print 'no', not "
+                "'yes' — your two-pointer scan trivially finishes "
+                "without ever finding a mismatch on an all-punctuation "
+                "input, so you need an explicit 'did I see at least one "
+                "letter' check before declaring a match."),
         "subject": _sub_c("is_palindrome_str",
                          "int main(int argc, char **argv);", "write", """
         Write a PROGRAM that takes a string and displays "yes" if it is a
