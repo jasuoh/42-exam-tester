@@ -38,6 +38,12 @@ TRAINING_EXERCISES = {
         "difficulty": "easy", "function": "array_sum",
         "prototype": "int array_sum(int *arr, unsigned int size);",
         "args": ["int_arr"], "returns": "int",
+        "hint": ("The accumulator has to start at 0 before the loop runs, "
+                "not carry over some other value — and the loop "
+                "condition must be i < size, never i <= size, since size "
+                "is unsigned and stepping one past it reads outside the "
+                "array. Get those two right and the empty-array case "
+                "([], 0) falls out on its own."),
         "subject": _sub_c("array_sum", "int array_sum(int *arr, unsigned int size);",
                           "None", """
         Write a function that returns the sum of all `size` elements of
@@ -72,6 +78,11 @@ TRAINING_EXERCISES = {
         "difficulty": "easy", "function": "find_max",
         "prototype": "int find_max(int *arr, unsigned int size);",
         "args": ["int_arr"], "returns": "int",
+        "hint": ("Seeding max at 0 before scanning breaks the moment "
+                "every element is negative (e.g. [-5,-1,-10]) — max "
+                "should start at arr[0] itself, only after you've "
+                "handled size == 0 separately (the one case that returns "
+                "0 by spec)."),
         "subject": _sub_c("find_max", "int find_max(int *arr, unsigned int size);",
                           "None", """
         Write a function that returns the largest element of an int
@@ -109,6 +120,13 @@ TRAINING_EXERCISES = {
         "difficulty": "easy", "function": "is_palindrome_num",
         "prototype": "int is_palindrome_num(int n);",
         "args": ["int"], "returns": "int",
+        "hint": ("Reject negative n up front — the spec says it's never "
+                "a palindrome, and reversing a negative number's digits "
+                "the naive way gives misleading results. Also make sure "
+                "you compare the reversed value against a SAVED copy of "
+                "the original n, not against n itself after you've "
+                "already divided it down to 0 while building the "
+                "reversal."),
         "subject": _sub_c("is_palindrome_num", "int is_palindrome_num(int n);",
                           "None", """
         Write a function that returns 1 if `n`'s decimal digits read the
@@ -148,6 +166,11 @@ TRAINING_EXERCISES = {
         "difficulty": "medium", "function": "count_pairs_sum",
         "prototype": "int count_pairs_sum(int *arr, unsigned int size, int target);",
         "args": ["int_arr", "int"], "returns": "int",
+        "hint": ("Keep the inner loop starting at j = i + 1, never j = 0 "
+                "or j = i — starting from the beginning double-counts "
+                "every pair as both (i,j) and (j,i), and letting i == j "
+                "would wrongly pair an element with itself whenever "
+                "target == 2 * arr[i]."),
         "subject": _sub_c("count_pairs_sum",
                           "int count_pairs_sum(int *arr, unsigned int size, int target);",
                           "None", """
@@ -190,6 +213,13 @@ TRAINING_EXERCISES = {
         "difficulty": "medium", "function": "kadane_max_sum",
         "prototype": "int kadane_max_sum(int *arr, unsigned int size);",
         "args": ["int_arr"], "returns": "int",
+        "hint": ("The classic Kadane's bug is flooring the running sum "
+                "at 0 whenever it goes negative — that fails here, since "
+                "an all-negative array like [-1,-2,-3] must still "
+                "return -1, not 0. At each index there's only one "
+                "decision: extend the running sum by the current "
+                "element, or restart it there — never clamp it to 0 "
+                "along the way."),
         "subject": _sub_c("kadane_max_sum",
                           "int kadane_max_sum(int *arr, unsigned int size);",
                           "None", """
@@ -235,6 +265,11 @@ TRAINING_EXERCISES = {
         "difficulty": "medium", "function": "count_unique",
         "prototype": "int count_unique(int *arr, unsigned int size);",
         "args": ["int_arr"], "returns": "int",
+        "hint": ("For each element, only compare it against EARLIER "
+                "elements (index < i) to decide whether it's a repeat — "
+                "comparing against the whole array, including later "
+                "occurrences, double-counts or under-counts each group "
+                "of duplicates depending on which direction you scan."),
         "subject": _sub_c("count_unique",
                           "int count_unique(int *arr, unsigned int size);",
                           "None", """
@@ -283,6 +318,22 @@ TRAINING_EXERCISES = {
         "difficulty": "hard", "function": "lis_length",
         "prototype": "int lis_length(int *arr, unsigned int size);",
         "args": ["int_arr"], "returns": "int",
+        "hint": {
+            "crash": ("Indexing into `lengths` (or `arr`) before "
+                     "checking size == 0 crashes on an empty array — "
+                     "handle that case up front, before you malloc or "
+                     "touch lengths[0]."),
+            "leak": ("Every path that returns after the malloc has to "
+                     "free `lengths` first — a leak here means some "
+                     "return (including one you didn't expect to add) "
+                     "skips that free."),
+            "default": ("For each index i, look back at every earlier j "
+                        "with arr[j] STRICTLY less than arr[i] (no <=, "
+                        "or a run of equal values would count as "
+                        "increasing) and keep the best lengths[j] + 1 — "
+                        "that's the whole O(n^2) DP, nothing fancier "
+                        "needed."),
+        },
         "subject": _sub_c("lis_length", "int lis_length(int *arr, unsigned int size);",
                           "malloc, free", """
         Write a function that returns the length of the longest STRICTLY
@@ -348,6 +399,11 @@ TRAINING_EXERCISES = {
         "difficulty": "hard", "function": "count_inversions",
         "prototype": "int count_inversions(int *arr, unsigned int size);",
         "args": ["int_arr"], "returns": "int",
+        "hint": ("Only count a pair when arr[i] is STRICTLY greater than "
+                "arr[j] (no >=) — equal values are not inversions, which "
+                "is exactly why the [1,1,1] case expects 0. And start "
+                "the inner loop at j = i + 1, not 0, or every "
+                "out-of-order pair gets counted twice."),
         "subject": _sub_c("count_inversions",
                           "int count_inversions(int *arr, unsigned int size);",
                           "None", """
@@ -390,6 +446,23 @@ TRAINING_EXERCISES = {
         "difficulty": "hard", "function": "max_gap",
         "prototype": "int max_gap(int *arr, unsigned int size);",
         "args": ["int_arr"], "returns": "int",
+        "hint": {
+            "crash": ("Handle size < 2 before you malloc or touch the "
+                     "copy — mallocing 0 bytes, or reading sorted[i - 1] "
+                     "when there's nothing before index 0, is what "
+                     "crashes on the empty and single-element cases."),
+            "leak": ("The `sorted` copy is malloc'd — free it before "
+                     "every return, including whichever early return "
+                     "you added for the size < 2 case, or that path "
+                     "leaks."),
+            "default": ("You're required to sort a COPY, never the "
+                        "caller's own array — sorting arr in place "
+                        "passes the value checks but corrupts the "
+                        "caller's data on any case that reuses it. Once "
+                        "the copy is sorted, the answer is just the "
+                        "largest difference between two ADJACENT "
+                        "elements, not the overall min/max spread."),
+        },
         "subject": _sub_c("max_gap", "int max_gap(int *arr, unsigned int size);",
                           "malloc, free", """
         Write a function that returns the maximum difference between two

@@ -44,6 +44,16 @@ this repo has no version numbers, so entries are grouped by date instead.
   Python's built-in sort defeats the point of the exercise (implement a
   stable multi-key ordering yourself). Its hint was rewritten to match:
   it now points at a hand-rolled insertion sort instead of `sorted(key=...)`.
+- Curated `"hint"` entries for all 9 `c_exam/training_bank.py` exercises
+  (`array_sum`, `find_max`, `is_palindrome_num`, `count_pairs_sum`,
+  `kadane_max_sum`, `count_unique`, `lis_length`, `count_inversions`,
+  `max_gap`) — previously none of them had one, so a stuck student only
+  ever got `hints.diagnose()`'s generic pattern-matched guess. Each hint
+  targets the actual technique or edge case for that exercise (e.g.
+  Kadane's classic all-negative-array bug, the strictly-increasing
+  comparison in `lis_length`'s DP, sorting a copy in `max_gap`).
+  `lis_length` and `max_gap` (the two that `malloc`/`free`) get a
+  crash/leak/default split like `ft_split`'s; the rest are plain strings.
 
 ### Fixed
 - **`py_bracket_validator`** carried `"level": 1` while living in the
