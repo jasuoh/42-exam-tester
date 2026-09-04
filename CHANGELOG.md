@@ -94,6 +94,17 @@ this repo has no version numbers, so entries are grouped by date instead.
   Python's built-in sort defeats the point of the exercise (implement a
   stable multi-key ordering yourself). Its hint was rewritten to match:
   it now points at a hand-rolled insertion sort instead of `sorted(key=...)`.
+- **Curated hints for the remaining 38 exam exercises.** Only 6 of the 44
+  entries in the Python exam bank had a hand-written `"hint"`; a student
+  stuck on any of the other 38 fell straight through to the generic,
+  pattern-matched `hints.diagnose()` fallback, which has no idea what the
+  exercise is actually about and is often unhelpful. Every exercise now
+  carries a short, exercise-specific nudge grounded in its own spec and
+  reference implementation (e.g. the empty-list/modulo-by-zero trap in
+  `py_twist_sequence`, the `set()`-collapses-duplicates trap in
+  `py_anagram`, the even-length-center gap in
+  `py_longest_palindromic_substring`) — pointing at what to check, never
+  handing over the solution.
 
 ### Fixed
 - **`py_bracket_validator`** carried `"level": 1` while living in the
