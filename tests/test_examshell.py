@@ -20,11 +20,27 @@ from src.training_bank import DIFFICULTIES, TRAINING_EXERCISES
 
 def _cfg(rendu, **overrides):
     args = argparse.Namespace(rendu=rendu, timeout=3, fuzz=0,
-                              strict_imports=False, show_fails=4, diff=False,
-                              seed=None)
+                              strict_imports=False, strict=False,
+                              show_fails=4, diff=False, seed=None)
     for key, value in overrides.items():
         setattr(args, key, value)
     return examshell.Config(args)
+
+
+class ConfigStrictTests(unittest.TestCase):
+    """--strict is shorthand for every --strict-* flag at once."""
+
+    def test_plain_strict_imports_still_works_alone(self):
+        cfg = _cfg("x", strict_imports=True)
+        self.assertTrue(cfg.strict_imports)
+
+    def test_strict_implies_strict_imports(self):
+        cfg = _cfg("x", strict=True)
+        self.assertTrue(cfg.strict_imports)
+
+    def test_neither_flag_is_lenient(self):
+        cfg = _cfg("x")
+        self.assertFalse(cfg.strict_imports)
 
 
 class FmtDurationTests(unittest.TestCase):

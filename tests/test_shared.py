@@ -185,6 +185,46 @@ class StatsTests(unittest.TestCase):
         stats.record("c", "py_inter", 1, False, 3, 10, "practice")
         self.assertEqual(stats.consecutive_fails("py", "py_inter"), 1)
 
+    def test_weakest_excludes_never_attempted(self):
+        stats.record("py", "py_inter", 1, False, 3, 10, "practice")
+        self.assertEqual(
+            stats.weakest_exercises("py", ["py_inter", "py_never_touched"]),
+            ["py_inter"])
+
+    def test_weakest_excludes_a_spotless_record(self):
+        # Nailed on the first (and only) try — nothing to gain from
+        # reviewing it, so it must not pad the weak queue.
+        stats.record("py", "py_inter", 1, True, 10, 10, "practice")
+        self.assertEqual(stats.weakest_exercises("py", ["py_inter"]), [])
+
+    def test_weakest_ranks_by_current_fail_streak_first(self):
+        # py_inter: passed once, then two fails in a row (streak 2).
+        # py_hidenp: one single fail, no streak (streak 1) but never passed.
+        stats.record("py", "py_inter", 1, True, 10, 10, "practice")
+        stats.record("py", "py_inter", 1, False, 3, 10, "practice")
+        stats.record("py", "py_inter", 1, False, 5, 10, "practice")
+        stats.record("py", "py_hidenp", 1, False, 1, 10, "practice")
+        self.assertEqual(stats.weakest_exercises("py", ["py_inter", "py_hidenp"]),
+                         ["py_inter", "py_hidenp"])
+
+    def test_weakest_ties_broken_by_lowest_pass_rate(self):
+        # Neither is on an active fail streak (both last-passed) —
+        # py_hidenp's lifetime pass rate (1/2) is worse than py_inter's (2/3).
+        stats.record("py", "py_inter", 1, False, 3, 10, "practice")
+        stats.record("py", "py_inter", 1, True, 10, 10, "practice")
+        stats.record("py", "py_inter", 1, True, 10, 10, "practice")
+        stats.record("py", "py_hidenp", 1, False, 1, 10, "practice")
+        stats.record("py", "py_hidenp", 1, True, 10, 10, "practice")
+        self.assertEqual(stats.weakest_exercises("py", ["py_inter", "py_hidenp"]),
+                         ["py_hidenp", "py_inter"])
+
+    def test_weakest_ignores_exam_mode_attempts(self):
+        stats.record("py", "py_inter", 1, False, 3, 10, "exam")
+        self.assertEqual(stats.weakest_exercises("py", ["py_inter"]), [])
+
+    def test_weakest_empty_with_no_history(self):
+        self.assertEqual(stats.weakest_exercises("py", ["py_inter"]), [])
+
 
 class SessionStoreTests(unittest.TestCase):
     def setUp(self):

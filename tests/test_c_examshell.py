@@ -30,10 +30,35 @@ def _cfg(rendu, **overrides):
                               strict_norm=False, show_fails=4, diff=False,
                               seed=None, fuzz=0,
                               valgrind=False, strict_valgrind=False,
-                              strict_forbidden=False)
+                              strict_forbidden=False, strict=False)
     for key, value in overrides.items():
         setattr(args, key, value)
     return examshell.Config(args)
+
+
+class ConfigStrictTests(unittest.TestCase):
+    """--strict is shorthand for --strict-norm + --strict-forbidden +
+    --strict-valgrind, and turns on --valgrind itself too."""
+
+    def test_plain_flags_still_work_alone(self):
+        cfg = _cfg("x", strict_norm=True, strict_forbidden=True)
+        self.assertTrue(cfg.strict_norm)
+        self.assertTrue(cfg.strict_forbidden)
+        self.assertFalse(cfg.valgrind)
+
+    def test_strict_implies_every_strict_flag_and_valgrind_itself(self):
+        cfg = _cfg("x", strict=True)
+        self.assertTrue(cfg.strict_norm)
+        self.assertTrue(cfg.strict_forbidden)
+        self.assertTrue(cfg.strict_valgrind)
+        self.assertTrue(cfg.valgrind)
+
+    def test_neither_flag_is_lenient(self):
+        cfg = _cfg("x")
+        self.assertFalse(cfg.strict_norm)
+        self.assertFalse(cfg.strict_forbidden)
+        self.assertFalse(cfg.strict_valgrind)
+        self.assertFalse(cfg.valgrind)
 
 
 class FmtDurationTests(unittest.TestCase):

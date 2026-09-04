@@ -55,14 +55,18 @@ class Config(object):
         self.rendu = args.rendu
         self.timeout = args.timeout
         self.cc = args.cc
-        self.strict_norm = args.strict_norm
+        self.strict_norm = args.strict_norm or args.strict
         self.show_fails = args.show_fails
         self.diff = args.diff
         self.seed = args.seed
         self.fuzz = args.fuzz
-        self.valgrind = args.valgrind
-        self.strict_valgrind = args.strict_valgrind
-        self.strict_forbidden = args.strict_forbidden
+        # --strict implies --valgrind too, not just --strict-valgrind: the
+        # latter only fails on what valgrind finds, so without turning
+        # valgrind on itself "the harshest grading this tester can do"
+        # would silently skip the leak/UB check entirely.
+        self.valgrind = args.valgrind or args.strict
+        self.strict_valgrind = args.strict_valgrind or args.strict
+        self.strict_forbidden = args.strict_forbidden or args.strict
 
 
 # ══════════════════════════════════════════════════════════════
@@ -460,34 +464,53 @@ def practice_mode(cfg, ex_name=None):
 # ══════════════════════════════════════════════════════════════
 #  TRAINING MODE  ·  LeetCode-style, by difficulty — never in the exam
 # ══════════════════════════════════════════════════════════════
-_DIFFICULTY_KEYS = {"e": "easy", "m": "medium", "h": "hard", "a": None}
+_DIFFICULTY_KEYS = {"e": "easy", "m": "medium", "h": "hard", "a": None, "w": "weak"}
+
+
+def _weak_entries():
+    """Training entries the student has struggled with, worst-first — see
+    stats.weakest_exercises(). Recomputed fresh every call (not cached)
+    so a grade recorded a moment ago is reflected immediately."""
+    all_entries = training_entries()
+    by_name = {e[2]: e for e in all_entries}
+    names = stats.weakest_exercises(TOOL, list(by_name))
+    return [by_name[n] for n in names]
 
 
 def training_mode(cfg, ex_name=None, difficulty=None):
     """Drill the training pool. Reuses practice_one() — grading, `stub` and
-    `subject` don't care which pool an exercise came from."""
+    `subject` don't care which pool an exercise came from. `difficulty`
+    is either a real difficulty name, None ("all"), or the "weak" sentinel
+    (see _weak_entries()) — not a difficulty, but reuses the exact same
+    filter/pick loop."""
     rng = random.Random()
     if ex_name:
         practice_one(ex_name, cfg, rng, mode="train")
         return
     query = ""
     while True:
-        entries = training_entries()
-        if difficulty:
-            entries = [e for e in entries if e[1] == difficulty]
+        if difficulty == "weak":
+            entries = _weak_entries()
+        else:
+            entries = training_entries()
+            if difficulty:
+                entries = [e for e in entries if e[1] == difficulty]
         shown = _renumber(_filter_entries(entries, query, 2, 3))
         ui.clear()
         banner()
         print()
         ui.training_table(shown, numbered=True)
         label = ("all" if not difficulty else difficulty)
+        if difficulty == "weak" and not entries:
+            ui.note("no weak spots yet — nothing attempted in training/practice "
+                    "yet, or everything you've tried you've eventually passed")
         if query:
             ui.note("filter /%s — %d/%d shown  ('/' alone clears it)"
                     % (query, len(shown), len(entries)))
             if not shown:
                 ui.warn("no exercise matches %r" % query)
         try:
-            choice = ui.ask("\n  [%s] Selection (number · e/m/h to filter · "
+            choice = ui.ask("\n  [%s] Selection (number · e/m/h/w to filter · "
                             "/text to search · b to go back): " % label).lower()
         except ui.Abort:
             return
@@ -722,8 +745,9 @@ def build_parser():
     mode.add_argument("--list", action="store_true",
                       help="print the exercise pool and exit")
     mode.add_argument("--train", nargs="?", const="", metavar="EXERCISE_OR_DIFFICULTY",
-                      help="training mode (LeetCode-style, by difficulty; "
-                           "never part of the exam)")
+                      help="training mode (LeetCode-style, by difficulty, "
+                           "or 'weak' for your worst-performing exercises "
+                           "so far — see --stats; never part of the exam)")
     mode.add_argument("--list-training", action="store_true",
                       help="print the training pool (by difficulty) and exit")
     mode.add_argument("--grade", metavar="EXERCISE",
@@ -753,6 +777,11 @@ def build_parser():
                    help="fail grading on a forbidden call, like the real "
                         "moulinette (default: warning only, like malloc "
                         "in an ft_strdup-style exercise's forbidden list)")
+    p.add_argument("--strict", action="store_true",
+                   help="shorthand for --strict-norm + --strict-forbidden + "
+                        "--strict-valgrind, and turns on --valgrind itself "
+                        "too (otherwise --strict-valgrind has nothing to "
+                        "check) — the harshest grading this tester can do")
     p.add_argument("--fuzz", type=int, default=None, metavar="N",
                    help="random extra cases per fuzzable exercise (default: %d, or "
                         "your saved --save-config value) — only \"function\"-kind "
@@ -896,7 +925,7 @@ def main(argv=None):
         return 0
     if args.train is not None:
         value = args.train.lower()
-        if value in DIFFICULTIES:
+        if value in DIFFICULTIES or value == "weak":
             training_mode(cfg, difficulty=value)
         elif value:
             name = resolve_exercise(value)

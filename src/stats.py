@@ -76,6 +76,37 @@ def consecutive_fails(tool, exercise):
     return streak
 
 
+def weakest_exercises(tool, candidate_names):
+    """`candidate_names` the student has failed at least once (in
+    practice/training — --exam attempts are excluded, same reasoning as
+    consecutive_fails), ranked worst-first: currently on a fail streak
+    first, then lowest lifetime pass rate as a tiebreaker. Excludes both
+    an exercise never attempted AND one with a spotless record — "weak"
+    means "struggled with", not "haven't tried yet" (that's the plain
+    exercise list) and not "nailed on the first try either" (that would
+    just pad the queue with exercises there's nothing to gain from
+    reviewing). Powers `--train weak` / the 'w' key in training_mode()."""
+    events = [e for e in load_all(tool) if e.get("mode") != "exam"]
+    per_exercise = {}
+    for e in events:
+        name = e.get("exercise")
+        if name not in candidate_names:
+            continue
+        row = per_exercise.setdefault(name, {"attempts": 0, "passes": 0})
+        row["attempts"] += 1
+        if e.get("ok"):
+            row["passes"] += 1
+    weak = [name for name, row in per_exercise.items() if row["passes"] < row["attempts"]]
+
+    def rank_key(name):
+        row = per_exercise[name]
+        streak = consecutive_fails(tool, name)
+        pass_rate = row["passes"] / row["attempts"]
+        return (-streak, pass_rate)
+
+    return sorted(weak, key=rank_key)
+
+
 def best_exam_time(tool):
     """Fastest recorded full-exam completion (seconds), or None."""
     times = [e["seconds"] for e in load_all(tool)

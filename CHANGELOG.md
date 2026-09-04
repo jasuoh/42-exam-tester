@@ -8,6 +8,17 @@ this repo has no version numbers, so entries are grouped by date instead.
 ## Unreleased
 
 ### Added
+- `--train weak` (both testers, plus a 'w' key next to e/m/h in the
+  interactive training picker) — drills the training exercises you've
+  actually gotten wrong at least once, worst-first (an active fail streak
+  ranks above a merely-imperfect lifetime pass rate). New `stats.
+  weakest_exercises()`: excludes both an exercise you've never touched
+  and one with a spotless record — the queue is exactly "things worth
+  reviewing," nothing more, nothing less.
+- `--strict` (both testers) — shorthand for every `--strict-*` flag at
+  once, i.e. the harshest grading each tester can do. On the C side this
+  also turns on `--valgrind` itself (`--strict-valgrind` alone has
+  nothing to check otherwise).
 - `--diff` flag (both testers) — on a failing test, shows the full
   expected/got values instead of the usual 70-character clip, plus a
   pointer at the first character where they diverge (a caret line in
