@@ -8,6 +8,11 @@ this repo has no version numbers, so entries are grouped by date instead.
 ## Unreleased
 
 ### Added
+- Curated `"hint"` text for all 20 `TRAINING_EXERCISES` entries, which
+  previously had none — each nudges toward the exercise's actual
+  technique or gotcha (e.g. the two-pointer trick, which DP recurrence
+  to use, why a greedy approach fails) instead of falling back to
+  `hints.diagnose()`'s generic, exercise-blind guess.
 - `LICENSE` (MIT) and `[project]` metadata in `pyproject.toml` (name,
   version, description, license, author, dependencies) — the repo had
   neither, which for a public GitHub repo defaults to "all rights
