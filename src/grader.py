@@ -231,6 +231,41 @@ def find_forbidden_calls(path, forbidden_names):
 
 
 # ══════════════════════════════════════════════════════════════
+#  STATIC CHECK  ·  source display (--diff's inline code panel)
+# ══════════════════════════════════════════════════════════════
+def extract_function_source(filepath, function_name):
+    """The student's own source text for one function (its `def` line
+    through its full body), for --diff's inline code panel — read via
+    `ast`, the same way find_imports()/find_forbidden_calls() above
+    already parse the submission. When `function_name` is defined more
+    than once, the LAST definition wins (matching Python's own redefinition
+    semantics — that's the one that actually runs).
+
+    Returns None on ANY failure (unreadable file, syntax error, function
+    not found) rather than raising — this is a nice-to-have display, never
+    something that's allowed to crash grading.
+    """
+    import ast
+    try:
+        with open(filepath, encoding="utf-8") as fh:
+            source = fh.read()
+        tree = ast.parse(source, filename=filepath)
+    except (OSError, SyntaxError, ValueError, UnicodeDecodeError):
+        return None
+    match = None
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and node.name == function_name:
+            match = node
+    if match is None:
+        return None
+    try:
+        return ast.get_source_segment(source, match)
+    except Exception:
+        return None
+
+
+# ══════════════════════════════════════════════════════════════
 #  SANDBOX RUNNER  (executed in the subprocess)
 # ══════════════════════════════════════════════════════════════
 RUNNER_TEMPLATE = r'''

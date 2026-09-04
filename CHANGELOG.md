@@ -34,6 +34,29 @@ this repo has no version numbers, so entries are grouped by date instead.
   the plain-text UI, a reverse-video highlight on the diverging tail in
   the rich UI). Useful once a value is long enough that eyeballing two
   side-by-side reprs stops working. New pure helper: `ui.first_diff_index()`.
+- `--diff` now also shows the student's own submitted function next to a
+  failing test, syntax-highlighted (a `rich.syntax.Syntax` panel, or a
+  dimmed plain-text block with a `── your f() ──`-style header when rich
+  isn't available) — so you can see your code and the mismatch without
+  alt-tabbing to your editor. Shown once per report, not once per
+  failure, and — unlike `hints.py`'s stuck-student nudges — never
+  suppressed during `--exam`: it's just the student's own code, already
+  open in their editor, not a crutch. New `extract_function_source()` in
+  both `src/grader.py` (ast-based) and `c_exam/grader.py` (best-effort
+  brace-matching over the comment/string-stripped source, reusing
+  `_strip_comments_and_strings()`); both return `None` on any failure
+  (syntax error, function not found, unbalanced braces) rather than
+  raising, since this is a purely cosmetic display.
+- `--diff` now diffs a `list`/`tuple` `Failure` element-by-element instead
+  of character-by-character once it has more than one element — "index 2:
+  expected 3, got 4" is far more useful than "character 47 differs" once
+  a value is a 20-item list. Same idea for a multi-line value (most often
+  a C `CFailure`'s multi-line stdout): a `difflib`-based line diff instead
+  of the flat char pointer. Both render as a small `-`/`+` block in place
+  of the usual single-line pointer, in both the rich and plain UIs; a
+  short scalar (a plain string, int, float, bool, or anything single-line)
+  still gets the existing char-pointer treatment, unchanged. New pure
+  helpers in `src/ui.py`: `structural_diff()`, `line_diff()`.
 - `find_forbidden_calls()` in `src/grader.py` — an AST-based check, the
   Python-side counterpart to `c_exam/grader.py`'s existing `find_forbidden()`.
   Lets an exercise declare a `"forbidden"` tuple of names; grading fails
