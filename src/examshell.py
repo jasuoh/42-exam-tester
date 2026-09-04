@@ -53,6 +53,7 @@ class Config(object):
         self.fuzz = args.fuzz
         self.strict_imports = args.strict_imports
         self.show_fails = args.show_fails
+        self.diff = args.diff
         self.seed = args.seed
 
 
@@ -101,7 +102,7 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
     ui.note("Grading %s … (%d tests)" % (ex_name, len(tests)))
     report = grader.grade(ex_name, ex, cfg.rendu, timeout=cfg.timeout,
                           strict_imports=cfg.strict_imports, tests=tests)
-    ui.report(report, cfg.show_fails)
+    ui.report(report, cfg.show_fails, cfg.diff)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
     if not report.ok and mode != "exam":
@@ -732,6 +733,10 @@ def build_parser():
     p.add_argument("--show-fails", type=int, default=None, metavar="N",
                    help="failing tests to display (default: 4, or your "
                         "saved --save-config value)")
+    p.add_argument("--diff", action="store_true",
+                   help="on a failing test, show the full expected/got "
+                        "values with a pointer at the first character "
+                        "where they differ, instead of a 70-char clip")
     p.add_argument("--theme", choices=ui.THEME_NAMES, default=None,
                    help="colour theme: dark (default), light, or highcontrast "
                         "(colour-blind friendly)")

@@ -108,7 +108,7 @@ FATAL_TITLES = {
     "TIMEOUT":         "Timed out (infinite loop?)",
     "BANK_ERROR":      "Internal error in the exercise bank (not your fault — please report this)",
     "VALGRIND_ERRORS": "valgrind found memory error(s) (--strict-valgrind)",
-    "FORBIDDEN_CALL":  "Forbidden call found (--strict-forbidden)",
+    "FORBIDDEN_CALL":  "Forbidden call found for this exercise",
 }
 
 
@@ -198,6 +198,35 @@ def find_imports(path):
             found.append((node.lineno, "import " + ", ".join(a.name for a in node.names)))
         elif isinstance(node, ast.ImportFrom):
             found.append((node.lineno, "from %s import …" % (node.module or ".")))
+    return sorted(found)
+
+
+# ══════════════════════════════════════════════════════════════
+#  STATIC CHECK  ·  forbidden calls
+# ══════════════════════════════════════════════════════════════
+def find_forbidden_calls(path, forbidden_names):
+    """Calls to a banned name, as either a bare identifier (`sorted(x)`) or
+    an attribute (`x.sort()`) — same spirit as c_exam's find_forbidden(),
+    ast-based since Python has a real parser for it. A syntax error yields
+    no findings; the sandbox reports that properly."""
+    if not forbidden_names:
+        return []
+    import ast
+    try:
+        with open(path, encoding="utf-8") as fh:
+            tree = ast.parse(fh.read(), filename=path)
+    except (OSError, SyntaxError, ValueError):
+        return []
+    names = set(forbidden_names)
+    found = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Name) and func.id in names:
+            found.add(func.id)
+        elif isinstance(func, ast.Attribute) and func.attr in names:
+            found.add(func.attr)
     return sorted(found)
 
 
@@ -383,6 +412,12 @@ def grade(ex_name, ex, rendu_dir, rng=None, timeout=DEFAULT_TIMEOUT,
 
     Pass `tests` when you already built them (so the count you announced is
     the count you actually run); otherwise they are built from `rng`.
+
+    Unlike a plain `import` (only forbidden under --strict-imports, since
+    it's usually still an honest attempt), a call listed in an exercise's
+    own `forbidden` — e.g. `sorted`/`sort` on py_cryptic_sorter — trivialises
+    exactly the thing the exercise is testing, so it always fails grading,
+    no flag needed.
     """
     report = Report(ex_name, ex["function"])
     path = filepath or os.path.join(rendu_dir, ex_name + ".py")
@@ -397,6 +432,10 @@ def grade(ex_name, ex, rendu_dir, rng=None, timeout=DEFAULT_TIMEOUT,
         if strict_imports:
             return report.fail("FORBIDDEN", listed)
         report.warnings.append("import found — forbidden in the real exam: %s" % listed)
+
+    forbidden = find_forbidden_calls(path, ex.get("forbidden", ()))
+    if forbidden:
+        return report.fail("FORBIDDEN_CALL", ", ".join(forbidden))
 
     if tests is None:
         tests = build_tests(ex_name, ex, rng, fuzz)

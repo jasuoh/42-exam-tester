@@ -571,7 +571,23 @@ def overview_table(rows):
 # ══════════════════════════════════════════════════════════════
 #  GRADING OUTPUT
 # ══════════════════════════════════════════════════════════════
-def report(rep, show_fails=4):
+def first_diff_index(expected_text, got_text):
+    """Index of the first character where two DISPLAYED strings diverge,
+    or None when they're identical. Pure string comparison over exactly
+    what's shown on screen (repr(f.expected) vs str(f.got)) — not the
+    underlying values — so a --diff pointer lines up with what the
+    student actually sees, whether that's a Python repr() or a C
+    tester's raw stdout chunk. Used to point at exactly where two long,
+    similar-looking values part ways, since side-by-side reprs alone
+    hide that past the first dozen characters."""
+    n = min(len(expected_text), len(got_text))
+    for i in range(n):
+        if expected_text[i] != got_text[i]:
+            return i
+    return n if len(expected_text) != len(got_text) else None
+
+
+def report(rep, show_fails=4, diff=False):
     """Render a grader.Report."""
     for msg in rep.warnings:
         warn(msg)
@@ -579,11 +595,17 @@ def report(rep, show_fails=4):
         box_message(rep.fatal_title, rep.detail, style="red")
         return
     if rep.failures:
-        _failures(rep, show_fails)
+        _failures(rep, show_fails, diff)
     _verdict(rep)
 
 
-def _failures(rep, show_fails):
+# --diff shows the full value (instead of the usual 70/26-char clip) plus
+# a pointer at the first differing character — clipped only at this much
+# higher cap, so an absurdly long value still can't flood the terminal.
+_DIFF_CLIP = 400
+
+
+def _failures(rep, show_fails, diff=False):
     shown = rep.failures[:show_fails]
     if _rich:
         t = Table(box=box.SIMPLE_HEAVY, show_edge=False, pad_edge=False,
@@ -592,17 +614,43 @@ def _failures(rep, show_fails):
         t.add_column("expected", style="green", max_width=26, overflow="fold")
         t.add_column("got", style="red", max_width=26, overflow="fold")
         for f in shown:
-            t.add_row(_esc(f.call(rep.function)), _esc(repr(f.expected)), _esc(f.got))
+            exp_text, got_text = repr(f.expected), str(f.got)
+            if diff:
+                idx = first_diff_index(exp_text, got_text)
+                t.add_row(_esc(f.call(rep.function)),
+                          _diff_markup(exp_text, idx), _diff_markup(got_text, idx))
+            else:
+                t.add_row(_esc(f.call(rep.function)), _esc(exp_text), _esc(got_text))
         _console.print(t)
     else:
         hang = IND0 + " " * len("[KO] ")     # aligns under the text, like box_message
         for f in shown:
             print(IND0 + c("[KO] " + f.call(rep.function)[:90], "RED"))
-            print(hang + c("expected : " + repr(f.expected)[:70], "GRAY"))
-            print(hang + c("got      : " + str(f.got)[:70], "GRAY"))
+            exp_text, got_text = repr(f.expected), str(f.got)
+            if diff:
+                idx = first_diff_index(exp_text, got_text)
+                print(hang + c("expected : " + exp_text[:_DIFF_CLIP], "GRAY"))
+                print(hang + c("got      : " + got_text[:_DIFF_CLIP], "GRAY"))
+                if idx is not None and idx < _DIFF_CLIP:
+                    print(hang + " " * (len("got      : ") + idx) + c("^", "RED"))
+            else:
+                print(hang + c("expected : " + exp_text[:70], "GRAY"))
+                print(hang + c("got      : " + got_text[:70], "GRAY"))
     rest = len(rep.failures) - len(shown)
     if rest > 0:
         note("… and %d more failing test%s" % (rest, "s" if rest > 1 else ""))
+
+
+def _diff_markup(text, idx):
+    """`text`, rich-escaped, with everything from `idx` onward reverse-
+    styled — the rich-table equivalent of the plain path's "^" pointer
+    line (a caret can't be reliably column-aligned inside a wrapping,
+    padded table cell, so highlighting the diverging tail is the more
+    robust choice for that renderer)."""
+    text = text[:_DIFF_CLIP]
+    if idx is None or idx >= len(text):
+        return _esc(text)
+    return _esc(text[:idx]) + "[reverse]" + _esc(text[idx:]) + "[/reverse]"
 
 
 def _verdict(rep):

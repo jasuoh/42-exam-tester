@@ -307,6 +307,8 @@ TRAINING_EXERCISES = {
             if (size == 0)
                 return (0);
             lengths = malloc(sizeof(int) * size);
+            if (!lengths)
+                return (0);
             i = 0;
             while (i < size)
             {
@@ -414,6 +416,8 @@ TRAINING_EXERCISES = {
             if (size < 2)
                 return (0);
             sorted = malloc(sizeof(int) * size);
+            if (!sorted)
+                return (0);
             i = 0;
             while (i < size)
             {

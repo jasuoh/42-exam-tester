@@ -1,0 +1,92 @@
+# Changelog
+
+Notable changes to this project, newest entries first. This tracks the
+*tester itself* (grading logic, exercise banks, UX) — not students'
+`rendu/` solutions. Loosely follows [Keep a Changelog](https://keepachangelog.com/);
+this repo has no version numbers, so entries are grouped by date instead.
+
+## Unreleased
+
+### Added
+- `--diff` flag (both testers) — on a failing test, shows the full
+  expected/got values instead of the usual 70-character clip, plus a
+  pointer at the first character where they diverge (a caret line in
+  the plain-text UI, a reverse-video highlight on the diverging tail in
+  the rich UI). Useful once a value is long enough that eyeballing two
+  side-by-side reprs stops working. New pure helper: `ui.first_diff_index()`.
+- `find_forbidden_calls()` in `src/grader.py` — an AST-based check, the
+  Python-side counterpart to `c_exam/grader.py`'s existing `find_forbidden()`.
+  Lets an exercise declare a `"forbidden"` tuple of names; grading fails
+  immediately (no opt-in flag, unlike C's `--strict-forbidden`) if the
+  submission calls any of them, since a forbidden call here means the
+  student's solution outsources the one thing the exercise is testing.
+- `py_cryptic_sorter` now sets `"forbidden": ("sorted", "sort")` — using
+  Python's built-in sort defeats the point of the exercise (implement a
+  stable multi-key ordering yourself). Its hint was rewritten to match:
+  it now points at a hand-rolled insertion sort instead of `sorted(key=...)`.
+
+### Fixed
+- **`py_bracket_validator`** carried `"level": 1` while living in the
+  `exam_bank.py` level-6 section — level 1's standard pool had 3 exercises
+  instead of 2, and level 6's had only 1 (`whisper_cipher`), so a level-6
+  exam run never actually randomized. Corrected to `"level": 6`.
+- **`ft_split` / `pgcd` / `fprime`** (`c_exam/bank.py`) each had a
+  `"forbidden"` list that contradicted their own subject's
+  `Allowed functions` line *and* their own `oracle_c` — e.g. `ft_split`
+  forbade `malloc` while its subject said `Allowed: malloc` and its
+  reference solution called `malloc` three times. Every legitimate
+  solution to these three exercises was getting a bogus forbidden-call
+  warning. Removed the incorrect `"forbidden"` entries.
+- **`hints.classify()` never recognized a Python per-case timeout**
+  (`src/hints.py`). It checked `f.got == "[TIMEOUT]"` — the exact marker
+  `c_exam/grader.py`'s program-kind path uses — but the Python sandbox's
+  own per-case timeout marker is `"[TIMEOUT > Ns]"` (the timeout value is
+  embedded in the string). Since that never matched, a Python student
+  stuck on an infinite loop on just one input (the single most common
+  real timeout shape) never got the "looks like an infinite loop" hint,
+  even after `STUCK_THRESHOLD` consecutive fails — silently fell through
+  to no hint at all. Changed to `str(f.got).startswith("[TIMEOUT")`,
+  which matches both markers. Verified live: a solution that infinite-loops
+  on one specific input now gets the hint on its 3rd consecutive failing
+  grade.
+- **Missing `malloc` NULL-checks** in five reference solutions —
+  `ft_range`, `ft_rrange`, `ft_split` (`c_exam/bank.py`), `lis_length`,
+  `max_gap` (`c_exam/training_bank.py`) all dereferenced the result of
+  `malloc()` without checking it first. `ft_split` additionally now frees
+  every word it already duplicated (and the pointer array itself) if a
+  later `malloc` fails mid-loop — matching what its own "leak" hint has
+  been telling students to do all along.
+- **28 "program"-kind C exercises used `printf()` while their own subject
+  said `Allowed functions: write`** (`add_prime_sum`, `alpha_mirror`,
+  `camel_to_snake`, `count_vowels`, `epur_str`, `expand_str`, `first_word`,
+  `fizzbuzz`, `hidenp`, `is_palindrome_str`, `last_word`, `longest_word_str`,
+  `paramsum`, `print_hex`, `repeat_alpha`, `rev_print`, `rev_wstr`,
+  `rostring`, `rot_13`, `rotone`, `rstr_capitalizer`, `search_and_replace`,
+  `snake_to_camel`, `str_capitalizer`, `tab_mult`, `ulstr`, `union`,
+  `wdmatch`). The grader only diffs stdout so this never affected grading
+  correctness, but the reference/"answer key" implementation should model
+  the exact constraint it's teaching. Rewrote all 28 to use raw `write(2)`
+  calls (plus small self-contained per-exercise integer-to-write helpers
+  for the 6 that print numbers), byte-for-byte identical output, verified
+  against the bank's own curated + fuzz cases and a clean
+  `-Wall -Wextra -Werror` compile.
+
+## 2026-09-02 — PR #1 bug-hunt batch
+
+- Fixed a batch of correctness bugs across the exam flow, hints, and C
+  grading; follow-up pass fixed remaining review findings (bank defaults,
+  hint accuracy, `--strict-forbidden`).
+- README polish (hero section, feature showcase, collapsible tables).
+
+## 2026-08-30 – 2026-08-31
+
+- Added stuck-student hints, shared by both the Python and C testers.
+- Added optional `--valgrind` leak checking to the C tester; fixed the
+  grading harness's own memory leaks in list/voidlist/str_array exercises
+  uncovered while building it.
+- Added a GitHub Actions CI pipeline.
+
+---
+
+Earlier history: `git log` — this file starts tracking from the point a
+changelog was first requested.

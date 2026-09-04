@@ -130,13 +130,15 @@ def classify(report):
     if report.fatal or not report.failures:
         return None
     f = report.failures[0]
-    # c_exam/grader.py's _grade_program records a per-case timeout as a
-    # per-case failure ("[TIMEOUT]"), not a fatal Report like every other
-    # timeout path (_grade_function's whole-run timeout, and every Python
-    # one) — special-cased ahead of the CRASH marker below, which would
-    # otherwise also match "[TIMEOUT]" and misreport an infinite loop as
-    # a memory-access crash.
-    if str(f.got) == "[TIMEOUT]":
+    # A per-case timeout (one case's alarm fires, the run keeps going) is
+    # recorded as a plain failure rather than a fatal Report, on both
+    # sides — c_exam/grader.py's _grade_program uses got="[TIMEOUT]",
+    # src/grader.py's RUNNER_TEMPLATE uses got="[TIMEOUT > Ns]" (the
+    # per-call timeout is embedded in the message there). startswith()
+    # catches both — special-cased ahead of the CRASH marker below, which
+    # would otherwise also match "[TIMEOUT]" and misreport an infinite
+    # loop as a memory-access crash.
+    if str(f.got).startswith("[TIMEOUT"):
         return TIMEOUT
     if _CRASH_MARKER_RE.match(str(f.got)):
         return CRASH

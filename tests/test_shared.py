@@ -381,6 +381,15 @@ class HintsTests(unittest.TestCase):
                               warnings=["case 2 timed out: TIMEOUT"])
         self.assertIn("infinite loop", hints.diagnose(report))
 
+    def test_timeout_hint_from_a_python_per_case_timeout(self):
+        # src/grader.py's RUNNER_TEMPLATE records a per-case timeout as a
+        # non-fatal failure with got="[TIMEOUT > Ns]" (the per-call timeout
+        # value is embedded in the message, unlike the C side's bare
+        # "[TIMEOUT]") — must still get the TIMEOUT hint via the same
+        # startswith() check, not silently fall through to no hint at all.
+        report = self._report([Failure([1, 2], "expected", "[TIMEOUT > 3s]")])
+        self.assertIn("infinite loop", hints.diagnose(report))
+
     def test_crash_warning_hint(self):
         report = self._report(warnings=["your program crashed: segfault"])
         self.assertIn("memory access", hints.diagnose(report))

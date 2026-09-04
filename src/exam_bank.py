@@ -601,11 +601,16 @@ EXERCISES = {
     "py_cryptic_sorter": {
         "level": 1, "function": "cryptic_sorter", "standard": True,
         "oracle": _ref_cryptic_sorter, "fuzz": _fuzz_cryptic_sorter,
-        "hint": ("The sort key needs to be a single tuple of all three "
-                "criteria in exactly this order (length, then the word "
-                "case-insensitively, then vowel count) — don't sort in "
-                "several separate passes, that breaks stability for "
-                "equal words."),
+        "forbidden": ("sorted", "sort"),
+        "hint": ("sorted()/list.sort() are off-limits for this one — "
+                "implement the ordering yourself (an insertion sort is "
+                "plenty). Compare each pair of strings by a single tuple "
+                "of all three criteria in exactly this order (length, "
+                "then the word case-insensitively, then vowel count) — "
+                "Python compares tuples lexicographically, so one "
+                "tuple-vs-tuple comparison covers all three at once; "
+                "don't compare in several separate passes, that breaks "
+                "stability for equal words."),
         "subject": _sub("py_cryptic_sorter", """
         Write a function that sorts a list of strings by multiple criteria:
           1. Primary   : by length (shortest first)
@@ -1483,7 +1488,7 @@ EXERCISES = {
 
     # ── LEVEL 6 ────────────────────────────────────────────────
     "py_bracket_validator": {
-        "level": 1, "function": "bracket_validator", "standard": True,
+        "level": 6, "function": "bracket_validator", "standard": True,
         "oracle": _ref_bracket_validator, "fuzz": _fuzz_bracket_validator,
         "subject": _sub("py_bracket_validator", """
         Write a function that checks whether the brackets in a string are

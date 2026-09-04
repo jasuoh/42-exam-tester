@@ -140,6 +140,44 @@ class FindImportsTests(unittest.TestCase):
         self.assertEqual(grader.find_imports(path), [])
 
 
+class FindForbiddenCallsTests(unittest.TestCase):
+    def _write(self, source):
+        fd, path = tempfile.mkstemp(suffix=".py")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(source)
+        self.addCleanup(os.remove, path)
+        return path
+
+    def test_builtin_call_is_found(self):
+        path = self._write("def f(x):\n    return sorted(x)\n")
+        self.assertEqual(grader.find_forbidden_calls(path, ("sorted", "sort")),
+                         ["sorted"])
+
+    def test_method_call_is_found(self):
+        path = self._write("def f(x):\n    x.sort()\n    return x\n")
+        self.assertEqual(grader.find_forbidden_calls(path, ("sorted", "sort")),
+                         ["sort"])
+
+    def test_unrelated_name_is_not_flagged(self):
+        path = self._write("def f(x):\n    return list(x)\n")
+        self.assertEqual(grader.find_forbidden_calls(path, ("sorted", "sort")), [])
+
+    def test_name_mentioned_without_a_call_is_not_flagged(self):
+        path = self._write("sorted = None\ndef f(x):\n    return x\n")
+        self.assertEqual(grader.find_forbidden_calls(path, ("sorted", "sort")), [])
+
+    def test_empty_forbidden_list_short_circuits(self):
+        path = self._write("def f(x):\n    return sorted(x)\n")
+        self.assertEqual(grader.find_forbidden_calls(path, ()), [])
+
+    def test_missing_file_returns_empty_not_an_exception(self):
+        self.assertEqual(grader.find_forbidden_calls("/no/such/file.py", ("sorted",)), [])
+
+    def test_syntax_error_returns_empty_not_an_exception(self):
+        path = self._write("def broken(:\n")
+        self.assertEqual(grader.find_forbidden_calls(path, ("sorted",)), [])
+
+
 class OracleSourceTests(unittest.TestCase):
     def test_function_is_renamed_and_stays_valid_python(self):
         ex = {"oracle": _ref_demo, "function": "demo"}
@@ -196,6 +234,28 @@ class GradeTests(unittest.TestCase):
             report = grader.grade("demo", ex, tmp, random.Random(0),
                                   strict_imports=True)
             self.assertEqual(report.fatal, "FORBIDDEN")
+
+    def test_forbidden_call_fails_unconditionally_no_flag_needed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "demo.py")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("def demo(x):\n    return sorted(x)\n")
+            ex = {"oracle": lambda x: sorted(x), "cases": [[[1]]],
+                  "fuzz": lambda rng: [[1]], "function": "demo",
+                  "forbidden": ("sorted", "sort")}
+            report = grader.grade("demo", ex, tmp, random.Random(0))
+            self.assertEqual(report.fatal, "FORBIDDEN_CALL")
+            self.assertIn("sorted", report.detail)
+
+    def test_no_forbidden_list_means_no_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "demo.py")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("def demo(x):\n    return sorted(x)\n")
+            ex = {"oracle": lambda x: sorted(x), "cases": [[[1]]],
+                  "fuzz": lambda rng: [[1]], "function": "demo"}
+            report = grader.grade("demo", ex, tmp, random.Random(0))
+            self.assertTrue(report.ok, report.failures)
 
     def test_correct_solution_passes_through_the_real_sandbox(self):
         with tempfile.TemporaryDirectory() as tmp:

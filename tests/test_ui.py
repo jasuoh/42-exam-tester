@@ -56,6 +56,24 @@ class FileExtTests(unittest.TestCase):
                                        "kind": "program"}), ".c")
 
 
+class FirstDiffIndexTests(unittest.TestCase):
+    def test_identical_strings_return_none(self):
+        self.assertIsNone(ui.first_diff_index("abc", "abc"))
+
+    def test_divergence_points_at_the_first_differing_character(self):
+        self.assertEqual(ui.first_diff_index("hello", "hallo"), 1)
+
+    def test_one_string_a_prefix_of_the_other_points_past_the_shorter_one(self):
+        self.assertEqual(ui.first_diff_index("abc", "abcdef"), 3)
+        self.assertEqual(ui.first_diff_index("abcdef", "abc"), 3)
+
+    def test_empty_strings_are_identical(self):
+        self.assertIsNone(ui.first_diff_index("", ""))
+
+    def test_completely_different_strings_diverge_at_zero(self):
+        self.assertEqual(ui.first_diff_index("abc", "xyz"), 0)
+
+
 class SplitSubjectTests(unittest.TestCase):
     def setUp(self):
         self.subject = (

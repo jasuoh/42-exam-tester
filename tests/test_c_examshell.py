@@ -27,7 +27,8 @@ skip_without_cc = unittest.skipUnless(HAVE_CC, "no C compiler on PATH")
 
 def _cfg(rendu, **overrides):
     args = argparse.Namespace(rendu=rendu, timeout=5, cc="cc",
-                              strict_norm=False, show_fails=4, seed=None, fuzz=0,
+                              strict_norm=False, show_fails=4, diff=False,
+                              seed=None, fuzz=0,
                               valgrind=False, strict_valgrind=False,
                               strict_forbidden=False)
     for key, value in overrides.items():

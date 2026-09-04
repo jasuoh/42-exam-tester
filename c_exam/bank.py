@@ -151,7 +151,7 @@ EXERCISES = {
             ./rotone a b    -> (just a newline, 2 arguments)
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -160,7 +160,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -171,10 +171,10 @@ EXERCISES = {
                     c = (c == 'z') ? 'a' : c + 1;
                 else if (c >= 'A' && c <= 'Z')
                     c = (c == 'Z') ? 'A' : c + 1;
-                printf("%c", c);
+                write(1, &c, 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -202,7 +202,17 @@ EXERCISES = {
             ./fizzbuzz -> 1\\n2\\nfizz\\n4\\nbuzz\\nfizz\\n7\\n8\\nfizz\\nbuzz\\n...
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
+
+        static void put_nbr(int n)
+        {
+            char digit;
+
+            if (n >= 10)
+                put_nbr(n / 10);
+            digit = '0' + n % 10;
+            write(1, &digit, 1);
+        }
 
         int main(void)
         {
@@ -212,13 +222,16 @@ EXERCISES = {
             while (i <= 100)
             {
                 if (i % 15 == 0)
-                    printf("fizzbuzz\\n");
+                    write(1, "fizzbuzz\\n", 9);
                 else if (i % 3 == 0)
-                    printf("fizz\\n");
+                    write(1, "fizz\\n", 5);
                 else if (i % 5 == 0)
-                    printf("buzz\\n");
+                    write(1, "buzz\\n", 5);
                 else
-                    printf("%d\\n", i);
+                {
+                    put_nbr(i);
+                    write(1, "\\n", 1);
+                }
                 i++;
             }
             return (0);
@@ -241,7 +254,7 @@ EXERCISES = {
             ./first_word "   "          -> (just a newline)
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_sep(char c)
         {
@@ -254,7 +267,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -262,10 +275,10 @@ EXERCISES = {
                 i++;
             while (argv[1][i] && !is_sep(argv[1][i]))
             {
-                printf("%c", argv[1][i]);
+                write(1, &argv[1][i], 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -349,7 +362,7 @@ EXERCISES = {
             ./rev_print "hello world" -> dlrow olleh
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -357,7 +370,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -366,9 +379,9 @@ EXERCISES = {
             while (i > 0)
             {
                 i--;
-                printf("%c", argv[1][i]);
+                write(1, &argv[1][i], 1);
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -393,7 +406,7 @@ EXERCISES = {
             ./search_and_replace "banana" "a" "e"        -> benene
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -403,7 +416,7 @@ EXERCISES = {
 
             if (argc != 4)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             from = argv[2][0];
@@ -412,12 +425,12 @@ EXERCISES = {
             while (argv[1][i])
             {
                 if (argv[1][i] == from)
-                    printf("%c", to);
+                    write(1, &to, 1);
                 else
-                    printf("%c", argv[1][i]);
+                    write(1, &argv[1][i], 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -441,7 +454,7 @@ EXERCISES = {
             ./ulstr "ABCabc123"   -> abcABC123
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -450,7 +463,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -461,10 +474,10 @@ EXERCISES = {
                     c = c - 'a' + 'A';
                 else if (c >= 'A' && c <= 'Z')
                     c = c - 'A' + 'a';
-                printf("%c", c);
+                write(1, &c, 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -610,7 +623,7 @@ EXERCISES = {
             ./rot_13 ""     -> (just a newline)
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -619,7 +632,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -630,10 +643,10 @@ EXERCISES = {
                     c = 'a' + (c - 'a' + 13) % 26;
                 else if (c >= 'A' && c <= 'Z')
                     c = 'A' + (c - 'A' + 13) % 26;
-                printf("%c", c);
+                write(1, &c, 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -657,7 +670,7 @@ EXERCISES = {
             ./alpha_mirror "Hi!" -> Sr!
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -666,7 +679,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -677,10 +690,10 @@ EXERCISES = {
                     c = 'z' - (c - 'a');
                 else if (c >= 'A' && c <= 'Z')
                     c = 'Z' - (c - 'A');
-                printf("%c", c);
+                write(1, &c, 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -703,7 +716,7 @@ EXERCISES = {
             ./camel_to_snake "thisIsATest"  -> this_is_a_test
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -712,7 +725,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -721,14 +734,15 @@ EXERCISES = {
                 c = argv[1][i];
                 if (c >= 'A' && c <= 'Z')
                 {
-                    printf("_");
-                    printf("%c", c - 'A' + 'a');
+                    write(1, "_", 1);
+                    c = c - 'A' + 'a';
+                    write(1, &c, 1);
                 }
                 else
-                    printf("%c", c);
+                    write(1, &c, 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -1050,7 +1064,7 @@ EXERCISES = {
             ./last_word "   "          -> (just a newline)
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_sep(char c)
         {
@@ -1064,7 +1078,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             end = 0;
@@ -1077,10 +1091,10 @@ EXERCISES = {
                 start--;
             while (start < end)
             {
-                printf("%c", argv[1][start]);
+                write(1, &argv[1][start], 1);
                 start++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -1137,7 +1151,7 @@ EXERCISES = {
             ./snake_to_camel "this_is_a_test" -> thisIsATest
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -1147,7 +1161,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -1161,12 +1175,12 @@ EXERCISES = {
                 {
                     if (upnext && c >= 'a' && c <= 'z')
                         c = c - 'a' + 'A';
-                    printf("%c", c);
+                    write(1, &c, 1);
                     upnext = 0;
                 }
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -1222,7 +1236,7 @@ EXERCISES = {
             ./union "aaa" "aaa" -> a
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int seen(char *buf, int n, char c)
         {
@@ -1247,7 +1261,7 @@ EXERCISES = {
 
             if (argc != 3)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             n = 0;
@@ -1268,10 +1282,10 @@ EXERCISES = {
             i = 0;
             while (i < n)
             {
-                printf("%c", buf[i]);
+                write(1, &buf[i], 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -1297,7 +1311,7 @@ EXERCISES = {
             ./wdmatch "abc" "xbxax"  -> (just a newline)
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -1306,7 +1320,7 @@ EXERCISES = {
 
             if (argc != 3)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -1318,9 +1332,15 @@ EXERCISES = {
                 j++;
             }
             if (argv[1][i] == '\\0')
-                printf("%s\\n", argv[1]);
+            {
+                j = 0;
+                while (argv[1][j])
+                    j++;
+                write(1, argv[1], j);
+                write(1, "\\n", 1);
+            }
             else
-                printf("\\n");
+                write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -1344,7 +1364,7 @@ EXERCISES = {
             ./epur_str "a   b   c"           -> a b c
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_sep(char c)
         {
@@ -1358,7 +1378,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -1375,13 +1395,13 @@ EXERCISES = {
                 }
                 if (need_space)
                 {
-                    printf(" ");
+                    write(1, " ", 1);
                     need_space = 0;
                 }
-                printf("%c", argv[1][i]);
+                write(1, &argv[1][i], 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -1405,7 +1425,7 @@ EXERCISES = {
             ./expand_str "a b"          -> a   b
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_sep(char c)
         {
@@ -1419,7 +1439,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -1436,13 +1456,13 @@ EXERCISES = {
                 }
                 if (need_space)
                 {
-                    printf("   ");
+                    write(1, "   ", 3);
                     need_space = 0;
                 }
-                printf("%c", argv[1][i]);
+                write(1, &argv[1][i], 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -1555,6 +1575,8 @@ EXERCISES = {
             n = (end >= start) ? (end - start + 1) : (start - end + 1);
             step = (end >= start) ? 1 : -1;
             res = malloc(sizeof(int) * n);
+            if (!res)
+                return (0);
             i = 0;
             while (i < n)
             {
@@ -1599,6 +1621,8 @@ EXERCISES = {
             n = (end >= start) ? (end - start + 1) : (start - end + 1);
             step = (end >= start) ? 1 : -1;
             res = malloc(sizeof(int) * n);
+            if (!res)
+                return (0);
             cur = end;
             i = 0;
             while (i < n)
@@ -1625,12 +1649,23 @@ EXERCISES = {
             ./paramsum        -> 0
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
+
+        static void put_nbr(int n)
+        {
+            char digit;
+
+            if (n >= 10)
+                put_nbr(n / 10);
+            digit = '0' + n % 10;
+            write(1, &digit, 1);
+        }
 
         int main(int argc, char **argv)
         {
             (void)argv;
-            printf("%d\\n", argc - 1);
+            put_nbr(argc - 1);
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -1651,8 +1686,8 @@ EXERCISES = {
             ./print_hex 4096 -> 1000
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
         #include <stdlib.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -1662,13 +1697,13 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             n = atol(argv[1]);
             if (n == 0)
             {
-                printf("0\\n");
+                write(1, "0\\n", 2);
                 return (0);
             }
             i = 0;
@@ -1681,9 +1716,9 @@ EXERCISES = {
             while (i > 0)
             {
                 i--;
-                printf("%c", buf[i]);
+                write(1, &buf[i], 1);
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -1703,7 +1738,7 @@ EXERCISES = {
             ./rstr_capitalizer "a first test" -> a firsT tesT
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_sep(char c)
         {
@@ -1740,7 +1775,7 @@ EXERCISES = {
                     else if (i != last_alpha && c >= 'A' && c <= 'Z')
                         c = c - 'A' + 'a';
                 }
-                printf("%c", c);
+                write(1, &c, 1);
                 i++;
             }
         }
@@ -1753,7 +1788,7 @@ EXERCISES = {
 
             if (argc < 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             a = 1;
@@ -1768,11 +1803,11 @@ EXERCISES = {
                     process(argv[a] + start, i - start);
                     while (argv[a][i] && is_sep(argv[a][i]))
                     {
-                        printf("%c", argv[a][i]);
+                        write(1, &argv[a][i], 1);
                         i++;
                     }
                 }
-                printf("\\n");
+                write(1, "\\n", 1);
                 a++;
             }
             return (0);
@@ -1798,7 +1833,7 @@ EXERCISES = {
             ./str_capitalizer "a first test" -> A First Test
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_sep(char c)
         {
@@ -1814,7 +1849,7 @@ EXERCISES = {
 
             if (argc < 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             a = 1;
@@ -1835,10 +1870,10 @@ EXERCISES = {
                             c = c - 'A' + 'a';
                         start_of_word = 0;
                     }
-                    printf("%c", c);
+                    write(1, &c, 1);
                     i++;
                 }
-                printf("\\n");
+                write(1, "\\n", 1);
                 a++;
             }
             return (0);
@@ -1864,8 +1899,29 @@ EXERCISES = {
             ./tab_mult 9 -> 1 x 9 = 9 ... 9 x 9 = 81 (9 lines)
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
         #include <stdlib.h>
+        #include <unistd.h>
+
+        static void put_unbr(unsigned int n)
+        {
+            char digit;
+
+            if (n >= 10)
+                put_unbr(n / 10);
+            digit = '0' + n % 10;
+            write(1, &digit, 1);
+        }
+
+        static void put_nbr(int n)
+        {
+            if (n < 0)
+            {
+                write(1, "-", 1);
+                put_unbr(-(unsigned int)n);
+            }
+            else
+                put_unbr((unsigned int)n);
+        }
 
         int main(int argc, char **argv)
         {
@@ -1874,14 +1930,19 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             n = atoi(argv[1]);
             i = 1;
             while (i <= 9)
             {
-                printf("%d x %d = %d\\n", i, n, i * n);
+                put_nbr(i);
+                write(1, " x ", 3);
+                put_nbr(n);
+                write(1, " = ", 3);
+                put_nbr(i * n);
+                write(1, "\\n", 1);
                 i++;
             }
             return (0);
@@ -1895,7 +1956,7 @@ EXERCISES = {
         "level": 4, "function": "ft_split",
         "standard": True,
         "prototype": "char **ft_split(char *str);",
-        "args": ["str"], "returns": "str_array", "forbidden": ["malloc"],
+        "args": ["str"], "returns": "str_array",
         "hint": {
             "crash": ("Your pointer array needs room for a trailing "
                      "NULL too — count_words words means count_words + 1 "
@@ -1957,6 +2018,8 @@ EXERCISES = {
             int i;
 
             word = malloc(sizeof(char) * (len + 1));
+            if (!word)
+                return (0);
             i = 0;
             while (i < len)
             {
@@ -1973,9 +2036,12 @@ EXERCISES = {
             int n;
             int i;
             int len;
+            int j;
 
             n = count_words(str);
             res = malloc(sizeof(char *) * (n + 1));
+            if (!res)
+                return (0);
             i = 0;
             while (*str)
             {
@@ -1987,6 +2053,17 @@ EXERCISES = {
                 if (len > 0)
                 {
                     res[i] = dup_word(str, len);
+                    if (!res[i])
+                    {
+                        j = 0;
+                        while (j < i)
+                        {
+                            free(res[j]);
+                            j++;
+                        }
+                        free(res);
+                        return (0);
+                    }
                     i++;
                     str += len;
                 }
@@ -2050,16 +2127,17 @@ EXERCISES = {
             ./hidenp "abc" "btarc"          -> 0
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
             int i;
             int j;
+            char result;
 
             if (argc != 3)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -2070,7 +2148,9 @@ EXERCISES = {
                     i++;
                 j++;
             }
-            printf("%d\\n", argv[1][i] == '\\0');
+            result = (argv[1][i] == '\\0') ? '1' : '0';
+            write(1, &result, 1);
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -2083,7 +2163,6 @@ EXERCISES = {
     "pgcd": {
         "level": 3, "function": "pgcd", "kind": "program",
         "standard": True,
-        "forbidden": ["atoi"],
         "subject": _sub_c("pgcd", "int main(int argc, char **argv);",
                          "printf, atoi, malloc, free", """
         Write a PROGRAM that takes two strings representing two strictly
@@ -2183,8 +2262,8 @@ EXERCISES = {
             ./add_prime_sum   -> 0
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
         #include <stdlib.h>
+        #include <unistd.h>
 
         static int is_prime(int n)
         {
@@ -2202,6 +2281,27 @@ EXERCISES = {
             return (1);
         }
 
+        static void put_ulnbr(unsigned long n)
+        {
+            char digit;
+
+            if (n >= 10)
+                put_ulnbr(n / 10);
+            digit = '0' + n % 10;
+            write(1, &digit, 1);
+        }
+
+        static void put_lnbr(long n)
+        {
+            if (n < 0)
+            {
+                write(1, "-", 1);
+                put_ulnbr(-(unsigned long)n);
+            }
+            else
+                put_ulnbr((unsigned long)n);
+        }
+
         int main(int argc, char **argv)
         {
             int n;
@@ -2210,7 +2310,7 @@ EXERCISES = {
 
             if (argc != 2 || atoi(argv[1]) <= 0)
             {
-                printf("0\\n");
+                write(1, "0\\n", 2);
                 return (0);
             }
             n = atoi(argv[1]);
@@ -2222,7 +2322,8 @@ EXERCISES = {
                     sum += i;
                 i++;
             }
-            printf("%ld\\n", sum);
+            put_lnbr(sum);
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -2382,7 +2483,7 @@ EXERCISES = {
             ./repeat_alpha "Alex." -> Alllllllllllleeeeexxxxxxxxxxxxxxxxxxxxxxxx.
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         int main(int argc, char **argv)
         {
@@ -2393,7 +2494,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -2407,19 +2508,19 @@ EXERCISES = {
                 else
                     idx = 0;
                 if (idx == 0)
-                    printf("%c", c);
+                    write(1, &c, 1);
                 else
                 {
                     j = 0;
                     while (j < idx)
                     {
-                        printf("%c", c);
+                        write(1, &c, 1);
                         j++;
                     }
                 }
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -2430,7 +2531,6 @@ EXERCISES = {
     "fprime": {
         "level": 4, "function": "fprime", "kind": "program",
         "standard": True,
-        "forbidden": ["atoi"],
         "subject": _sub_c("fprime", "int main(int argc, char **argv);",
                          "printf, atoi", """
         Write a PROGRAM that takes a positive int and displays its prime
@@ -2564,7 +2664,7 @@ EXERCISES = {
             ./rev_wstr "single"         -> single
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_sep(char c)
         {
@@ -2581,7 +2681,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             len = 0;
@@ -2599,17 +2699,17 @@ EXERCISES = {
                 while (start > 0 && !is_sep(argv[1][start - 1]))
                     start--;
                 if (!first)
-                    printf(" ");
+                    write(1, " ", 1);
                 i = start;
                 while (i < end)
                 {
-                    printf("%c", argv[1][i]);
+                    write(1, &argv[1][i], 1);
                     i++;
                 }
                 first = 0;
                 end = start;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -2633,7 +2733,7 @@ EXERCISES = {
             ./rostring "single"         -> single
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_sep(char c)
         {
@@ -2650,7 +2750,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             len = 0;
@@ -2661,7 +2761,7 @@ EXERCISES = {
                 i++;
             if (i == len)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             first_end = i;
@@ -2676,23 +2776,23 @@ EXERCISES = {
                 if (j >= len)
                     break ;
                 if (printed)
-                    printf(" ");
+                    write(1, " ", 1);
                 while (j < len && !is_sep(argv[1][j]))
                 {
-                    printf("%c", argv[1][j]);
+                    write(1, &argv[1][j], 1);
                     j++;
                 }
                 printed = 1;
             }
             if (printed)
-                printf(" ");
+                write(1, " ", 1);
             j = i;
             while (j < first_end)
             {
-                printf("%c", argv[1][j]);
+                write(1, &argv[1][j], 1);
                 j++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -2895,13 +2995,23 @@ EXERCISES = {
             ./count_vowels "AEIOU"  -> 5
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_vowel(char c)
         {
             if (c >= 'A' && c <= 'Z')
                 c = c - 'A' + 'a';
             return (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u');
+        }
+
+        static void put_nbr(int n)
+        {
+            char digit;
+
+            if (n >= 10)
+                put_nbr(n / 10);
+            digit = '0' + n % 10;
+            write(1, &digit, 1);
         }
 
         int main(int argc, char **argv)
@@ -2911,7 +3021,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -2922,7 +3032,8 @@ EXERCISES = {
                     count++;
                 i++;
             }
-            printf("%d\\n", count);
+            put_nbr(count);
+            write(1, "\\n", 1);
             return (0);
         }
         """),
@@ -2950,7 +3061,7 @@ EXERCISES = {
             ./is_palindrome_str "12 21"                        -> no
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_alpha(char c)
         {
@@ -2974,7 +3085,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             len = 0;
@@ -2990,7 +3101,7 @@ EXERCISES = {
             }
             if (!has_alpha)
             {
-                printf("no\\n");
+                write(1, "no\\n", 3);
                 return (0);
             }
             left = 0;
@@ -3003,13 +3114,13 @@ EXERCISES = {
                     right--;
                 if (to_lower(argv[1][left]) != to_lower(argv[1][right]))
                 {
-                    printf("no\\n");
+                    write(1, "no\\n", 3);
                     return (0);
                 }
                 left++;
                 right--;
             }
-            printf("yes\\n");
+            write(1, "yes\\n", 4);
             return (0);
         }
         """),
@@ -3038,7 +3149,7 @@ EXERCISES = {
             ./longest_word_str "a bb ccc dd"          -> ccc
         """),
         "oracle_c": textwrap.dedent("""
-        #include <stdio.h>
+        #include <unistd.h>
 
         static int is_sep(char c)
         {
@@ -3055,7 +3166,7 @@ EXERCISES = {
 
             if (argc != 2)
             {
-                printf("\\n");
+                write(1, "\\n", 1);
                 return (0);
             }
             i = 0;
@@ -3081,10 +3192,10 @@ EXERCISES = {
             i = 0;
             while (i < best_len)
             {
-                printf("%c", argv[1][best_start + i]);
+                write(1, &argv[1][best_start + i], 1);
                 i++;
             }
-            printf("\\n");
+            write(1, "\\n", 1);
             return (0);
         }
         """),

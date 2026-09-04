@@ -20,7 +20,8 @@ from src.training_bank import DIFFICULTIES, TRAINING_EXERCISES
 
 def _cfg(rendu, **overrides):
     args = argparse.Namespace(rendu=rendu, timeout=3, fuzz=0,
-                              strict_imports=False, show_fails=4, seed=None)
+                              strict_imports=False, show_fails=4, diff=False,
+                              seed=None)
     for key, value in overrides.items():
         setattr(args, key, value)
     return examshell.Config(args)
