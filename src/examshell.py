@@ -102,7 +102,8 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
     with ui.spinner("Grading %s … (%d tests)" % (ex_name, len(tests))):
         report = grader.grade(ex_name, ex, cfg.rendu, timeout=cfg.timeout,
                               strict_imports=cfg.strict_imports, tests=tests)
-    ui.report(report, cfg.show_fails, cfg.diff)
+    filepath = os.path.join(cfg.rendu, ex_name + ".py")
+    ui.report(report, cfg.show_fails, cfg.diff, filepath)
     before_badges = achievements.unlocked(TOOL, N_LEVELS)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)

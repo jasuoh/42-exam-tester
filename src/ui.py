@@ -14,6 +14,7 @@ Colour is turned off automatically when stdout is not a TTY, when TERM is
 """
 
 import contextlib
+import difflib
 import os
 import shutil
 import sys
@@ -677,15 +678,175 @@ def first_diff_index(expected_text, got_text):
     return n if len(expected_text) != len(got_text) else None
 
 
-def report(rep, show_fails=4, diff=False):
-    """Render a grader.Report."""
+# ── structural diff  (--diff, list/tuple and multi-line values) ───────
+# first_diff_index() above is a flat character-by-character compare — great
+# for a scalar, useless for "which element of this 20-item list is wrong"
+# or "which line of this program's output is wrong". The two helpers below
+# cover those: they return None (fall back to the char pointer) when there
+# isn't more than one element/line to line up, and otherwise return a pair
+# of same-length, line-aligned (expected_lines, got_lines) — one diff line
+# per element/source-line, prefixed "- "/"+ " where the two sides disagree
+# and "  " where they agree — ready to drop straight into the "expected"/
+# "got" columns/blocks _failures() already renders.
+def _split_top_level(text):
+    """Split a repr()-like string on top-level commas — respecting nested
+    brackets/parens/braces and quoted strings, so an inner list's own
+    commas (or a comma inside a string) never fragment one logical element
+    into two. Not a parser, just a lint-style scan — same "good enough,
+    not exact" spirit as c_exam/grader.py's _strip_comments_and_strings()."""
+    parts, depth, current, quote = [], 0, [], None
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if quote:
+            current.append(ch)
+            if ch == "\\" and i + 1 < n:
+                i += 1
+                current.append(text[i])
+            elif ch == quote:
+                quote = None
+        elif ch in "'\"":
+            quote = ch
+            current.append(ch)
+        elif ch in "([{":
+            depth += 1
+            current.append(ch)
+        elif ch in ")]}":
+            depth -= 1
+            current.append(ch)
+        elif ch == "," and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+        i += 1
+    tail = "".join(current).strip()
+    if tail:
+        parts.append(tail)
+    return parts
+
+
+def _strip_outer_brackets(text):
+    if len(text) >= 2 and text[0] in "([" and text[-1] in ")]":
+        return text[1:-1]
+    return text
+
+
+def _diff_columns(exp_items, got_items):
+    """difflib.ndiff() over two same-kind sequences (list elements or text
+    lines), reshaped into a pair of line-aligned display lists — one line
+    per ndiff entry, "  "-prefixed where both sides agree, "- " only on
+    the expected side, "+ " only on the got side. "? " hint lines (ndiff's
+    own caret/marker lines) are dropped — useful in a unified terminal
+    diff, redundant once expected/got are already shown as separate
+    columns/blocks."""
+    lines = [ln for ln in difflib.ndiff(exp_items, got_items) if not ln.startswith("? ")]
+    exp_out, got_out = [], []
+    for ln in lines:
+        tag, content = ln[:2], ln[2:]
+        if tag == "  ":
+            exp_out.append("  " + content)
+            got_out.append("  " + content)
+        elif tag == "- ":
+            exp_out.append("- " + content)
+        elif tag == "+ ":
+            got_out.append("+ " + content)
+    return exp_out, got_out
+
+
+def structural_diff(expected, exp_text, got_text):
+    """Element-by-element diff for a --diff structural block, used when
+    `expected` is a list/tuple (a Failure only — a CFailure's expected/got
+    are always plain strings, see line_diff() below) whose repr splits
+    into more than one top-level element. `exp_text`/`got_text` are the
+    same displayed strings first_diff_index() compares (repr(expected),
+    str(got)) — got is already text by the time it reaches here (it went
+    through the sandbox's own repr(), see grader.short_repr()), so this
+    diffs the two TEXTS' top-level-comma-split pieces rather than round-
+    tripping got_text back into a native value (which would need an
+    eval() and can't work anyway once short_repr() has truncated it).
+
+    Returns (expected_lines, got_lines) — see _diff_columns() — or None
+    when `expected` isn't a list/tuple, or splits into 0-1 elements (as
+    short as the char-pointer already handles fine)."""
+    if not isinstance(expected, (list, tuple)):
+        return None
+    exp_items = _split_top_level(_strip_outer_brackets(exp_text))
+    got_items = _split_top_level(_strip_outer_brackets(got_text))
+    if len(exp_items) <= 1:
+        return None
+    return _diff_columns(exp_items, got_items)
+
+
+def line_diff(exp_text, got_text):
+    """Line-by-line diff for a multi-line --diff value — a C failure's
+    multi-line stdout chunk, most often, but works for any multi-line
+    string. Returns (expected_lines, got_lines) — see _diff_columns() —
+    or None when neither side has more than one line (a single-line value
+    is exactly what the char-pointer already handles well)."""
+    if "\n" not in exp_text and "\n" not in got_text:
+        return None
+    return _diff_columns(exp_text.splitlines(), got_text.splitlines())
+
+
+def _diff_block(f, exp_text, got_text):
+    """The one entry point _failures() needs: structural_diff() first (more
+    specific — an element, not just a line, is what actually differs in a
+    list/tuple), then line_diff(), or None to fall back to the plain
+    char-pointer.
+
+    line_diff() needs REAL newlines to split on, and exp_text/got_text
+    aren't a matched pair for that: exp_text is always repr(f.expected) —
+    matching what structural_diff() and the scalar char-pointer view need
+    — which escapes any real newline in a Python Failure's expected value
+    into the two characters "\\" + "n". A CFailure's expected/got, though,
+    are already plain, un-repr()'d strings (see c_exam/grader.py's
+    CFailure docstring) — got_text (str(f.got)) is already raw there, so
+    feeding it repr(f.expected) instead of the equally-raw f.expected
+    would compare an escaped string against a real multi-line one and
+    never line up. Detected via `.index` (CFailure-only, see its
+    __slots__) rather than an isinstance check, so this module doesn't
+    need to import c_exam.grader just to tell the two failure types apart.
+    """
+    block = structural_diff(f.expected, exp_text, got_text)
+    if block:
+        return block
+    if hasattr(f, "index"):        # CFailure: its own strings are already raw
+        return line_diff(str(f.expected), str(f.got))
+    return line_diff(exp_text, got_text)
+
+
+# Diff blocks are capped the same way _DIFF_CLIP caps a plain value below —
+# a legitimate multi-hundred-line C program's stdout, or a huge fuzzed
+# list, must never be able to flood the terminal.
+_DIFF_BLOCK_MAX_LINES = 30
+
+
+def _clip_block(lines):
+    if len(lines) <= _DIFF_BLOCK_MAX_LINES:
+        return lines, 0
+    return lines[:_DIFF_BLOCK_MAX_LINES], len(lines) - _DIFF_BLOCK_MAX_LINES
+
+
+# --diff's inline code panel (extract_function_source()) needs a Syntax
+# theme — reuse this project's own THEME_NAMES where there's a clean
+# mapping, "monokai" otherwise (it reads fine on both light and dark
+# terminal backgrounds, which is why subject() already defaults to it).
+_CODE_SYNTAX_THEMES = {"light": "default"}
+
+
+def report(rep, show_fails=4, diff=False, filepath=None):
+    """Render a grader.Report. `filepath` is the exact file that was
+    graded (see both examshell.py's grade_exercise()) — used only when
+    `diff` is set, to show the student's own submitted function next to
+    its failures (see _code_panel())."""
     for msg in rep.warnings:
         warn(msg)
     if rep.fatal:
         box_message(rep.fatal_title, rep.detail, style="red")
         return
     if rep.failures:
-        _failures(rep, show_fails, diff)
+        _failures(rep, show_fails, diff, filepath)
     _verdict(rep)
 
 
@@ -695,8 +856,12 @@ def report(rep, show_fails=4, diff=False):
 _DIFF_CLIP = 400
 
 
-def _failures(rep, show_fails, diff=False):
+def _failures(rep, show_fails, diff=False, filepath=None):
     shown = rep.failures[:show_fails]
+    if diff and shown and filepath:
+        source = _extract_source(filepath, rep.function)
+        if source:
+            _code_panel(source, rep.function, filepath)
     if _rich:
         t = Table(box=box.SIMPLE_HEAVY, show_edge=False, pad_edge=False,
                   header_style="bold red")
@@ -706,9 +871,20 @@ def _failures(rep, show_fails, diff=False):
         for f in shown:
             exp_text, got_text = repr(f.expected), str(f.got)
             if diff:
-                idx = first_diff_index(exp_text, got_text)
-                t.add_row(_esc(f.call(rep.function)),
-                          _diff_markup(exp_text, idx), _diff_markup(got_text, idx))
+                block = _diff_block(f, exp_text, got_text)
+                if block:
+                    exp_lines, got_lines = block
+                    exp_lines, exp_more = _clip_block(exp_lines)
+                    got_lines, got_more = _clip_block(got_lines)
+                    exp_shown = "\n".join(exp_lines) + (
+                        "\n… +%d more" % exp_more if exp_more else "")
+                    got_shown = "\n".join(got_lines) + (
+                        "\n… +%d more" % got_more if got_more else "")
+                    t.add_row(_esc(f.call(rep.function)), _esc(exp_shown), _esc(got_shown))
+                else:
+                    idx = first_diff_index(exp_text, got_text)
+                    t.add_row(_esc(f.call(rep.function)),
+                              _diff_markup(exp_text, idx), _diff_markup(got_text, idx))
             else:
                 t.add_row(_esc(f.call(rep.function)), _esc(exp_text), _esc(got_text))
         _console.print(t)
@@ -718,17 +894,77 @@ def _failures(rep, show_fails, diff=False):
             print(IND0 + c("[KO] " + f.call(rep.function)[:90], "RED"))
             exp_text, got_text = repr(f.expected), str(f.got)
             if diff:
-                idx = first_diff_index(exp_text, got_text)
-                print(hang + c("expected : " + exp_text[:_DIFF_CLIP], "GRAY"))
-                print(hang + c("got      : " + got_text[:_DIFF_CLIP], "GRAY"))
-                if idx is not None and idx < _DIFF_CLIP:
-                    print(hang + " " * (len("got      : ") + idx) + c("^", "RED"))
+                block = _diff_block(f, exp_text, got_text)
+                if block:
+                    exp_lines, got_lines = block
+                    exp_lines, exp_more = _clip_block(exp_lines)
+                    got_lines, got_more = _clip_block(got_lines)
+                    print(hang + c("expected :", "GRAY"))
+                    for line in exp_lines:
+                        print(hang + "  " + c(line, "GRAY"))
+                    if exp_more:
+                        print(hang + "  " + c("… +%d more" % exp_more, "GRAY"))
+                    print(hang + c("got      :", "GRAY"))
+                    for line in got_lines:
+                        print(hang + "  " + c(line, "GRAY"))
+                    if got_more:
+                        print(hang + "  " + c("… +%d more" % got_more, "GRAY"))
+                else:
+                    idx = first_diff_index(exp_text, got_text)
+                    print(hang + c("expected : " + exp_text[:_DIFF_CLIP], "GRAY"))
+                    print(hang + c("got      : " + got_text[:_DIFF_CLIP], "GRAY"))
+                    if idx is not None and idx < _DIFF_CLIP:
+                        print(hang + " " * (len("got      : ") + idx) + c("^", "RED"))
             else:
                 print(hang + c("expected : " + exp_text[:70], "GRAY"))
                 print(hang + c("got      : " + got_text[:70], "GRAY"))
     rest = len(rep.failures) - len(shown)
     if rest > 0:
         note("… and %d more failing test%s" % (rest, "s" if rest > 1 else ""))
+
+
+def _extract_source(filepath, function_name):
+    """Best-effort source lookup for --diff's inline code panel — Python
+    files use src.grader's ast-based extractor, C files use c_exam.grader's
+    brace-matching one. Imported lazily (not at module load) so this
+    presentation module doesn't hard-depend on either grading backend at
+    import time. Never raises — both extractors already return None on any
+    failure of their own, and an unexpected import error here is caught
+    too, since this is purely cosmetic and must never crash grading."""
+    try:
+        if filepath.endswith(".c"):
+            from c_exam import grader as _c_grader
+            return _c_grader.extract_function_source(filepath, function_name)
+        from . import grader as _py_grader
+        return _py_grader.extract_function_source(filepath, function_name)
+    except Exception:
+        return None
+
+
+def _code_panel(source, function_name, filepath):
+    """--diff's inline code panel: the student's own submitted function,
+    syntax-highlighted, shown once per report (not once per failure, see
+    _failures() above) so they can see it next to the mismatch without
+    alt-tabbing to their editor. This is not a hint or a crutch (contrast
+    hints.py's stuck-student nudges, deliberately suppressed during --exam
+    — see that module's docstring): it's just the student's own code, which
+    they already have open in their editor, so this runs during --exam
+    too."""
+    lexer = "c" if filepath.endswith(".c") else "python"
+    title = "your %s()" % function_name
+    if _rich:
+        theme = _CODE_SYNTAX_THEMES.get(_theme, "monokai")
+        syntax = Syntax(source, lexer, theme=theme, line_numbers=True,
+                        background_color="default", word_wrap=True)
+        _console.print(Panel(syntax, title="[dim]%s[/dim]" % _esc(title),
+                             title_align="left", border_style="grey37",
+                             box=box.ROUNDED, padding=(0, 1)))
+        return
+    header = "── " + title + " "
+    print(IND0 + c(header + "─" * max(0, width() - len(header) - len(IND0)), "GRAY"))
+    for line in source.splitlines():
+        print(IND1 + c(line, "GRAY"))
+    print(IND0 + c("─" * width(), "GRAY"))
 
 
 def _diff_markup(text, idx):

@@ -9,6 +9,7 @@ PATH, so the suite still runs clean on a compiler-less machine (mirrors
 how tests/test_grader.py's sandbox tests don't need anything special, but
 here a missing `cc` genuinely can't be worked around)."""
 
+import os
 import random
 import shutil
 import subprocess
@@ -79,6 +80,72 @@ class ForbiddenCallTests(unittest.TestCase):
         # word — \b must not match inside another identifier.
         stripped = grader._strip_comments_and_strings("int x = ft_strlen(str);")
         self.assertEqual(grader.find_forbidden(stripped, ["strlen"]), [])
+
+
+class ExtractFunctionSourceTests(unittest.TestCase):
+    def _write(self, source):
+        fd, path = tempfile.mkstemp(suffix=".c")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(source)
+        self.addCleanup(os.remove, path)
+        return path
+
+    def test_extracts_the_named_function(self):
+        path = self._write(
+            "int other(int x)\n{\n    return 0;\n}\n\n"
+            "int demo(int x)\n{\n    if (x > 0)\n    {\n        return x;\n    }\n"
+            "    return 0;\n}\n")
+        src = grader.extract_function_source(path, "demo")
+        self.assertIn("demo(int x)", src)
+        self.assertIn("return x;", src)
+        self.assertNotIn("other", src)
+
+    def test_function_not_found_returns_none(self):
+        path = self._write("int other(int x)\n{\n    return 0;\n}\n")
+        self.assertIsNone(grader.extract_function_source(path, "demo"))
+
+    def test_missing_file_returns_none_not_an_exception(self):
+        self.assertIsNone(grader.extract_function_source("/no/such/file.c", "demo"))
+
+    def test_unbalanced_braces_return_none(self):
+        path = self._write("int demo(int x)\n{\n    return x;\n")
+        self.assertIsNone(grader.extract_function_source(path, "demo"))
+
+    def test_brace_inside_a_string_does_not_confuse_the_counter(self):
+        path = self._write(
+            'int demo(int x)\n{\n    char *s = "{ not a real brace";\n'
+            "    return x;\n}\n")
+        src = grader.extract_function_source(path, "demo")
+        self.assertIsNotNone(src)
+        self.assertTrue(src.rstrip().endswith("}"))
+
+    def test_brace_inside_a_comment_does_not_confuse_the_counter(self):
+        path = self._write(
+            "int demo(int x)\n{\n    // a stray { in a comment\n"
+            "    return x;\n}\n")
+        src = grader.extract_function_source(path, "demo")
+        self.assertIsNotNone(src)
+        self.assertTrue(src.rstrip().endswith("}"))
+
+    def test_name_mentioned_in_a_comment_is_not_mistaken_for_the_signature(self):
+        path = self._write(
+            "// calls demo(x) internally\nint demo(int x)\n{\n    return x;\n}\n")
+        src = grader.extract_function_source(path, "demo")
+        self.assertIsNotNone(src)
+        self.assertIn("return x;", src)
+
+    def test_string_literals_and_comments_survive_intact(self):
+        # This is shown back to the student as "your own code" — a
+        # printf() whose string argument silently vanished (an earlier,
+        # since-fixed version of this function extracted from a
+        # comment/string-STRIPPED source) would look like the tool itself
+        # is broken, not like a deliberate simplification.
+        path = self._write(
+            'void demo(void)\n{\n    // greet the user\n'
+            '    write(1, "hello world", 11);\n}\n')
+        src = grader.extract_function_source(path, "demo")
+        self.assertIn('"hello world"', src)
+        self.assertIn("// greet the user", src)
 
 
 class DuplicateMainTests(unittest.TestCase):

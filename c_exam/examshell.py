@@ -115,7 +115,8 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
                               strict_norm=cfg.strict_norm, rng=rng, fuzz=cfg.fuzz,
                               valgrind=cfg.valgrind, strict_valgrind=cfg.strict_valgrind,
                               strict_forbidden=cfg.strict_forbidden)
-    ui.report(report, cfg.show_fails, cfg.diff)
+    filepath = os.path.join(cfg.rendu, ex_name + ".c")
+    ui.report(report, cfg.show_fails, cfg.diff, filepath)
     before_badges = achievements.unlocked(TOOL, N_LEVELS)
     stats.record(TOOL, ex_name, ex.get("level"), report.ok,
                 report.passed, report.total, mode)
