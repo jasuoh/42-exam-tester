@@ -115,6 +115,14 @@ this repo has no version numbers, so entries are grouped by date instead.
   comparison in `lis_length`'s DP, sorting a copy in `max_gap`).
   `lis_length` and `max_gap` (the two that `malloc`/`free`) get a
   crash/leak/default split like `ft_split`'s; the rest are plain strings.
+- Curated `"hint"` entries for the 44 C exam exercises (`c_exam/bank.py`)
+  that had none — every one of the 59 exercises now nudges a stuck student
+  with something specific to what it actually does, instead of falling all
+  the way through to `hints.diagnose()`'s generic, pattern-matched guess.
+  41 are plain strings; 2 (`rev_wstr`, `rostring`) use a `"crash"`/`"leak"`/
+  `"default"` dict split, since both extract words into per-word `malloc`'d
+  buffers where a sizing bug and a missing `free` are genuinely different
+  mistakes worth nudging differently.
 
 ### Fixed
 - **`py_bracket_validator`** carried `"level": 1` while living in the
