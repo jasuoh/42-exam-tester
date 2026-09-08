@@ -26,3 +26,17 @@ def signature_of(subject):
         if stripped.startswith("def ") and stripped.endswith(":"):
             return stripped
     return None
+
+
+def signature_for(subject, function):
+    """The `def <function>(…):` line of a subject string, or None.
+
+    signature_of() above takes whichever comes first, which is all a
+    one-function subject ever needs; a subject that asks for two (Rank 05's
+    compress/decompress) has to be able to pick out a specific one.
+    """
+    for line in subject.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("def %s(" % function) and stripped.endswith(":"):
+            return stripped
+    return None

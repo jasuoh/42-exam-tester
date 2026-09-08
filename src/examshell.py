@@ -2,22 +2,27 @@
 # -*- coding: utf-8 -*-
 """
 ╔══════════════════════════════════════════════════════════════╗
-║   EXAMSHELL  ·  42 Common Core  ·  Exam Rank 03 (Python)     ║
+║   EXAMSHELL  ·  42 Common Core  ·  Python Exam Ranks 03-05   ║
 ╚══════════════════════════════════════════════════════════════╝
 
 A practice tester in the style of the real examshell / moulinette.
 
-  · 6 levels, in the exact order of the real exam (1 -> 6)
+  · every level in the exact order of the real exam (1 -> N)
   · one random exercise per level, drawn from that level's pool
   · every exercise graded against many curated cases + fuzz tests
   · you only move up at 100%
   · graded in a subprocess sandbox with a per-call timeout
 
-    python3 -m src            # interactive menu
-    python3 -m src --help     # every flag
+    python3 -m src                 # interactive menu (Rank 03)
+    python3 -m src --rank 04       # the Rank 04 pool instead
+    python3 -m src --help          # every flag
 
 Put your solution in `rendu/<exercise_name>.py` and define the required
 function. The folder is created for you.
+
+Which rank is active decides the exercise bank, the number of levels and
+the tag this student's stats/saved exam/reports are filed under — see
+ranks.py and use_rank() below. Everything else is rank-agnostic.
 """
 
 import argparse
@@ -26,22 +31,49 @@ import os
 import random
 import time
 
-from . import achievements, grader, hints, report_export, session_store, settings, stats, ui
+from . import (achievements, grader, hints, ranks, report_export,
+               session_store, settings, stats, ui)
+from .bank_common import signature_for as _signature_for
 from .bank_common import signature_of as _signature_of
-from .exam_bank import EXERCISES, LEVELS, N_LEVELS, STANDARD_LEVELS
 from .training_bank import DIFFICULTIES, TRAINING_BY_DIFFICULTY, TRAINING_EXERCISES
 
 RENDU_DIR = "rendu"
 STUB_SAMPLE_CASES = 3    # curated cases embedded as a quick self-check in a stub
-TOOL = "py"               # tags saved config/stats/reports — "py" vs c_exam's "c"
 
-# Every exercise from both pools, keyed by name — used wherever the code only
-# needs "the exercise dict for this name" and doesn't care which pool it is
-# from (resolving, grading, showing the subject, creating a stub). Exam-only
-# concerns (level draws, the 6-level progression) keep using EXERCISES/LEVELS
-# directly so the training pool can never be drawn into an exam run.
-ALL_EXERCISES = dict(EXERCISES)
-ALL_EXERCISES.update(TRAINING_EXERCISES)
+
+def use_rank(value=None):
+    """Point this module at one exam rank, and return it.
+
+    The names it rebinds are the ones the rest of the module reads as
+    plain globals — a rank switch is therefore one assignment each, and
+    nothing below has to thread a rank argument through. Called once at
+    startup (see main()) and again whenever the student switches rank from
+    the menu.
+
+    ALL_EXERCISES is every exercise from both pools, keyed by name — used
+    wherever the code only needs "the exercise dict for this name" and
+    doesn't care which pool it came from (resolving, grading, showing the
+    subject, creating a stub). Exam-only concerns (level draws, the level
+    progression) keep using EXERCISES/LEVELS directly, so the training
+    pool can never be drawn into an exam run.
+    """
+    global RANK, TOOL, EXERCISES, LEVELS, N_LEVELS, STANDARD_LEVELS, ALL_EXERCISES
+    RANK = ranks.get(value)
+    TOOL = RANK.tool          # tags saved config/stats/reports — vs c_exam's "c"
+    EXERCISES = RANK.exercises
+    LEVELS = RANK.levels
+    N_LEVELS = RANK.n_levels
+    STANDARD_LEVELS = RANK.standard_levels
+    ALL_EXERCISES = RANK.all_exercises()
+    return RANK
+
+
+use_rank()
+
+
+def banner():
+    """ui.banner(), told which rank the student is in."""
+    ui.banner(subtitle="%s  ·  Common Core" % RANK.label)
 
 
 class Config(object):
@@ -94,14 +126,14 @@ def grade_exercise(ex_name, rng, cfg, mode="practice"):
     """Grade one exercise, render the report, return True when it is 100%."""
     ex = ALL_EXERCISES[ex_name]
     try:
-        tests = grader.build_tests(ex_name, ex, rng, cfg.fuzz)
+        plan = grader.build_plan(ex_name, ex, rng, cfg.fuzz)
     except grader.BankError as exc:
         ui.error("exercise bank is broken: %s" % exc)
         return False
 
-    with ui.spinner("Grading %s … (%d tests)" % (ex_name, len(tests))):
+    with ui.spinner("Grading %s … (%d tests)" % (ex_name, grader.plan_size(plan))):
         report = grader.grade(ex_name, ex, cfg.rendu, timeout=cfg.timeout,
-                              strict_imports=cfg.strict_imports, tests=tests)
+                              strict_imports=cfg.strict_imports, plan=plan)
     filepath = os.path.join(cfg.rendu, ex_name + ".py")
     ui.report(report, cfg.show_fails, cfg.diff, filepath)
     before_badges = achievements.unlocked(TOOL, N_LEVELS)
@@ -135,15 +167,15 @@ def grade_all(cfg):
         ex = EXERCISES[name]
         rng = random.Random(cfg.seed)
         try:
-            tests = grader.build_tests(name, ex, rng, cfg.fuzz)
+            plan = grader.build_plan(name, ex, rng, cfg.fuzz)
         except grader.BankError as exc:
             ui.error("exercise bank is broken: %s" % exc)
             all_ok = False
             rows.append((level, name, "ko", "bank error"))
             continue
-        with ui.spinner("Grading %s … (%d tests)" % (name, len(tests))):
+        with ui.spinner("Grading %s … (%d tests)" % (name, grader.plan_size(plan))):
             report = grader.grade(name, ex, cfg.rendu, timeout=cfg.timeout,
-                                  strict_imports=cfg.strict_imports, tests=tests)
+                                  strict_imports=cfg.strict_imports, plan=plan)
         all_ok = all_ok and report.ok
         label = ("%d/%d" % (report.passed, report.total) if not report.fatal
                  else report.fatal_title)
@@ -194,7 +226,7 @@ def draw(rng, pool, avoid=None):
 
 def show_subject(ex_name, cfg, session=None):
     ui.clear()
-    ui.banner()
+    banner()
     if session is not None:
         ui.status_bar(session, N_LEVELS)
     ui.subject(ex_name, ALL_EXERCISES[ex_name], cfg.rendu)
@@ -217,7 +249,7 @@ def exam_mode(cfg):
     rng = random.Random(cfg.seed)
     session = Session()
     ui.clear()
-    ui.banner()
+    banner()
     print()
 
     resumed = False
@@ -339,7 +371,7 @@ def exam_mode(cfg):
 
 def exam_summary(session, passed):
     ui.clear()
-    ui.banner()
+    banner()
     ui.status_bar(session, N_LEVELS)
     rows = [("Total time", session.elapsed()),
             ("Attempts", session.attempts),
@@ -434,7 +466,7 @@ def practice_mode(cfg, ex_name=None):
     query = ""
     while True:
         ui.clear()
-        ui.banner()
+        banner()
         print()
         shown = _renumber(_filter_entries(all_entries, query, 2, 3))
         ui.exercise_table(shown, numbered=True)
@@ -496,7 +528,7 @@ def training_mode(cfg, ex_name=None, difficulty=None):
                 entries = [e for e in entries if e[1] == difficulty]
         shown = _renumber(_filter_entries(entries, query, 2, 3))
         ui.clear()
-        ui.banner()
+        banner()
         print()
         ui.training_table(shown, numbered=True)
         ui.note("keys: e=easy · m=medium · h=hard · w=weak (needs practice) · a=all")
@@ -535,7 +567,7 @@ def training_mode(cfg, ex_name=None, difficulty=None):
 def list_mode(interactive=True):
     if interactive:
         ui.clear()
-        ui.banner()
+        banner()
         print()
     entries = exercise_entries()
     ui.exercise_table(entries)
@@ -551,7 +583,7 @@ def list_mode(interactive=True):
 def training_list_mode(interactive=True):
     if interactive:
         ui.clear()
-        ui.banner()
+        banner()
         print()
     entries = training_entries()
     ui.training_table(entries)
@@ -565,7 +597,7 @@ def training_list_mode(interactive=True):
 
 
 STUB_TEMPLATE = '''\
-# {name} — 42 Exam Rank 03
+# {name} — 42 Exam {rank}
 # {assignment}
 
 {signature}
@@ -594,43 +626,100 @@ if __name__ == "__main__":
     print("%d/%d quick checks passed" % (_ok, len(_tests)))
 '''
 
+# The same stub for a subject that asks for more than one function (see
+# grader.parts_of()). Kept as its own template rather than generalising
+# the one above: every row of the self-check has to say which function it
+# calls, and paying that cost on the single-function stub — which is the
+# overwhelming majority — would make the common case harder to read for
+# no gain.
+STUB_MULTI_TEMPLATE = '''\
+# {name} — 42 Exam {rank}
+# {assignment}
 
-def _sample_cases(ex, n=STUB_SAMPLE_CASES):
+{defs_block}
+
+if __name__ == "__main__":
+    # Quick self-check — run this file directly for instant feedback.
+    # NOT the real grader: `grademe` / `make grade EX={short}` also cover
+    # dozens of edge cases and randomised inputs these examples don't.
+    # Both functions are graded together: neither one alone passes.
+    _tests = [
+{cases_block}
+    ]
+    _ok = 0
+    for _name, _args, _expected in _tests:
+        try:
+            _got = globals()[_name](*_args)
+        except Exception as exc:
+            print("FAIL", _name, _args, "-> raised", type(exc).__name__ + ":", exc)
+            continue
+        if _got == _expected:
+            _ok += 1
+            print("ok  ", _name, _args, "->", _got)
+        else:
+            print("FAIL", _name, _args, "-> got", _got, "expected", _expected)
+    print("%d/%d quick checks passed" % (_ok, len(_tests)))
+'''
+
+
+def _sample_cases(part, n=STUB_SAMPLE_CASES):
     """Up to `n` curated (args, expected) pairs, expected from the oracle.
+    `part` is an exercise or one of its parts — both carry "cases" and
+    "oracle" (see grader.parts_of()).
 
     deepcopy matters: some oracles receive mutable lists/matrices, and this
     runs in the same process as later grading — an oracle that mutated its
-    input in place would otherwise corrupt exam_bank's own `cases` data.
+    input in place would otherwise corrupt the bank's own `cases` data.
     """
     samples = []
-    for args in ex["cases"][:n]:
+    for args in part["cases"][:n]:
         try:
-            samples.append((args, ex["oracle"](*copy.deepcopy(args))))
+            samples.append((args, part["oracle"](*copy.deepcopy(args))))
         except Exception:
             continue
     return samples
 
 
 def make_stub(ex_name, cfg):
-    """Create rendu/<ex>.py with the required signature. Never overwrites."""
+    """Create rendu/<ex>.py with the required signature(s). Never overwrites."""
     ex = ALL_EXERCISES[ex_name]
     path = os.path.join(cfg.rendu, ex_name + ".py")
     if os.path.exists(path):
         ui.warn("%s already exists — not touching it" % path)
         return False
-    signature = _signature_of(ex["subject"]) or "def %s():" % ex["function"]
-    samples = _sample_cases(ex)
-    cases_block = "\n".join(
-        "        (%r, %r)," % (args, expected) for args, expected in samples
-    ) or "        # (no sample cases available)"
+    parts = grader.parts_of(ex)
+    shared = {
+        "name": ex_name,
+        "assignment": ex["subject"].splitlines()[0],
+        "rank": RANK.label.replace("Exam ", ""),
+        "short": ex_name[3:] if ex_name.startswith("py_") else ex_name,
+    }
+    if len(parts) == 1:
+        samples = _sample_cases(ex)
+        body = STUB_TEMPLATE.format(
+            signature=_signature_of(ex["subject"]) or "def %s():" % ex["function"],
+            function=ex["function"],
+            cases_block="\n".join("        (%r, %r)," % row for row in samples)
+                        or "        # (no sample cases available)",
+            **shared)
+    else:
+        defs, rows = [], []
+        for part in parts:
+            function = part["function"]
+            defs.append("%s\n    pass\n"
+                        % (_signature_for(ex["subject"], function)
+                           or "def %s():" % function))
+            rows.extend((function,) + row for row in _sample_cases(part))
+        samples = rows
+        body = STUB_MULTI_TEMPLATE.format(
+            defs_block="\n\n".join(defs),
+            cases_block="\n".join("        (%r, %r, %r)," % row for row in rows)
+                        or "        # (no sample cases available)",
+            **shared)
     try:
         os.makedirs(cfg.rendu, exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
-            fh.write(STUB_TEMPLATE.format(
-                name=ex_name, assignment=ex["subject"].splitlines()[0],
-                signature=signature, function=ex["function"],
-                short=ex_name[3:] if ex_name.startswith("py_") else ex_name,
-                cases_block=cases_block))
+            fh.write(body)
     except OSError as exc:
         ui.error("cannot create %s: %s" % (path, exc))
         return False
@@ -642,7 +731,7 @@ def make_stub(ex_name, cfg):
 def show_stats():
     summary = stats.summarize(TOOL)
     ui.clear()
-    ui.banner()
+    banner()
     print()
     rows = [
         ("Total attempts", summary["total_attempts"]),
@@ -673,21 +762,53 @@ def show_stats():
 # ══════════════════════════════════════════════════════════════
 #  MAIN MENU
 # ══════════════════════════════════════════════════════════════
-MENU = [
-    ("1", "Start exam", "(%d levels, real exam flow)" % N_LEVELS),
-    ("2", "Practice mode", "(drill a single exam exercise)"),
-    ("3", "List all exercises", ""),
-    ("4", "Training mode", "(LeetCode-style, by difficulty — not exam material)"),
-    ("q", "Quit", ""),
-]
+def menu_rows():
+    """The main menu. A function, not a constant: the exam's level count
+    and the active rank both change under a rank switch."""
+    return [
+        ("1", "Start exam", "(%d levels, real exam flow)" % N_LEVELS),
+        ("2", "Practice mode", "(drill a single exam exercise)"),
+        ("3", "List all exercises", ""),
+        ("4", "Training mode", "(LeetCode-style, by difficulty — not exam material)"),
+        ("5", "Switch exam rank", "(currently %s)" % RANK.label),
+        ("q", "Quit", ""),
+    ]
+
+
+def rank_menu():
+    """Pick another exam rank. Each rank keeps its own history and its own
+    saved exam (see ranks.py), so switching never disturbs a run in
+    progress on another one."""
+    rows = [(rank_id, label, "%d exercises · %d levels" % (count, levels))
+            for rank_id, label, count, levels in ranks.summary()]
+    while True:
+        ui.clear()
+        banner()
+        print()
+        ui.menu(rows + [("b", "Back", "")])
+        try:
+            choice = ui.ask("\n  Selection: ").lower()
+        except ui.Abort:
+            return
+        if choice in ("b", "back", "q", "quit", ""):
+            return
+        picked = ranks.normalize(choice)
+        if picked is None:
+            ui.warn("pick one of: %s" % ", ".join(ranks.CHOICES))
+            time.sleep(0.8)
+            continue
+        use_rank(picked)
+        ui.success("switched to %s" % RANK.label)
+        time.sleep(0.6)
+        return
 
 
 def main_menu(cfg):
     while True:
         ui.clear()
-        ui.banner()
+        banner()
         print()
-        ui.menu(MENU)
+        ui.menu(menu_rows())
         try:
             choice = ui.ask("\n  Selection: ").lower()
         except ui.Abort:
@@ -704,6 +825,8 @@ def main_menu(cfg):
             list_mode()
         elif choice == "4":
             training_mode(cfg)
+        elif choice == "5":
+            rank_menu()
         elif choice in ("q", "quit", "exit"):
             ui.info("Good luck on the real exam! 🍀")
             print()
@@ -716,10 +839,11 @@ def main_menu(cfg):
 def build_parser():
     p = argparse.ArgumentParser(
         prog="python3 -m src",
-        description="42 Exam Rank 03 (Python) practice tester.",
+        description="42 Exam Rank 03/04/05 (Python) practice tester.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="examples:\n"
-               "  python3 -m src                       interactive menu\n"
+               "  python3 -m src                       interactive menu (Rank 03)\n"
+               "  python3 -m src --rank 04             the Rank 04 pool instead\n"
                "  python3 -m src --exam --seed 42      reproducible exam\n"
                "  python3 -m src --practice py_inter   drill one exercise\n"
                "  python3 -m src --train easy          drill an easy training exercise\n"
@@ -749,7 +873,13 @@ def build_parser():
                       help="self-test the exercise bank and exit")
     mode.add_argument("--stats", action="store_true",
                       help="show your local practice history and exit")
+    mode.add_argument("--list-ranks", action="store_true",
+                      help="print the exam ranks this tester knows and exit")
 
+    p.add_argument("--rank", default=None, metavar="RANK",
+                   help="which exam pool to use: %s (default: %s). Each "
+                        "rank keeps its own stats, saved exam and reports."
+                        % (" / ".join(ranks.CHOICES), ranks.DEFAULT_RANK))
     p.add_argument("--seed", type=int, default=None,
                    help="seed the RNG so a run is reproducible")
     p.add_argument("--rendu", default=RENDU_DIR, metavar="DIR",
@@ -787,6 +917,48 @@ def build_parser():
     return p
 
 
+def list_ranks():
+    """The exam ranks this tester knows about, and which one is active."""
+    ui.clear()
+    banner()
+    print()
+    rows = [(rank_id, label, "%d exercises · %d levels%s"
+             % (count, levels, "   ← active" if rank_id == RANK.id else ""))
+            for rank_id, label, count, levels in ranks.summary()]
+    ui.menu(rows)
+    ui.info("pick one with --rank, e.g. `python3 -m src --rank 04 --exam`")
+
+
+def check_banks(cfg, seed, rank_ids):
+    """`--check`: grade every bank's own oracles through the real sandbox.
+
+    The training bank is shared by every rank, so it is checked exactly
+    once regardless of how many exam banks are being checked alongside it.
+    Returns a process exit code.
+    """
+    rng = random.Random(seed if seed is not None else 0)
+    problems, counts = 0, []
+    for rank_id in rank_ids:
+        rank = ranks.get(rank_id)
+        ui.info("checking the %s exam bank …" % rank.label)
+        problems += grader.selftest(rank.exercises, rank.levels, rng,
+                                    timeout=cfg.timeout, fuzz=cfg.fuzz)
+        print()
+        counts.append("%s: %d exercises (%d levels)"
+                      % (rank.label, len(rank.exercises), rank.n_levels))
+    ui.info("checking the training bank …")
+    problems += grader.selftest(TRAINING_EXERCISES, TRAINING_BY_DIFFICULTY, rng,
+                                timeout=cfg.timeout, fuzz=cfg.fuzz)
+    print()
+    if problems:
+        ui.error("%d problem(s) found in the bank(s)" % problems)
+        return 1
+    ui.success("banks are consistent — %s, training: %d exercises "
+               "(%d difficulties)"
+               % (" · ".join(counts), len(TRAINING_EXERCISES), len(DIFFICULTIES)))
+    return 0
+
+
 def resolve_exercise(name):
     """Accept the exact name, or a unique suffix like 'inter'. Searches both
     the exam pool and the training pool."""
@@ -815,6 +987,14 @@ def main(argv=None):
                 theme=args.theme)
     cfg = Config(args)
 
+    if args.rank is not None and ranks.normalize(args.rank) is None:
+        ui.error("unknown rank: %s — pick one of %s"
+                 % (args.rank, ", ".join(ranks.CHOICES)))
+        return 2
+    # Everything below reads the rank through this module's globals, so
+    # this one call is what makes --rank take effect (see use_rank()).
+    use_rank(args.rank)
+
     if args.save_config:
         ok = settings.save_config({"theme": args.theme, "timeout": args.timeout,
                                     "fuzz": args.fuzz, "show_fails": args.show_fails})
@@ -834,24 +1014,17 @@ def main(argv=None):
         show_stats()
         return 0
 
-    if args.check:
-        rng = random.Random(args.seed if args.seed is not None else 0)
-        ui.info("checking the exam bank …")
-        problems = grader.selftest(EXERCISES, LEVELS, rng,
-                                   timeout=cfg.timeout, fuzz=cfg.fuzz)
-        print()
-        ui.info("checking the training bank …")
-        problems += grader.selftest(TRAINING_EXERCISES, TRAINING_BY_DIFFICULTY, rng,
-                                    timeout=cfg.timeout, fuzz=cfg.fuzz)
-        print()
-        if problems:
-            ui.error("%d problem(s) found in the bank(s)" % problems)
-            return 1
-        ui.success("banks are consistent — %d exam exercises (%d levels), "
-                   "%d training exercises (%d difficulties)"
-                   % (len(EXERCISES), N_LEVELS, len(TRAINING_EXERCISES),
-                      len(DIFFICULTIES)))
+    if args.list_ranks:
+        list_ranks()
         return 0
+
+    if args.check:
+        return check_banks(cfg, args.seed,
+                           # No --rank means "every rank": `make check` is
+                           # the one place that wants all of them at once,
+                           # and the training bank is only ever walked once
+                           # no matter how many exam banks come with it.
+                           [args.rank] if args.rank else list(ranks.CHOICES))
 
     if args.list:
         list_mode(interactive=False)

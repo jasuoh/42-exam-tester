@@ -14,6 +14,13 @@ throw-away runner script in a subprocess that
   * writes its verdict to a result FILE, so anything the submission prints
     can never corrupt the protocol,
   * compares type-strictly (True != 1, tuple != list), recursively.
+
+Cases travel to that subprocess as JSON, which on its own flattens a tuple
+into a list and stringifies a non-string dict key — both fatal for a
+type-strict comparison, and both needed by the Rank 04/05 banks (tuples of
+coordinates, adjacency dicts keyed by int). encode_value()/decode_value()
+below wrap those two shapes in a tagged form so they survive the trip
+unchanged; everything else passes through as plain JSON.
 """
 
 import copy
@@ -60,6 +67,12 @@ def deep_eq(a, b):
         return a is b
     if isinstance(a, list) and isinstance(b, list):
         return len(a) == len(b) and all(deep_eq(x, y) for x, y in zip(a, b))
+    # Tuples need their own branch for the same reason lists do: the
+    # fallback below would fall through to `a == b`, and Python's tuple
+    # equality is not type-strict about what's inside ((1,) == (True,)).
+    # A tuple/list mismatch still lands on the type check below.
+    if isinstance(a, tuple) and isinstance(b, tuple):
+        return len(a) == len(b) and all(deep_eq(x, y) for x, y in zip(a, b))
     if isinstance(a, dict) and isinstance(b, dict):
         return a.keys() == b.keys() and all(deep_eq(a[k], b[k]) for k in a)
     if isinstance(a, float) or isinstance(b, float):
@@ -78,14 +91,66 @@ def short_repr(value, limit=150):
     return text if len(text) <= limit else text[:limit] + "…"
 
 
-for _helper in (deep_eq, short_repr):
+def decode_value(value):
+    """Rebuild what encode_value() below packed for the JSON trip.
+
+    The "__examshell__" tag is spelled out rather than pulled from a
+    module constant on purpose: this function is spliced verbatim into the
+    sandbox runner, where no such constant exists.
+    """
+    if isinstance(value, list):
+        return [decode_value(item) for item in value]
+    if isinstance(value, dict):
+        kind = value.get("__examshell__")
+        if kind == "tuple":
+            return tuple(decode_value(item) for item in value["items"])
+        if kind == "dict":
+            return {decode_value(k): decode_value(v) for k, v in value["items"]}
+        return {k: decode_value(v) for k, v in value.items()}
+    return value
+
+
+for _helper in (deep_eq, short_repr, decode_value):
     _extra = _free_globals(_helper, allow=(_helper.__name__,))
     if _extra:                                             # pragma: no cover
         raise AssertionError("grader.%s must be self-contained, found: %s"
                              % (_helper.__name__, _extra))
 _RUNNER_HELPERS_SRC = "\n\n".join(
-    inspect.getsource(h) for h in (deep_eq, short_repr))
+    inspect.getsource(h) for h in (deep_eq, short_repr, decode_value))
 del _helper, _extra
+
+
+def encode_value(value):
+    """`value` in a form json can round-trip without losing its types.
+
+    Plain JSON silently turns a tuple into a list and a non-string dict key
+    into a string — invisible until deep_eq() rejects a correct answer for
+    the wrong reason. Tuples and dicts are therefore tagged; everything
+    else (numbers, strings, bools, None, lists) is left exactly as it is,
+    so a bank that uses none of them produces byte-identical cases.json to
+    before this existed. Parent-process only — the sandbox just decodes.
+    """
+    if isinstance(value, tuple):
+        return {"__examshell__": "tuple",
+                "items": [encode_value(item) for item in value]}
+    if isinstance(value, list):
+        return [encode_value(item) for item in value]
+    if isinstance(value, dict):
+        return {"__examshell__": "dict",
+                "items": [[encode_value(k), encode_value(v)]
+                          for k, v in value.items()]}
+    return value
+
+
+def json_stable(value):
+    """True when `value` survives the trip to the sandbox unchanged — what
+    selftest() checks so a bank can never ship an expected value the
+    grader could not compare faithfully."""
+    try:
+        round_tripped = decode_value(json.loads(json.dumps(encode_value(value))))
+    except (TypeError, ValueError):
+        return False
+    return deep_eq(round_tripped, value)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -113,13 +178,18 @@ FATAL_TITLES = {
 
 
 class Failure(object):
-    __slots__ = ("args", "expected", "got")
+    __slots__ = ("args", "expected", "got", "function")
 
-    def __init__(self, args, expected, got):
+    def __init__(self, args, expected, got, function=None):
         self.args, self.expected, self.got = args, expected, got
+        # Which function this call was made against. None for the single-
+        # function exercises that are the norm; set on a multi-function
+        # one (see parts_of()) so the report says which half failed.
+        self.function = function
 
     def call(self, function):
-        return "%s(%s)" % (function, ", ".join(repr(a) for a in self.args))
+        return "%s(%s)" % (self.function or function,
+                           ", ".join(repr(a) for a in self.args))
 
 
 class Report(object):
@@ -150,6 +220,31 @@ class Report(object):
 # ══════════════════════════════════════════════════════════════
 #  TEST BUILDING
 # ══════════════════════════════════════════════════════════════
+def parts_of(ex):
+    """The gradeable parts of an exercise, each a dict carrying its own
+    "function"/"oracle"/"cases"/"fuzz".
+
+    Almost every exercise asks for exactly one function and is its own
+    single part. A few subjects ask for two (Rank 05's compress/decompress)
+    — those list a "parts" key, and the exercise's own top-level keys
+    mirror the first part so everything that only needs "the function this
+    exercise is about" (the stub signature, the subject header, --diff's
+    code panel) keeps working untouched.
+    """
+    return ex.get("parts") or [ex]
+
+
+def build_plan(ex_name, ex, rng, fuzz=DEFAULT_FUZZ):
+    """[(function, tests), …] — build_tests() once per part."""
+    return [(part["function"], build_tests(ex_name, part, rng, fuzz))
+            for part in parts_of(ex)]
+
+
+def plan_size(plan):
+    """How many test cases a plan runs in total."""
+    return sum(len(tests) for _, tests in plan)
+
+
 def build_tests(ex_name, ex, rng, fuzz=DEFAULT_FUZZ):
     """Curated cases + fuzz, with the expected values taken from the oracle."""
     oracle = ex["oracle"]
@@ -333,7 +428,8 @@ if not callable(func):
     finish({"fatal": "NOT_CALLABLE", "detail": func_name})
 
 with open(cases_path) as fh:
-    cases = json.load(fh)
+    cases = [[decode_value(args), decode_value(expected)]
+             for args, expected in json.load(fh)]
 
 try:
     signature = inspect.signature(func)
@@ -403,7 +499,8 @@ def run_sandbox(filepath, function, tests, timeout=DEFAULT_TIMEOUT):
         with open(runner, "w", encoding="utf-8") as fh:
             fh.write(RUNNER_SRC)
         with open(cases, "w", encoding="utf-8") as fh:
-            json.dump([[list(args), expected] for args, expected in tests], fh)
+            json.dump([[encode_value(list(args)), encode_value(expected)]
+                       for args, expected in tests], fh)
 
         # the runner stops grading after `deadline`; the subprocess timeout is
         # only the backstop for a runner that cannot be interrupted at all.
@@ -442,11 +539,13 @@ def _rmtree(path):
 #  GRADE
 # ══════════════════════════════════════════════════════════════
 def grade(ex_name, ex, rendu_dir, rng=None, timeout=DEFAULT_TIMEOUT,
-          fuzz=DEFAULT_FUZZ, strict_imports=False, filepath=None, tests=None):
+          fuzz=DEFAULT_FUZZ, strict_imports=False, filepath=None, tests=None,
+          plan=None):
     """Grade one exercise and return a Report.
 
-    Pass `tests` when you already built them (so the count you announced is
-    the count you actually run); otherwise they are built from `rng`.
+    Pass `plan` (from build_plan()) when you already built it, so the count
+    you announced is the count you actually run; `tests` is the same thing
+    for the single-function case. Otherwise a plan is built from `rng`.
 
     Unlike a plain `import` (only forbidden under --strict-imports, since
     it's usually still an honest attempt), a call listed in an exercise's
@@ -472,33 +571,48 @@ def grade(ex_name, ex, rendu_dir, rng=None, timeout=DEFAULT_TIMEOUT,
     if forbidden:
         return report.fail("FORBIDDEN_CALL", ", ".join(forbidden))
 
-    if tests is None:
-        tests = build_tests(ex_name, ex, rng, fuzz)
-    payload = run_sandbox(path, ex["function"], tests, timeout)
+    if plan is None:
+        plan = ([(ex["function"], tests)] if tests is not None
+                else build_plan(ex_name, ex, rng, fuzz))
+
+    multi = len(plan) > 1
+    mutated, printed = False, 0
+    for function, tests in plan:
+        payload = run_sandbox(path, function, tests, timeout)
+        if "fatal" in payload:
+            report.duration = time.time() - started
+            detail = payload.get("detail", "")
+            # With two functions to find, "Required function not found"
+            # alone doesn't say which one is missing.
+            if multi and detail:
+                detail = "%s  (while grading %s)" % (detail, function)
+            return report.fail(payload["fatal"], detail)
+
+        results = payload.get("results", [])
+        if len(results) != len(tests):
+            report.duration = time.time() - started
+            return report.fail("BAD_RESULT", "expected %d results, got %d"
+                               % (len(tests), len(results)))
+
+        report.total += len(tests)
+        for (args, expected), outcome in zip(tests, results):
+            if outcome.get("ok"):
+                report.passed += 1
+            else:
+                report.failures.append(
+                    Failure(args, expected, outcome.get("got", "?"),
+                            function if multi else None))
+        mutated = mutated or bool(payload.get("mutated"))
+        printed += payload.get("printed", 0)
+
     report.duration = time.time() - started
-
-    if "fatal" in payload:
-        return report.fail(payload["fatal"], payload.get("detail", ""))
-
-    results = payload.get("results", [])
-    if len(results) != len(tests):
-        return report.fail("BAD_RESULT", "expected %d results, got %d"
-                           % (len(tests), len(results)))
-
-    report.total = len(tests)
-    for (args, expected), outcome in zip(tests, results):
-        if outcome.get("ok"):
-            report.passed += 1
-        else:
-            report.failures.append(Failure(args, expected, outcome.get("got", "?")))
-
-    if payload.get("mutated"):
+    if mutated:
         report.warnings.append(
             "your function modified its input arguments — return a NEW value instead")
-    if payload.get("printed"):
+    if printed:
         report.warnings.append(
             "your function printed %d character(s) while being graded — "
-            "the exam grades what you RETURN" % payload["printed"])
+            "the exam grades what you RETURN" % printed)
     return report
 
 
@@ -506,15 +620,25 @@ def grade(ex_name, ex, rendu_dir, rng=None, timeout=DEFAULT_TIMEOUT,
 #  BANK SELF-TEST  (make check)
 # ══════════════════════════════════════════════════════════════
 def oracle_source(ex):
-    """The oracle, renamed to the function the student must write."""
-    src = inspect.getsource(ex["oracle"])
-    return src.replace("def " + ex["oracle"].__name__, "def " + ex["function"], 1)
+    """Every one of the exercise's oracles, each renamed to the function
+    the student must write — a standalone module that is, by definition,
+    a perfect submission. One `def` for the usual single-function
+    exercise, one per part for a multi-function one (see parts_of())."""
+    chunks = []
+    for part in parts_of(ex):
+        src = inspect.getsource(part["oracle"])
+        chunks.append(src.replace("def " + part["oracle"].__name__,
+                                  "def " + part["function"], 1))
+    return "\n\n".join(chunks)
 
 
 def oracle_free_globals(ex):
     """Module-level names an oracle depends on — it must depend on none, or
     it cannot be extracted into a standalone file for the self-test."""
-    return _free_globals(ex["oracle"])
+    names = set()
+    for part in parts_of(ex):
+        names.update(_free_globals(part["oracle"]))
+    return sorted(names)
 
 
 def selftest(exercises, groups, rng, timeout=DEFAULT_TIMEOUT,
@@ -541,54 +665,66 @@ def selftest(exercises, groups, rng, timeout=DEFAULT_TIMEOUT,
     try:
         for name in sorted(exercises):
             ex = exercises[name]
-            function = ex["function"]
 
             free = oracle_free_globals(ex)
             if free:
                 bad("%s: oracle is not self-contained, it needs %s"
                     % (name, ", ".join(free)))
-            if ("def %s(" % function) not in ex["subject"]:
-                bad("%s: subject does not show `def %s(`" % (name, function))
+            for part in parts_of(ex):
+                if ("def %s(" % part["function"]) not in ex["subject"]:
+                    bad("%s: subject does not show `def %s(`"
+                        % (name, part["function"]))
             if name not in ex["subject"]:
                 bad("%s: subject does not mention the assignment name" % name)
 
             try:
-                tests = build_tests(name, ex, rng, fuzz)
+                plan = build_plan(name, ex, rng, fuzz)
             except BankError as exc:
                 bad(str(exc))
                 continue
-            if len(tests) < len(ex["cases"]):
-                bad("%s: duplicate curated cases" % name)
 
-            # every expected value must survive the JSON round-trip
-            for args, expected in tests:
-                if json.loads(json.dumps(expected)) != expected:
-                    bad("%s: expected value %r is not JSON-stable" % (name, expected))
-                    break
-
-            # the oracle must be deterministic
-            for args, expected in tests[:len(ex["cases"])]:
-                if ex["oracle"](*copy.deepcopy(args)) != expected:
-                    bad("%s: oracle is not deterministic on %r" % (name, args))
-                    break
-
-            # …and it must score 100% through the real sandbox
-            path = os.path.join(workdir, function + ".py")
+            # One standalone module holding every oracle this exercise
+            # needs — a submission that must, by construction, score 100%.
+            path = os.path.join(workdir, name + ".py")
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write(oracle_source(ex))
-            payload = run_sandbox(path, function, tests, timeout)
-            if "fatal" in payload:
-                bad("%s: sandbox says %s (%s)"
-                    % (name, payload["fatal"], payload.get("detail", "")))
+
+            broken = False
+            for part, (function, tests) in zip(parts_of(ex), plan):
+                if len(tests) < len(part["cases"]):
+                    bad("%s: duplicate curated cases for %s" % (name, function))
+
+                # every expected value must survive the trip to the sandbox
+                for args, expected in tests:
+                    if not json_stable(expected):
+                        bad("%s: expected value %r does not survive the "
+                            "sandbox round-trip" % (name, expected))
+                        break
+
+                # the oracle must be deterministic
+                for args, expected in tests[:len(part["cases"])]:
+                    if not deep_eq(part["oracle"](*copy.deepcopy(args)), expected):
+                        bad("%s: oracle is not deterministic on %r" % (name, args))
+                        break
+
+                # …and it must score 100% through the real sandbox
+                payload = run_sandbox(path, function, tests, timeout)
+                if "fatal" in payload:
+                    bad("%s: sandbox says %s (%s)"
+                        % (name, payload["fatal"], payload.get("detail", "")))
+                    broken = True
+                    break
+                failed = [i for i, r in enumerate(payload["results"]) if not r["ok"]]
+                if failed:
+                    bad("%s: oracle fails its own tests, e.g. %s%r"
+                        % (name, function, tuple(tests[failed[0]][0])))
+                    broken = True
+                    break
+                if payload.get("mutated"):
+                    bad("%s: oracle mutates its input arguments" % name)
+            if broken:
                 continue
-            failed = [i for i, r in enumerate(payload["results"]) if not r["ok"]]
-            if failed:
-                bad("%s: oracle fails its own tests, e.g. %r"
-                    % (name, tests[failed[0]][0]))
-                continue
-            if payload.get("mutated"):
-                bad("%s: oracle mutates its input arguments" % name)
-            log("  ok    %-32s %3d tests" % (name, len(tests)))
+            log("  ok    %-32s %3d tests" % (name, plan_size(plan)))
     finally:
         _rmtree(workdir)
     return problems

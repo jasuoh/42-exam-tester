@@ -26,6 +26,17 @@ REPORTS_DIR = os.path.join(DATA_DIR, "reports")
 # REPORTS_DIR.
 _UNSAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9_.-]+")
 
+# Which tester wrote this report, by the `tool` tag it files everything
+# under (see src/ranks.py and c_exam/examshell.py's TOOL). An unknown tag
+# is named rather than guessed at — better a bare "py09" in one line of a
+# report than a report that confidently claims the wrong rank.
+TOOL_LABELS = {
+    "py": "Python (Rank 03)",
+    "py04": "Python (Rank 04)",
+    "py05": "Python (Rank 05)",
+    "c": "C (Rank 02)",
+}
+
 
 def _safe_login(login):
     safe = _UNSAFE_FILENAME_RE.sub("_", login).strip("._")
@@ -42,7 +53,7 @@ def write_exam_report(tool, session, n_levels, passed, achievements=()):
     lines.append("# %s — %s" % (title, session.login))
     lines.append("")
     lines.append("- Date: %s" % time.strftime("%Y-%m-%d %H:%M:%S"))
-    lines.append("- Tester: %s" % ("Python (Rank 03)" if tool == "py" else "C (Rank 02)"))
+    lines.append("- Tester: %s" % TOOL_LABELS.get(tool, tool))
     lines.append("- Score: %d/100" % session.score())
     lines.append("- Levels cleared: %d/%d" % (len(session.passed), n_levels))
     lines.append("- Total time: %s" % session.elapsed())

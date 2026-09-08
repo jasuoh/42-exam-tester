@@ -34,6 +34,24 @@ make list                    # print the exercise pool and exit
 make stats                   # your local practice history
 ```
 
+### Picking an exam rank
+
+The Python tester ships three exam pools: **Rank 03** (the default, 6
+levels), **Rank 04** (4 levels) and **Rank 05** (3 levels). Add `RANK=` to
+any target to switch, or pick **5. Switch exam rank** in the menu:
+
+```bash
+make ranks           # what each rank contains, and which one is active
+make exam RANK=04    # the Rank 04 exam instead of Rank 03
+make list RANK=05    # the Rank 05 pool
+make stats RANK=04   # your Rank 04 history specifically
+```
+
+Each rank keeps its own history, its own saved exam and its own session
+reports, so switching mid-practice never disturbs a run in progress on
+another one. The training pool (step 4 below) is shared by all three — it
+is never part of an exam draw anyway.
+
 `make` with no target (or `make help`) prints the full list of targets for
 both testers, with what each one does. Everything here is `make …`; swap
 in `make c-…` for the C tester (`make c-run`, `make c-exam`, …) — it's the
@@ -61,7 +79,9 @@ through the real grading sandbox — the same one your `rendu/` file runs
 through — and requires each one to still score 100%, and that every
 fuzzer still produces valid cases, and that no level/difficulty group is
 empty. This is what actually validates the exercise pool's content, and
-it's what to run after touching `exam_bank.py` or `training_bank.py`.
+it's what to run after touching any bank file. With no `RANK=`, it checks
+**every** rank's bank plus the training bank; `make check RANK=04` narrows
+it to one rank when you're iterating on that bank alone.
 
 The C tester has the matching pair, `make c-unit` and `make c-check` (`make
 c-check` additionally compiles and runs every reference solution for

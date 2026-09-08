@@ -19,7 +19,9 @@ SRC_PKG     := src
 C_PKG       := c_exam
 SOURCES     := $(SRC_PKG)/__main__.py $(SRC_PKG)/examshell.py \
                $(SRC_PKG)/grader.py $(SRC_PKG)/ui.py $(SRC_PKG)/bank_common.py \
-               $(SRC_PKG)/exam_bank.py $(SRC_PKG)/training_bank.py \
+               $(SRC_PKG)/exam_bank.py $(SRC_PKG)/exam_bank_r04.py \
+               $(SRC_PKG)/exam_bank_r05.py $(SRC_PKG)/ranks.py \
+               $(SRC_PKG)/training_bank.py \
                $(SRC_PKG)/settings.py $(SRC_PKG)/stats.py \
                $(SRC_PKG)/session_store.py $(SRC_PKG)/report_export.py \
                $(C_PKG)/__main__.py $(C_PKG)/examshell.py $(C_PKG)/grader.py \
@@ -34,7 +36,12 @@ C_RENDU     ?= c_rendu
 EX    ?=
 SEED  ?=
 FLAGS ?=
-ARGS  := $(FLAGS) $(if $(SEED),--seed $(SEED),) $(if $(RENDU),--rendu $(RENDU),)
+# Which Python exam pool to use: 03 (default), 04 or 05. Left empty rather
+# than defaulted to 03 so `make check` still means "check every rank".
+RANK  ?=
+RANK_ARG := $(if $(RANK),--rank $(RANK),)
+ARGS  := $(FLAGS) $(RANK_ARG) $(if $(SEED),--seed $(SEED),) \
+         $(if $(RENDU),--rendu $(RENDU),)
 C_ARGS := $(FLAGS) $(if $(SEED),--seed $(SEED),) $(if $(C_RENDU),--rendu $(C_RENDU),) \
           $(if $(CC),--cc $(CC),)
 
@@ -46,7 +53,7 @@ OFF   := \033[0m
 
 .DEFAULT_GOAL := help
 .PHONY: help run exam practice list train list-training stub grade grade-all \
-        stats check unit test lint format install venv deps clean fclean re \
+        stats ranks check unit test lint format install venv deps clean fclean re \
         rendu-clean status \
         c-run c-exam c-practice c-list c-train c-list-training c-stub \
         c-grade c-grade-all c-stats c-check c-unit c-test c-status
@@ -62,10 +69,11 @@ help:
 	@printf "$(CYAN)╔══════════════════════════════════════════════════════════════╗$(OFF)\n"
 	@printf "$(CYAN)║$(OFF)  $(BOLD)ExamShell$(OFF)  ·  42 Common Core practice testers               $(CYAN)║$(OFF)\n"
 	@printf "$(CYAN)╚══════════════════════════════════════════════════════════════╝$(OFF)\n"
-	@printf "\n$(BOLD)$(CYAN)▸ PYTHON$(OFF)  $(DIM)— Exam Rank 03$(OFF)\n"
+	@printf "\n$(BOLD)$(CYAN)▸ PYTHON$(OFF)  $(DIM)— Exam Rank 03 (default) · 04 · 05, pick with RANK=04$(OFF)\n"
 	@printf "  $(BOLD)Play$(OFF)\n"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make run" "interactive menu (exam · practice · list · training)"
-	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make exam" "jump straight into the 6-level exam"
+	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)[RANK=04]$(OFF)\n" $(ROWW) "make exam" "jump straight into the exam"
+	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make ranks" "list the exam ranks and their pools"
 	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)[EX=py_inter]$(OFF)\n" $(ROWW) "make practice" "drill a single exam exercise"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make list" "print the exam exercise pool"
 	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)[EX=easy|py_kth_largest]$(OFF)\n" $(ROWW) "make train" "LeetCode-style practice, by difficulty"
@@ -77,7 +85,7 @@ help:
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make stats" "your local practice history (attempts, pass rate, best time)"
 	@printf "  $(BOLD)Develop$(OFF)\n"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make unit" "fast unit tests for grader/ui/examshell logic"
-	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make check" "self-test both exercise banks (content, not code)"
+	@printf "    $(GREEN)%-*s$(OFF) %s $(DIM)[RANK=04]$(OFF)\n" $(ROWW) "make check" "self-test every exam bank + the training bank"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make test" "unit + check"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make lint" "compile-check + ruff/pyflakes if installed"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make format" "run ruff format if installed"
@@ -88,7 +96,7 @@ help:
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make fclean" "clean + remove $(VENV)/"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make re" "fclean + install + check"
 	@printf "    $(GREEN)%-*s$(OFF) %s\n" $(ROWW) "make rendu-clean" "delete YOUR solutions in $(RENDU)/ (asks first)"
-	@printf "  $(DIM)Options: EX=<exercise>  SEED=<n>  RENDU=<dir>  FLAGS='--strict-imports'$(OFF)\n"
+	@printf "  $(DIM)Options: RANK=03|04|05  EX=<exercise>  SEED=<n>  RENDU=<dir>  FLAGS='--strict-imports'$(OFF)\n"
 	@printf "  $(DIM)Try: FLAGS='--theme highcontrast --save-config' (once, remembers your theme)$(OFF)\n"
 	@printf "  $(DIM)python: $(PY)$(OFF)\n"
 	@printf "\n$(BOLD)$(CYAN)▸ C$(OFF)  $(DIM)— Exam Rank 02, compile-based, separate $(C_RENDU)/$(OFF)\n"
@@ -122,13 +130,13 @@ practice:
 	@$(PY) -m $(SRC_PKG) --practice $(EX) $(ARGS)
 
 list:
-	@$(PY) -m $(SRC_PKG) --list
+	@$(PY) -m $(SRC_PKG) --list $(RANK_ARG)
 
 train:
 	@$(PY) -m $(SRC_PKG) --train $(EX) $(ARGS)
 
 list-training:
-	@$(PY) -m $(SRC_PKG) --list-training
+	@$(PY) -m $(SRC_PKG) --list-training $(RANK_ARG)
 
 stub:
 	@[ -n "$(EX)" ] || { printf "usage: make stub EX=py_inter\n" >&2; exit 2; }
@@ -142,7 +150,10 @@ grade-all:
 	@$(PY) -m $(SRC_PKG) --grade-all $(ARGS)
 
 stats:
-	@$(PY) -m $(SRC_PKG) --stats
+	@$(PY) -m $(SRC_PKG) --stats $(RANK_ARG)
+
+ranks:
+	@$(PY) -m $(SRC_PKG) --list-ranks
 
 # ── play (C Rank 02) ─────────────────────────────────────────────
 c-run:
@@ -182,7 +193,7 @@ unit:
 	@$(PY) -m unittest discover -s tests -t .
 
 check:
-	@$(PY) -m $(SRC_PKG) --check $(if $(SEED),--seed $(SEED),)
+	@$(PY) -m $(SRC_PKG) --check $(RANK_ARG) $(if $(SEED),--seed $(SEED),)
 
 test: unit check
 
@@ -215,12 +226,14 @@ format:
 
 status:
 	@printf "$(BOLD)Exam solutions in $(RENDU)/$(OFF)\n"
-	@$(PY) -m $(SRC_PKG) --list --no-color | awk '/py_/ {print $$1}' | while read -r ex; do \
+	@# $$2, not $$1: the exam listing puts a ★/○ pool marker before the
+	@# name (the training listing below has none, so it stays $$1).
+	@$(PY) -m $(SRC_PKG) --list $(RANK_ARG) --no-color | awk '/py_/ {print $$2}' | while read -r ex; do \
 		if [ -f "$(RENDU)/$$ex.py" ]; then printf "  $(GREEN)●$(OFF) %s\n" "$$ex"; \
 		else printf "  $(DIM)○ %s$(OFF)\n" "$$ex"; fi; \
 	done
 	@printf "$(BOLD)Training solutions in $(RENDU)/$(OFF)\n"
-	@$(PY) -m $(SRC_PKG) --list-training --no-color | awk '/py_/ {print $$1}' | while read -r ex; do \
+	@$(PY) -m $(SRC_PKG) --list-training $(RANK_ARG) --no-color | awk '/py_/ {print $$1}' | while read -r ex; do \
 		if [ -f "$(RENDU)/$$ex.py" ]; then printf "  $(GREEN)●$(OFF) %s\n" "$$ex"; \
 		else printf "  $(DIM)○ %s$(OFF)\n" "$$ex"; fi; \
 	done

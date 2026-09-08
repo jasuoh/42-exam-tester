@@ -374,8 +374,16 @@ def _looks_like_c_prototype(line):
 
 
 def _split_subject(subject):
-    """Split a subject into (header rows, prose, signature, examples)."""
-    header, prose, examples, signature = [], [], [], None
+    """Split a subject into (header rows, prose, signature, examples).
+
+    A subject asking for more than one function (Rank 05's
+    compress/decompress) shows every `def` line it carries, in order —
+    hence a list gathered here rather than a single line kept. A C
+    prototype is still taken only once: unlike a `def …:`, that shape is
+    guessed at (see _looks_like_c_prototype) and the C banks never ask for
+    two functions in one subject.
+    """
+    header, prose, examples, signatures = [], [], [], []
     in_examples = False
     for line in subject.splitlines():
         if line.startswith(("Assignment", "Expected", "Allowed")):
@@ -383,16 +391,16 @@ def _split_subject(subject):
         elif line and set(line) == {"-"}:
             continue
         elif line.strip().startswith("def "):
-            signature = line.strip()
-        elif signature is None and _looks_like_c_prototype(line.strip()):
-            signature = line.strip()
+            signatures.append(line.strip())
+        elif not signatures and _looks_like_c_prototype(line.strip()):
+            signatures.append(line.strip())
         elif line.strip().lower().startswith("example"):
             in_examples = True
         elif in_examples or "->" in line:
             examples.append(line)
         else:
             prose.append(line)
-    return header, "\n".join(prose).strip("\n"), signature, \
+    return header, "\n".join(prose).strip("\n"), "\n".join(signatures), \
         "\n".join(examples).strip("\n")
 
 

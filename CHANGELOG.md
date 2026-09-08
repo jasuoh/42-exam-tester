@@ -8,6 +8,47 @@ this repo has no version numbers, so entries are grouped by date instead.
 ## Unreleased
 
 ### Added
+- **Exam Rank 04 and Rank 05 (Python)** — the Python tester now carries
+  three exam pools instead of one, selected with `--rank 03|04|05`
+  (`RANK=04` from the Makefile) or menu entry **5 · Switch exam rank**:
+  - `src/exam_bank_r04.py` — 7 subjects over 4 levels
+    (`py_array_rotation_detector`, `py_constellation_mapper`,
+    `py_list_intersection_finder`, `py_merge_sorted_lists`,
+    `py_palindrome_partitioner`, `py_package_dependency_resolver`,
+    `py_sliding_window_maximum`).
+  - `src/exam_bank_r05.py` — 7 subjects over 3 levels
+    (`py_compress_decompress`, `py_spiral_generator`,
+    `py_graph_cycle_detector`, `py_schedule_meetings`,
+    `py_island_matrix_counter`, `py_prism_detector`, `py_word_ladder`).
+  - `src/ranks.py` — the registry tying each rank to its bank, its level
+    count and the `tool` tag its stats/saved exam/reports are filed under
+    (`py` / `py04` / `py05`). Rank 03 keeps the pre-existing `py` tag, so
+    no history recorded before this change is lost, and a saved exam can
+    never be resumed into a different rank. The training pool is shared by
+    all three (it is never part of an exam draw).
+  - Both new banks are built the same way as `exam_bank.py` — verified
+    reference oracle, curated edge cases, a fuzzer and a hand-written
+    stuck-student hint per exercise — and every subject is a documented
+    one, so all 14 are Standard (★) and there is no Extra pool.
+  - New: `--list-ranks` / `make ranks`. `--check` (`make check`) now
+    validates *every* rank's bank plus the training bank in one pass;
+    `--rank` narrows it to one.
+- **Multi-function exercises** (`grader.parts_of()` / `build_plan()`) — a
+  subject can now ask for more than one function and still be one exercise
+  with one verdict. Rank 05's `py_compress_decompress` is the first: each
+  function gets its own oracle, cases and fuzz, both must be defined, a
+  failing call is labelled with the function it came from, and the
+  generated stub defines both.
+- **Tuple and non-string-dict-key fidelity in the sandbox**
+  (`grader.encode_value()` / `decode_value()`) — cases travel to the
+  grading subprocess as JSON, which silently flattened a tuple into a list
+  and stringified an `int` dict key. Both are now tagged for the trip and
+  arrive exactly as the bank wrote them, so Rank 05's `schedule_meetings`
+  (a tuple of tuples), `prism_detector` (a list of tuples) and
+  `graph_cycle_detector` (a dict keyed by `int`) are graded honestly —
+  returning a list where a tuple was asked for now fails, as it would on
+  the real exam. `deep_eq()` gained a tuple branch to match, and
+  `selftest()` checks every expected value survives the round trip.
 - **Achievements** (`src/achievements.py`, shared by both testers) — 10
   badges (First Blood, Perfectionist, Comeback Kid, Redemption, Full
   Coverage, Night Owl, Early Bird, Century, Exam Cleared, Flawless Exam),
