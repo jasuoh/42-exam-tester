@@ -48,6 +48,9 @@ below as a GitHub Release. Entries before 0.2.0 are grouped by date.
     the new rank;
   - session-only grading options survive switching to another tester and
     back, and an explicit seed reaches C when it was the last tester used;
+  - help fits and scrolls on small terminals; changing the solutions folder
+    clears results from the old folder; the editor no longer opens after a
+    stub could not be created;
   - starting with `--practice` (no exercise named) opens on the exercise
     picker instead of falling back to the main menu.
 - **Makefile:**

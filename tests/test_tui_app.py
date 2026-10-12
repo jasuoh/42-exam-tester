@@ -411,6 +411,24 @@ class TuiAppTests(_Isolated, unittest.IsolatedAsyncioTestCase):
         self.assertTrue(os.path.isfile(path))  # a stub first
         self.assertEqual(popen.call_args[0][0], ["code", path])
 
+    async def test_e_stops_when_the_stub_cannot_be_created(self) -> None:
+        app = tui_app.ExamShellApp(
+            py_shell, _cfg(self.rendu), start=("practice", "py_inter")
+        )
+        with mock.patch.object(
+            py_shell,
+            "write_stub",
+            return_value=(False, "error", "cannot create solution"),
+        ), mock.patch.object(
+            tui_app, "editor_command"
+        ) as editor, mock.patch.object(App, "notify") as notify:
+            async with app.run_test(size=(100, 36)) as pilot:
+                await pilot.pause()
+                await pilot.press("e")
+                await pilot.pause()
+        editor.assert_not_called()
+        self.assertEqual(notify.call_args.kwargs["severity"], "error")
+
     def test_editor_falls_back_to_editor_env(self) -> None:
         with mock.patch("shutil.which", return_value=None):
             with mock.patch.dict(
@@ -726,10 +744,14 @@ class TuiFirstImpressionTests(_Isolated, unittest.IsolatedAsyncioTestCase):
 
     async def test_question_mark_lists_the_keys(self) -> None:
         app = tui_app.ExamShellApp(py_shell, _cfg(self.rendu))
-        async with app.run_test(size=(100, 40)) as pilot:
+        async with app.run_test(size=(50, 18)) as pilot:
             await pilot.press("question_mark")
             await pilot.pause()
             self.assertIsInstance(app.screen, tui_app.HelpModal)
+            modal = app.screen.query_one(".modal")
+            self.assertLessEqual(modal.region.width, app.size.width)
+            self.assertLessEqual(modal.region.height, app.size.height)
+            self.assertGreater(modal.max_scroll_y, 0)
             await pilot.press("escape")
             await pilot.pause()
             self.assertIsInstance(app.screen, tui_app.MenuScreen)
@@ -941,6 +963,32 @@ class TuiPaletteTests(_Isolated, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             settings.load_config(), {"tester": "py", "rank": "04"}
         )
+
+    async def test_new_solutions_folder_clears_the_old_grade(self) -> None:
+        app = tui_app.ExamShellApp(
+            py_shell, _cfg(self.rendu), start=("practice", "py_inter")
+        )
+        other = os.path.join(self.rendu, "elsewhere")
+        async with app.run_test(size=(120, 36)) as pilot:
+            await pilot.pause()
+            practice = app.screen
+            assert isinstance(practice, tui_app.PracticeScreen)
+            report = Report("py_inter", "inter")
+            report.total, report.passed = 1, 0
+            practice.outcome = shell_common.GradeOutcome(report, "old")
+            practice.log_report(report)
+            practice.show_report()
+
+            self._commands(app)["Solutions folder"].callback()
+            await pilot.pause()
+            await pilot.press("ctrl+u", *other, "enter")
+            await pilot.pause()
+
+            self.assertIsNone(practice.outcome)
+            self.assertEqual(practice.log_entries, [])
+            self.assertEqual(
+                practice.query_one("#results-pane").border_title, "results"
+            )
 
     async def test_a_running_exam_hides_what_could_change_it(self) -> None:
         app = tui_app.ExamShellApp(py_shell, _cfg(self.rendu), start="exam")

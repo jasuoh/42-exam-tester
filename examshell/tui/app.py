@@ -264,7 +264,7 @@ class HelpModal(ModalScreen[None]):
             else:
                 table.add_row("", "")
                 table.add_row(Text(key, style="dim"), "")
-        with Vertical(classes="modal"):
+        with VerticalScroll(classes="modal"):
             yield Static(table)
             yield Static("esc to close", classes="modal-hint")
 
@@ -644,7 +644,14 @@ class SplitScreen(AppScreen[None]):
         cfg = self._cfg()
         path = shell_common.solution_path(self.app.sh, self.ex_name, cfg)
         if not os.path.exists(path):
-            self.app.sh.write_stub(self.ex_name, cfg)
+            ok, kind, message = self.app.sh.write_stub(self.ex_name, cfg)
+            if not ok:
+                self.notify(
+                    message,
+                    severity="warning" if kind == "warn" else "error",
+                )
+                if kind == "error":
+                    return
         command = editor_command(path)
         if command is None:
             self.notify(
@@ -1159,7 +1166,8 @@ class ExamShellApp(App[None]):
     .-narrow #stats-pane { width: 1fr; height: auto; margin: 1 2 0 2; }
     .-narrow #per-exercise-pane { width: 1fr; margin: 0 2 1 2; }
     .modal {
-        width: 64; height: auto; padding: 1 2; border: round $primary;
+        width: 64; height: auto; max-width: 100%; max-height: 100%;
+        padding: 1 2; border: round $primary;
     }
     ModalScreen { align: center middle; }
     .modal-question { margin-bottom: 1; }
@@ -1495,11 +1503,19 @@ class ExamShellApp(App[None]):
         except OSError as exc:
             self.notify("can't use %s: %s" % (folder, exc), severity="error")
             return
+        changed = folder != self.cfg.rendu
         self.cfg.rendu = folder
         self.rendus[self.sh.SYNC_SLOT] = folder
         self.notify("Solutions folder: %s (this session)" % folder)
         for screen in self.screen_stack:  # its paths and hint point there
-            if isinstance(screen, PracticeScreen) and screen.ex_name:
+            if (
+                changed
+                and isinstance(screen, PracticeScreen)
+                and screen.ex_name
+            ):
+                screen.outcome = None
+                screen.details = False
+                screen.log_entries.clear()
                 screen.show_exercise(screen.ex_name)
 
     def open_settings(self) -> None:
