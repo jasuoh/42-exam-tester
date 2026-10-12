@@ -68,7 +68,7 @@ from . import (
     ui,
     update_check,
 )
-from ._types import Event, Tester, TesterConfig
+from ._types import Event, Exercise, Tester, TesterConfig
 from .grader import BankError, Report
 
 if TYPE_CHECKING:
@@ -249,14 +249,19 @@ def solution_path(sh: Tester, ex_name: str, cfg: TesterConfig) -> str:
 
 
 def record(
-    sh: Tester, ex_name: str, report: Report, cfg: TesterConfig, mode: str
+    sh: Tester,
+    tool: str,
+    ex_name: str,
+    ex: Exercise,
+    report: Report,
+    cfg: TesterConfig,
+    mode: str,
 ) -> GradeOutcome:
     """Persist one graded attempt: returns a GradeOutcome. A hint is only
     offered outside the exam, once the student has failed this exercise
     STUCK_THRESHOLD times in a row."""
-    ex = sh.ALL_EXERCISES[ex_name]
     stats.record(
-        sh.TOOL,
+        tool,
         ex_name,
         ex.get("level"),
         report.ok,
@@ -266,7 +271,7 @@ def record(
     )
     hint = None
     if not report.ok and mode != "exam":
-        if stats.consecutive_fails(sh.TOOL, ex_name) >= hints.STUCK_THRESHOLD:
+        if stats.consecutive_fails(tool, ex_name) >= hints.STUCK_THRESHOLD:
             hint = hints.hint_for(ex, report)
     return GradeOutcome(report, solution_path(sh, ex_name, cfg), hint)
 
@@ -280,8 +285,10 @@ def grade(
 ) -> GradeOutcome:
     """Grade one exercise with no output at all: returns a GradeOutcome.
     Raises BankError when the exercise bank itself is broken."""
+    # A Python rank switch rebinds ALL_EXERCISES while a TUI worker runs.
+    tool, ex = sh.TOOL, sh.ALL_EXERCISES[ex_name]
     job: GradingJob = sh.prepare_grading(ex_name, rng, cfg)
-    return record(sh, ex_name, job.run(), cfg, mode)
+    return record(sh, tool, ex_name, ex, job.run(), cfg, mode)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -521,6 +528,7 @@ def grade_exercise(
     mode: str = "practice",
 ) -> bool:
     """Grade one exercise, render the report, return True when it is 100%."""
+    tool, ex = sh.TOOL, sh.ALL_EXERCISES[ex_name]
     for note in sh.grading_notes(cfg):
         ui.warn(note)
     try:
@@ -541,7 +549,7 @@ def grade_exercise(
         ui.report(
             report, cfg.show_fails, cfg.diff, solution_path(sh, ex_name, cfg)
         )
-    outcome = record(sh, ex_name, report, cfg, mode)
+    outcome = record(sh, tool, ex_name, ex, report, cfg, mode)
     if outcome.hint:
         ui.hint(outcome.hint)
     return report.ok

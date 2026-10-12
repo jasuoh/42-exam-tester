@@ -588,6 +588,21 @@ class TuiSwitchAndSyncTests(_Isolated, unittest.IsolatedAsyncioTestCase):
             self.assertEqual(app.cfg.rendu, "c_rendu")
         py_shell.use_rank("03")
 
+    async def test_switching_restores_each_testers_session_options(
+        self,
+    ) -> None:
+        self.addCleanup(py_shell.use_rank)
+        app = tui_app.ExamShellApp(py_shell, _cfg(self.rendu))
+        async with app.run_test(size=(120, 36)) as pilot:
+            await pilot.pause()
+            app.toggle_option("strict_imports", "Strict imports")
+            app.switch_exam("c")
+            app.toggle_option("valgrind", "Valgrind")
+            app.switch_exam("py04")
+            self.assertTrue(getattr(app.cfg, "strict_imports"))
+            app.switch_exam("c")
+            self.assertTrue(getattr(app.cfg, "valgrind"))
+
     async def test_feedback_from_practice_prefills_the_exercise(self) -> None:
         from examshell import feedback
 
@@ -1006,6 +1021,15 @@ class TuiClipboardTests(_Isolated, unittest.IsolatedAsyncioTestCase):
 
 
 class TuiFallbackTests(unittest.TestCase):
+    def test_remembered_c_tester_keeps_the_command_line_seed(self) -> None:
+        args = argparse.Namespace(rank=None, practice=None)
+        cfg = _cfg("r", seed=42)
+        with mock.patch.object(
+            settings, "load_config", return_value={"tester": "c"}
+        ), mock.patch.object(shell_common, "run_tui", return_value=0) as run:
+            self.assertEqual(py_shell.run_tui_on_last_exam(args, cfg), 0)
+        self.assertEqual(run.call_args[0][1].seed, 42)
+
     def test_falls_back_with_a_reason_when_unavailable(self) -> None:
         args = argparse.Namespace(exam=False, practice=None)
         with mock.patch.object(

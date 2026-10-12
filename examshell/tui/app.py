@@ -717,14 +717,16 @@ class PracticeScreen(SplitScreen):
         self.set_results(
             render.waiting_view("grading %s …" % self.ex_name), "grading …"
         )
-        self.grade_worker(self.ex_name)
+        self.grade_worker(self.ex_name, self.app.sh, self.app.cfg)
 
     @work(thread=True, exclusive=True)
-    def grade_worker(self, ex_name: str) -> None:
+    def grade_worker(
+        self, ex_name: str, sh: Tester, cfg: TesterConfig
+    ) -> None:
         app = self.app
         try:
             outcome = shell_common.grade(
-                app.sh, ex_name, self.rng, app.cfg, mode=self.mode
+                sh, ex_name, self.rng, cfg, mode=self.mode
             )
             app.call_from_thread(self.show_outcome, outcome)
         except BankError as exc:
@@ -1180,6 +1182,7 @@ class ExamShellApp(App[None]):
         # --rendu / `make RENDU=...` instead of falling back to ./rendu
         self.rendus: Dict[str, str] = dict(rendus or {})
         self.rendus[sh.SYNC_SLOT] = cfg.rendu
+        self.session_options: Dict[str, Any] = {}
         # the very first start: ask which exam, instead of assuming Rank 03
         self.ask_exam = ask_exam
         self.update_notice: Dict[str, Optional[str]] = {"notice": None}
@@ -1563,6 +1566,9 @@ class ExamShellApp(App[None]):
         your saved settings."""
         if not choice:
             return
+        for attr, _title, _what in SESSION_TOGGLES:
+            if hasattr(self.cfg, attr):
+                self.session_options[attr] = getattr(self.cfg, attr)
         new_sh: Tester
         if choice == "c":
             from c_exam import examshell as c_shell
@@ -1586,7 +1592,11 @@ class ExamShellApp(App[None]):
         }
         if new_sh.SYNC_SLOT in self.rendus:
             keep["rendu"] = self.rendus[new_sh.SYNC_SLOT]
-        self.cfg = new_sh.default_config(**keep)
+        new_cfg = new_sh.default_config(**keep)
+        for attr, value in self.session_options.items():
+            if hasattr(new_cfg, attr):
+                setattr(new_cfg, attr, value)
+        self.cfg = new_cfg
         self.sh = new_sh
         self.notify("Switched to %s" % self.label())
         if isinstance(self.screen, MenuScreen):

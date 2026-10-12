@@ -372,6 +372,31 @@ class GradeTests(_TempDataDir):
         )
         self.assertEqual(len(stats.load_all(sh.TOOL)), 1)
 
+    def test_rank_switch_during_grade_uses_the_original_exercise(self) -> None:
+        sh = py_shell
+        ex = sh.ALL_EXERCISES["py_inter"]
+        report = Report("py_inter", "inter")
+        report.total = report.passed = 1
+
+        def finish_grade() -> Report:
+            sh.ALL_EXERCISES = {}
+            sh.TOOL = "py04"
+            return report
+
+        job = shell_common.GradingJob(1, finish_grade)
+        with mock.patch.object(
+            sh, "ALL_EXERCISES", {"py_inter": ex}
+        ), mock.patch.object(
+            sh, "TOOL", "py"
+        ), mock.patch.object(sh, "prepare_grading", return_value=job):
+            outcome = shell_common.grade(
+                sh, "py_inter", random.Random(0), _cfg(sh)
+            )
+
+        self.assertTrue(outcome.ok)
+        self.assertEqual(stats.load_all("py")[0]["level"], ex["level"])
+        self.assertEqual(stats.load_all("py04"), [])
+
     def test_hint_after_repeated_fails_but_never_in_the_exam(self) -> None:
         sh = py_shell
         with mock.patch.object(

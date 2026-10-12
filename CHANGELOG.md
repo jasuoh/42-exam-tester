@@ -44,7 +44,10 @@ below as a GitHub Release. Entries before 0.2.0 are grouped by date.
   - an exam that ends while a dialog is open (quit question, `?`) now
     reaches the summary;
   - leaving Practice while it grades no longer delivers the result to
-    the screen you left;
+    the screen you left, crashes after a rank switch, or records it under
+    the new rank;
+  - session-only grading options survive switching to another tester and
+    back, and an explicit seed reaches C when it was the last tester used;
   - starting with `--practice` (no exercise named) opens on the exercise
     picker instead of falling back to the main menu.
 - **Makefile:**

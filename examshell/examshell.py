@@ -842,7 +842,13 @@ def run_tui_on_last_exam(
 
     keep = {
         k: getattr(cfg, k, None)
-        for k in ("relaxed", "time_limit", "blind", "no_update_check")
+        for k in (
+            "relaxed",
+            "time_limit",
+            "blind",
+            "seed",
+            "no_update_check",
+        )
     }
     # --rendu is Python's folder: kept for a later switch back to Python
     return shell_common.run_tui(
