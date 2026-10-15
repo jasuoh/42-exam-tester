@@ -1,0 +1,7 @@
+Écrivez une fonction qui échange le contenu de deux entiers dont les
+adresses sont passées en paramètres.
+
+Exemples :
+    ft_swap(&a, &b)  where a=5, b=10 -> a becomes 10, b becomes 5
+
+    void ft_swap(int *a, int *b);

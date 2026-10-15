@@ -1,0 +1,10 @@
+Escribe una función que transponga una matriz (las filas pasan a
+ser columnas). La matriz es rectangular: todas las filas tienen la
+misma longitud.
+
+    def matrix_transposer(matrix: list[list[int]]) -> list[list[int]]:
+
+Ejemplos:
+    matrix_transposer([[1,2,3],[4,5,6]]) -> [[1,4],[2,5],[3,6]]
+    matrix_transposer([[7]])             -> [[7]]
+    matrix_transposer([])                -> []

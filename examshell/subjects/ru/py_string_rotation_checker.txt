@@ -1,0 +1,12 @@
+Напишите функцию, которая проверяет, является ли s2 циклическим
+сдвигом (ротацией) s1, то есть можно ли получить s2, перенеся
+некоторый префикс s1 в её конец (нулевой сдвиг, s2 == s1, тоже
+считается). С учётом регистра; две строки разной длины никогда не
+являются ротациями друг друга.
+
+    def string_rotation_checker(s1: str, s2: str) -> bool:
+
+Примеры:
+    string_rotation_checker("waterbottle", "erbottlewat") -> True
+    string_rotation_checker("abcd", "abdc")                -> False
+    string_rotation_checker("", "")                        -> True

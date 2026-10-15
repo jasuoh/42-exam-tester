@@ -1,0 +1,18 @@
+Escribe una función que encuentre los elementos presentes en TODAS
+las listas de enteros dadas, devueltos sin repetir y ordenados de
+forma ascendente.
+
+    def list_intersection_finder(lists: list[list[int]]) -> list[int]:
+
+Devuelve una lista vacía cuando la lista exterior está vacía,
+cuando alguna lista interior está vacía o cuando no hay ningún
+elemento común.
+
+Ejemplos:
+    list_intersection_finder([[1,2,3], [2,3,4], [2,3,5]]) -> [2, 3]
+    list_intersection_finder([[1,2,3,4], [2,4,6,8], [4,8,12]]) -> [4]
+    list_intersection_finder([[1,1,2,3], [1,2,2,3], [1,2,3,3]]) -> [1, 2, 3]
+    list_intersection_finder([[1,2,3], [4,5,6]])          -> []
+    list_intersection_finder([])                          -> []
+    list_intersection_finder([[1,2,3], []])               -> []
+    list_intersection_finder([[5]])                       -> [5]

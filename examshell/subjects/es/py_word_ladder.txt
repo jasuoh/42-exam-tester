@@ -1,0 +1,19 @@
+Escribe una función que devuelva la longitud de la secuencia de
+transformación MÁS CORTA que convierte `start` en `end`.
+
+    def word_ladder(start: str, end: str, sentence: list[str]) -> int:
+
+· Cada paso cambia exactamente un carácter.
+· Cada palabra por la que pasas (incluida la palabra final) debe
+  estar en `sentence`; la palabra inicial no tiene por qué estarlo.
+· Devuelve el número de palabras de la escalera más corta, contando
+  tanto `start` como `end`.
+· Devuelve 0 cuando no existe ninguna secuencia así, también cuando
+  `end` no está en `sentence`.
+· Cuando `start` y `end` son la misma palabra (y está en
+  `sentence`), la escalera es esa única palabra: devuelve 1.
+
+Ejemplos:
+    word_ladder("hit", "cog", ["hot","dot","dog","lot","log","cog"]) -> 5
+    word_ladder("hit", "cog", ["hot","dot","dog","lot","log"])       -> 0
+    word_ladder("hit", "hot", ["hot"])                               -> 2

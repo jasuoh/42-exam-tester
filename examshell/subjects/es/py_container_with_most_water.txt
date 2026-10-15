@@ -1,0 +1,12 @@
+Cada valor de la lista es la altura de una línea vertical en ese
+índice. Junto con el eje x, dos líneas cualesquiera forman un
+recipiente. Devuelve la cantidad máxima de agua que puede contener
+un recipiente así (ancho = distancia entre las dos líneas, alto =
+la más baja de las dos).
+
+    def container_with_most_water(heights: list[int]) -> int:
+
+Ejemplos:
+    container_with_most_water([1,8,6,2,5,4,8,3,7]) -> 49
+    container_with_most_water([1,1])                -> 1
+    container_with_most_water([4,3,2,1,4])           -> 16

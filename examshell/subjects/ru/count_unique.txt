@@ -1,0 +1,8 @@
+Напишите функцию, которая возвращает количество РАЗЛИЧНЫХ значений
+в массиве int.
+
+Примеры:
+    count_unique([1,2,2,3,3,3], 6) -> 3
+    count_unique([], 0)            -> 0
+
+    int count_unique(int *arr, unsigned int size);

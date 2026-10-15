@@ -1,0 +1,10 @@
+Écrivez une fonction qui encode une chaîne par plages (run-length) :
+chaque suite maximale d'un même caractère devient ce caractère suivi
+de son nombre d'occurrences. Une chaîne vide s'encode en "".
+
+    def run_length_encoder(text: str) -> str:
+
+Exemples :
+    run_length_encoder("aaabbc")  -> "a3b2c1"
+    run_length_encoder("abc")     -> "a1b1c1"
+    run_length_encoder("")        -> ""

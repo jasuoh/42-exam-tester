@@ -1,0 +1,14 @@
+Escribe una función que comprima una lista de caracteres sueltos:
+cada secuencia máxima del mismo carácter se convierte en ese
+carácter seguido de la longitud de la secuencia, pero SOLO cuando
+la secuencia tiene más de 1 carácter (una secuencia de longitud 1
+se escribe solo con el carácter, sin dígito). Devuelve el resultado
+como una única cadena, no como una lista. Una lista vacía devuelve
+"".
+
+    def string_compression(chars: list[str]) -> str:
+
+Ejemplos:
+    string_compression(["a","a","b","b","b"]) -> "a2b3"
+    string_compression(["a","b","c"])          -> "abc"
+    string_compression([])                      -> ""

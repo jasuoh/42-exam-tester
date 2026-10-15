@@ -1,0 +1,13 @@
+Escribe una función que ponga en mayúscula la primera letra de cada
+palabra y en minúscula el resto. Las palabras están separadas por
+un único espacio: las secuencias de varios espacios producen
+"palabras" vacías que deben quedarse vacías (sin convertirse en
+espacios adicionales ni eliminarse).
+
+    def capitalizer(text: str) -> str:
+
+Ejemplos:
+    capitalizer("hello world")  -> "Hello World"
+    capitalizer("HELLO WORLD")  -> "Hello World"
+    capitalizer("")             -> ""
+    capitalizer("a  b")         -> "A  B"

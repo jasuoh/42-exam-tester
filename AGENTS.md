@@ -39,6 +39,7 @@ behaves like the real one, practice with full feedback, progress, settings.
 | `examshell/examshell.py` · `c_exam/examshell.py` | each tester's CLI and hooks |
 | `examshell/exam_bank*.py` · `c_exam/bank.py` · `*training_bank.py` | exercises **with reference solutions** |
 | `examshell/grader.py` · `c_exam/grader.py` | sandboxed grading (Python subprocess · C compile + run) |
+| `examshell/subject_lang.py` · `examshell/subjects/<lang>/` | the subjects in French, Spanish, Russian (below) |
 | `examshell/settings.py` · `stats.py` · `session_store.py` · `sync.py` | `~/.examshell/` data, shared by both testers |
 | `tests/` | `unittest` suite · `tools/` screenshots, mutation tests |
 | `PLAN.md` | roadmap and the decisions behind it (German) |
@@ -68,12 +69,37 @@ If `make unit` skips ~40 tests instead of ~9, `.venv` is missing — run
   short and concrete. No new dependencies without asking.
 - User-facing text is English; `PLAN.md` and `docs/sync.de.md` are German.
 
+## Translated subjects
+
+Like the real exam's `subject.en.txt`, `subject.fr.txt`, … the app shows
+a subject in English, French, Spanish or Russian — right-click the
+subject. Only the app shows them; grading, stubs and the line-based UI
+use the bank's English subject.
+
+- `examshell/subjects/<lang>/<exercise>.txt` holds the text **below the
+  dashed line**. The header (Assignment name, Expected files, Allowed
+  functions) stays English and always comes from the bank. Exercise
+  names are unique across both testers, so one folder serves both.
+- **Kept exactly as they are:** the signature (`def …:` / C prototype),
+  every indented example line, and in the prose all code — names,
+  `quoted` values, strings, numbers, file names, `->` arrows.
+- `Examples:` becomes `Exemples :`, `Ejemplos:` or `Примеры:` — the
+  words `ui.EXAMPLE_MARKERS` knows. Same paragraphs and bullets as the
+  English text, lines at most 80 columns, no trailing spaces.
+- **Changing an English subject means changing its translations in the
+  same commit**; a new exercise needs all three. `tests/
+  test_subject_lang.py` fails on a missing file and on changed code or
+  examples — it can't judge the language, so read what you write.
+- A new language: `subject_lang.LANGUAGES`, `ui.EXAMPLE_MARKERS`, a
+  folder with every exercise — ask the maintainer first.
+
 ## Tests must never touch the real `~/.examshell`
 
 `tests/__init__.py` points `EXAMSHELL_HOME` at a temp dir, but modules
 compute their paths at import — **patch** them in tests that write data:
 `stats.DATA_DIR` / `STATS_PATH`, `session_store.DATA_DIR`,
-`settings.DATA_DIR` / `CONFIG_PATH`, `update_check.DATA_DIR` /
+`settings.DATA_DIR` / `CONFIG_PATH` (the subject's language is saved
+there too), `update_check.DATA_DIR` /
 `CACHE_PATH`. TUI tests also stub `examshell.tui.clipboard._tools` so they
 never overwrite the real clipboard. A leaked fake "v99.0.0" in the real
 update cache is how we learned this.

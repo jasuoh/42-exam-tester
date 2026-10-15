@@ -1,0 +1,11 @@
+Каждое значение в списке — это высота столбца гистограммы шириной 1;
+все столбцы стоят вплотную друг к другу. Верните площадь самого
+большого прямоугольника, который целиком помещается внутри контура
+гистограммы.
+
+    def largest_rectangle_histogram(heights: list[int]) -> int:
+
+Примеры:
+    largest_rectangle_histogram([2,1,5,6,2,3]) -> 10
+    largest_rectangle_histogram([2,4])           -> 4
+    largest_rectangle_histogram([])               -> 0

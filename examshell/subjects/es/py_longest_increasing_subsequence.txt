@@ -1,0 +1,11 @@
+Escribe una función que devuelva la LONGITUD de la subsecuencia
+estrictamente creciente más larga de una lista de enteros. La
+subsecuencia no tiene que ser contigua, pero debe conservar el
+orden original.
+
+    def longest_increasing_subsequence(lst: list[int]) -> int:
+
+Ejemplos:
+    longest_increasing_subsequence([10,9,2,5,3,7,101,18]) -> 4
+    longest_increasing_subsequence([7,7,7,7])              -> 1
+    longest_increasing_subsequence([])                     -> 0

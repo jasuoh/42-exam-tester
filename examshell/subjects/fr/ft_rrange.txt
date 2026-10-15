@@ -1,0 +1,8 @@
+Comme ft_range, mais le tableau va de `end` jusqu'à `start` (les deux
+bornes restent incluses).
+
+Exemples :
+    ft_rrange(1, 3)  -> [3, 2, 1]
+    ft_rrange(0, -3) -> [-3, -2, -1, 0]
+
+    int *ft_rrange(int start, int end);

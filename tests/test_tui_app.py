@@ -11,7 +11,7 @@ import sys
 import tempfile
 import threading
 import unittest
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from unittest import mock
 
 from examshell import examshell as py_shell
@@ -20,6 +20,7 @@ from examshell import (
     settings,
     shell_common,
     stats,
+    subject_lang,
     tui,
     ui,
 )
@@ -28,6 +29,7 @@ from examshell.tui import clipboard
 
 HAVE_TEXTUAL = tui.available()
 if HAVE_TEXTUAL:
+    from textual import events
     from textual.app import App
     from textual.coordinate import Coordinate
     from textual.widgets import DataTable, OptionList
@@ -1003,6 +1005,79 @@ class TuiClipboardTests(_Isolated, unittest.IsolatedAsyncioTestCase):
             self.assertEqual(app.clipboard, "sys")
         # no system clipboard here: what was copied inside the app
         self.assertEqual(app.clipboard, "hello")
+
+    async def _right_click(
+        self, app: Any, pilot: Any, wid: str
+    ) -> None:
+        """A right-click through the app, like the terminal driver's
+        (Pilot.click hands its events straight to the screen)."""
+        x, y = app.screen.query_one(wid).region.center
+        for kind in (events.MouseDown, events.MouseUp):
+            app.post_message(
+                kind(None, x, y, 0, 0, 3, False, False, False, x, y)
+            )
+        await pilot.pause()
+
+    def _menu_ids(self, app: Any) -> List[Optional[str]]:
+        menu = app.screen.query_one("#context-menu", OptionList)
+        return [
+            menu.get_option_at_index(i).id
+            for i in range(menu.option_count)
+        ]
+
+    async def test_right_click_on_a_selection_offers_copy(self) -> None:
+        app = tui_app.ExamShellApp(
+            py_shell, _cfg(self.rendu), start=("practice", "py_inter")
+        )
+        async with app.run_test(size=(140, 36)) as pilot:
+            await pilot.pause()
+            practice = app.screen
+            # nothing selected, not over a subject: nothing to offer
+            await self._right_click(app, pilot, "#results")
+            self.assertIs(app.screen, practice)
+            practice.query_one("#subject").text_select_all()
+            await pilot.pause()
+            await self._right_click(app, pilot, "#subject")
+            self.assertIsInstance(app.screen, tui_app.ContextMenu)
+            self.assertEqual(self._menu_ids(app)[0], "copy")
+            # the right-click kept the selection it was made on
+            self.assertTrue(practice.get_selected_text())
+            await pilot.press("enter")
+            await pilot.pause()
+            self.assertIs(app.screen, practice)
+            self.assertIn("Assignment name", app.clipboard)
+
+    async def test_right_click_on_the_subject_switches_its_language(
+        self,
+    ) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        os.makedirs(os.path.join(tmp.name, "fr"))
+        with open(os.path.join(tmp.name, "fr", "py_inter.txt"), "w") as fh:
+            fh.write("Écrivez une fonction.\n")
+        app = tui_app.ExamShellApp(
+            py_shell, _cfg(self.rendu), start=("practice", "py_inter")
+        )
+        with mock.patch.object(subject_lang, "SUBJECTS_DIR", tmp.name):
+            async with app.run_test(size=(140, 36)) as pilot:
+                await pilot.pause()
+                practice = app.screen
+                await self._right_click(app, pilot, "#subject")
+                self.assertEqual(
+                    self._menu_ids(app),
+                    ["lang:" + code for code, _ in subject_lang.LANGUAGES],
+                )
+                app.screen.dismiss("lang:fr")
+                await pilot.pause()
+                self.assertIs(app.screen, practice)
+                shown = practice.query_one("#subject").render()
+                self.assertIn("Écrivez une fonction.", str(shown))
+                # the header stays English, like the real exam's
+                self.assertIn("Assignment name", str(shown))
+        self.assertEqual(settings.load_config()["subject_lang"], "fr")
+        # the next start opens on it
+        again = tui_app.ExamShellApp(py_shell, _cfg(self.rendu))
+        self.assertEqual(again.subject_lang, "fr")
 
 
 class TuiFallbackTests(unittest.TestCase):

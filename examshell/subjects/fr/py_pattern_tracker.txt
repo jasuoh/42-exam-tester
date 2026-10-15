@@ -1,0 +1,12 @@
+Écrivez une fonction qui compte les paires de chiffres consécutifs
+valides dans une chaîne. Une paire valide est formée de deux chiffres
+adjacents dont le second est supérieur d'exactement un au premier. Un
+9 suivi d'un 0 n'est PAS valide.
+
+    def pattern_tracker(text: str) -> int:
+
+Exemples :
+    pattern_tracker("123")       -> 2
+    pattern_tracker("12a34")     -> 2
+    pattern_tracker("987654321") -> 0
+    pattern_tracker("90")        -> 0

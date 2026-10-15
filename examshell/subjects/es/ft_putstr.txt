@@ -1,0 +1,10 @@
+Escribe una función que muestre una cadena en la salida estándar.
+
+El puntero que se pasa a la función contiene la dirección del
+primer carácter de la cadena.
+
+Ejemplos:
+    ft_putstr("hello") -> prints: hello
+    ft_putstr("")      -> prints nothing
+
+    void ft_putstr(char *str);

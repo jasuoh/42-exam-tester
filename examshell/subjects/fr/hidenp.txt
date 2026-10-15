@@ -1,0 +1,12 @@
+Écrivez un PROGRAMME nommé hidenp qui prend deux chaînes et affiche
+1 suivi d'un retour à la ligne si la première chaîne est « cachée »
+dans la seconde, 0 sinon. s1 est cachée dans s2 si chaque caractère
+de s1 se retrouve dans s2, dans le même ordre (pas nécessairement de
+façon consécutive). La chaîne vide est cachée dans n'importe quelle
+chaîne. Si argc != 3, affichez seulement un retour à la ligne.
+
+Exemples :
+    ./hidenp "abc" "2altrb53c.sse" -> 1
+    ./hidenp "abc" "btarc"          -> 0
+
+    int main(int argc, char **argv);

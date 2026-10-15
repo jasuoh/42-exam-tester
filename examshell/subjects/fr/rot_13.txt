@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend une chaîne et l'affiche en remplaçant
+chacune de ses lettres par la lettre située 13 rangs plus loin dans
+l'ordre alphabétique (ROT13). 'z' devient 'm', 'Z' devient 'M', la
+casse n'est pas modifiée. Le tout est suivi d'un retour à la ligne.
+Si argc != 2, affichez seulement un retour à la ligne.
+
+Exemples :
+    ./rot_13 "abc"  -> nop
+    ./rot_13 ""     -> (just a newline)
+
+    int main(int argc, char **argv);

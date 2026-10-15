@@ -52,6 +52,8 @@ PERSISTABLE_KEYS = (
     "cc",
     "auto_sync",
     "time_limit",
+    # the language the app shows subjects in (examshell/subject_lang.py)
+    "subject_lang",
     # the exam picked last (remember_exam()), so the next `make` opens on
     # it: the Python rank ("03"), and which tester the app was on ("py" or
     # "c")

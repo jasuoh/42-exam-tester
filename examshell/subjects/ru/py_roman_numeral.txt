@@ -1,0 +1,9 @@
+Напишите функцию, которая преобразует целое число (всегда от 1 до
+3999 включительно) в его запись римскими цифрами.
+
+    def roman_numeral(n: int) -> str:
+
+Примеры:
+    roman_numeral(3)    -> "III"
+    roman_numeral(58)   -> "LVIII"
+    roman_numeral(1994) -> "MCMXCIV"

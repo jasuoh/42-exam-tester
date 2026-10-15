@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba dos cadenas y muestre, sin
+duplicados, cada carácter que aparece en cualquiera de ellas, en el
+orden en que aparece por primera vez (recorriendo la primera cadena
+y luego la segunda), seguido de un salto de línea. Si argc != 3,
+solo un salto de línea.
+
+Ejemplos:
+    ./union "abc" "bcd" -> abcd
+    ./union "aaa" "aaa" -> a
+
+    int main(int argc, char **argv);

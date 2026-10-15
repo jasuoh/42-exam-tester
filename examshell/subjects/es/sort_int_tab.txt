@@ -1,0 +1,8 @@
+Escribe una función que ordene (in situ) un array de int de `size`
+elementos, en orden ascendente. Los duplicados deben conservarse.
+
+Ejemplos:
+    sort_int_tab([5,3,1,4,2], 5) -> tab becomes [1,2,3,4,5]
+    sort_int_tab([], 0)          -> tab stays []
+
+    void sort_int_tab(int *tab, unsigned int size);

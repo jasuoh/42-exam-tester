@@ -1,0 +1,12 @@
+Écrivez une fonction qui vérifie si les parenthèses d'une chaîne sont
+valides. Valide signifie que chaque parenthèse ouvrante a une
+parenthèse fermante correspondante, dans le bon ordre. Parenthèses
+autorisées : (), [], {}. Les autres caractères sont ignorés.
+
+    def bracket_validator(s: str) -> bool:
+
+Exemples :
+    bracket_validator("()[]{}")       -> True
+    bracket_validator("([)]")         -> False
+    bracket_validator("hello(world)") -> True
+    bracket_validator("")             -> True

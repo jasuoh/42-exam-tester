@@ -37,7 +37,10 @@ subject on top, results below.
 | `esc` | screens, dialogs | back (in the exam: quit & save) |
 | `?` | everywhere | all the keys |
 
-To copy text, drag over it with the mouse and press ctrl+c. Terminals that
+To copy text, drag over it with the mouse and press ctrl+c — or right-click
+the selection and pick Copy (GNOME Terminal keeps ctrl+shift+c for
+itself). Right-click a subject to read it in English, French, Spanish or
+Russian, like the real exam's `subject.<lang>.txt`. Terminals that
 support OSC 52 (Ghostty, kitty, iTerm2, WezTerm) get it directly; for the
 others (GNOME Terminal, macOS Terminal, xterm) the app uses the system
 clipboard tool — on Linux install `wl-clipboard` or `xclip` / `xsel` for

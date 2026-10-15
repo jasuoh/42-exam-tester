@@ -1,0 +1,14 @@
+Dada una cadena, encuentra el número MÍNIMO de cortes necesarios
+para dividirla de modo que cada trozo resultante sea un palíndromo.
+
+    def palindrome_partitioner(s: str) -> int:
+
+· Devuelve el número de cortes, como un entero.
+· Una cadena que ya es un palíndromo necesita 0 cortes.
+· Una cadena de un solo carácter necesita 0 cortes, igual que una
+  vacía.
+
+Ejemplos:
+    palindrome_partitioner("aab") -> 1     # "aa" | "b"
+    palindrome_partitioner("aba") -> 0     # already a palindrome
+    palindrome_partitioner("abc") -> 2     # "a" | "b" | "c"

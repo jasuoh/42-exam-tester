@@ -1,0 +1,9 @@
+Escribe una función que convierta un int en una cadena terminada en
+nulo y reservada con malloc.
+
+Ejemplos:
+    ft_itoa(42)  -> "42"
+    ft_itoa(-42) -> "-42"
+    ft_itoa(0)   -> "0"
+
+    char *ft_itoa(int nbr);

@@ -1,0 +1,9 @@
+Reproduce el comportamiento de la función estándar strcspn():
+devuelve la longitud del segmento inicial de `s` formado por
+caracteres que NO aparecen en `reject`.
+
+Ejemplos:
+    ft_strcspn("hello", "l") -> 2
+    ft_strcspn("hello", "xyz") -> 5
+
+    size_t ft_strcspn(const char *s, const char *reject);

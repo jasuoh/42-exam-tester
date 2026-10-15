@@ -1,0 +1,9 @@
+Écrivez une fonction qui convertit un int en une chaîne allouée avec
+malloc et terminée par un caractère nul.
+
+Exemples :
+    ft_itoa(42)  -> "42"
+    ft_itoa(-42) -> "-42"
+    ft_itoa(0)   -> "0"
+
+    char *ft_itoa(int nbr);

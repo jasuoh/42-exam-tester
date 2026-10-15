@@ -1,0 +1,11 @@
+Напишите функцию, которая реализует шифр Цезаря, сдвигая буквы на
+заданную величину. Небуквенные символы остаются без изменений. Сдвиг
+может быть отрицательным (сдвиг влево).
+
+    def whisper_cipher(text: str, shift: int) -> str:
+
+Примеры:
+    whisper_cipher("hello", 3)        -> "khoor"
+    whisper_cipher("Hello World!", 1) -> "Ifmmp Xpsme!"
+    whisper_cipher("xyz", 3)          -> "abc"
+    whisper_cipher("abc", -3)         -> "xyz"

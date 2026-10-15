@@ -1,0 +1,10 @@
+Chaque valeur de la liste est la hauteur d'une barre d'histogramme de
+largeur 1, toutes placées côte à côte. Renvoyez l'aire du plus grand
+rectangle qui tient entièrement dans le contour de l'histogramme.
+
+    def largest_rectangle_histogram(heights: list[int]) -> int:
+
+Exemples :
+    largest_rectangle_histogram([2,1,5,6,2,3]) -> 10
+    largest_rectangle_histogram([2,4])           -> 4
+    largest_rectangle_histogram([])               -> 0

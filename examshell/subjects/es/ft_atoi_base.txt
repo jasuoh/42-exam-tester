@@ -1,0 +1,12 @@
+Escribe una función que convierta una cadena escrita en base
+`str_base` (de 2 a 16, dígitos "0123456789abcdef", sin distinguir
+mayúsculas de minúsculas) en un int en base 10. Un '-' inicial solo
+se reconoce si es el primerísimo carácter. Detente en el primer
+carácter que no sea un dígito válido para esa base.
+
+Ejemplos:
+    ft_atoi_base("ff", 16)   -> 255
+    ft_atoi_base("101", 2)   -> 5
+    ft_atoi_base("-101", 2)  -> -5
+
+    int ft_atoi_base(const char *str, int str_base);

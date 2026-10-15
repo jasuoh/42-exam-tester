@@ -1,0 +1,11 @@
+Escribe una función que cuente las vocales (a, e, i, o, u) de una
+cadena, sin distinguir mayúsculas de minúsculas. Las letras
+acentuadas y la 'y' no cuentan.
+
+    def vowel_counter(text: str) -> int:
+
+Ejemplos:
+    vowel_counter("hello")               -> 2
+    vowel_counter("The Quick Brown Fox")  -> 4
+    vowel_counter("")                     -> 0
+    vowel_counter("xyz")                  -> 0

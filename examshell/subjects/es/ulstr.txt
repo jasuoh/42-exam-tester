@@ -1,0 +1,9 @@
+Escribe un PROGRAMA que reciba una cadena e invierta las mayúsculas
+y minúsculas de cada letra (los demás caracteres no cambian),
+seguida de un salto de línea. Si argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./ulstr "Hello World" -> hELLO wORLD
+    ./ulstr "ABCabc123"   -> abcABC123
+
+    int main(int argc, char **argv);

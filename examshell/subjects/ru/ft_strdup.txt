@@ -1,0 +1,7 @@
+Воспроизведите поведение стандартной функции strdup(): верните новую
+копию строки, выделенную с помощью malloc.
+
+Примеры:
+    ft_strdup("hello") -> a new, independent "hello" string
+
+    char *ft_strdup(char *src);

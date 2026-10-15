@@ -1,0 +1,8 @@
+Напишите функцию, которая возвращает перевёрнутую строку.
+
+    def string_reverser(text: str) -> str:
+
+Примеры:
+    string_reverser("hello")  -> "olleh"
+    string_reverser("ab")     -> "ba"
+    string_reverser("")       -> ""

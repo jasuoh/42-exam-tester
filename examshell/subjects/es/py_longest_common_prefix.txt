@@ -1,0 +1,11 @@
+Escribe una función que devuelva la cadena más larga que es prefijo
+de todas las cadenas de una lista. Una lista vacía, o la ausencia
+total de prefijo común, devuelve "". Distingue mayúsculas de
+minúsculas.
+
+    def longest_common_prefix(strings: list[str]) -> str:
+
+Ejemplos:
+    longest_common_prefix(["flower","flow","flight"]) -> "fl"
+    longest_common_prefix(["dog","racecar","car"])    -> ""
+    longest_common_prefix([])                          -> ""

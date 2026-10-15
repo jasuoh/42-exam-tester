@@ -1,0 +1,8 @@
+Écrivez une fonction qui renvoie une chaîne inversée.
+
+    def string_reverser(text: str) -> str:
+
+Exemples :
+    string_reverser("hello")  -> "olleh"
+    string_reverser("ab")     -> "ba"
+    string_reverser("")       -> ""

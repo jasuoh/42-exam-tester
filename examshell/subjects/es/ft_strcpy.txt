@@ -1,0 +1,7 @@
+Reproduce el comportamiento de la función estándar strcpy(): copia
+la cadena s2 (incluido su byte nulo final) en s1 y devuelve s1.
+
+Ejemplos:
+    ft_strcpy(dest, "hello") -> dest becomes "hello", returns dest
+
+    char *ft_strcpy(char *s1, char *s2);

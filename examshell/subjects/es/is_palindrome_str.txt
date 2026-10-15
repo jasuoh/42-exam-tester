@@ -1,0 +1,14 @@
+Escribe un PROGRAMA que reciba una cadena y muestre "yes" si es un
+palíndromo y "no" en caso contrario, seguido de un salto de línea.
+Solo se comparan las letras, sin distinguir mayúsculas de
+minúsculas; todo lo demás (espacios, dígitos, signos de
+puntuación) se ignora. Una cadena sin ninguna letra no es un
+palíndromo. Si argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./is_palindrome_str "racecar"                     -> yes
+    ./is_palindrome_str "A man a plan a canal Panama"  -> yes
+    ./is_palindrome_str "hello"                        -> no
+    ./is_palindrome_str "12 21"                        -> no
+
+    int main(int argc, char **argv);

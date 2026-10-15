@@ -1,0 +1,11 @@
+Écrivez une fonction qui renvoie la plus grande somme possible d'un
+sous-tableau contigu (non vide) d'une liste d'entiers. Si tous les
+nombres sont négatifs, renvoyez le plus grand d'entre eux. Pour une
+liste vide, renvoyez 0.
+
+    def max_subarray_sum(lst: list[int]) -> int:
+
+Exemples :
+    max_subarray_sum([-2,1,-3,4,-1,2,1,-5,4]) -> 6   # [4,-1,2,1]
+    max_subarray_sum([-1,-2,-3])               -> -1
+    max_subarray_sum([])                        -> 0

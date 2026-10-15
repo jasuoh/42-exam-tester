@@ -1,0 +1,11 @@
+Escribe una función que devuelva la mayor suma posible de un
+subarray contiguo (no vacío) de una lista de enteros. Si todos los
+números son negativos, devuelve el mayor de ellos. Una lista vacía
+devuelve 0.
+
+    def max_subarray_sum(lst: list[int]) -> int:
+
+Ejemplos:
+    max_subarray_sum([-2,1,-3,4,-1,2,1,-5,4]) -> 6   # [4,-1,2,1]
+    max_subarray_sum([-1,-2,-3])               -> -1
+    max_subarray_sum([])                        -> 0

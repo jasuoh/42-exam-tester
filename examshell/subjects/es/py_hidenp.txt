@@ -1,0 +1,13 @@
+Escribe una función que compruebe si 'small' es una subsecuencia de
+'big'. Que sea una subsecuencia significa que todos los caracteres
+de 'small' aparecen en 'big' en el mismo orden, pero no
+necesariamente de forma consecutiva. Distingue mayúsculas de
+minúsculas.
+
+    def hidenp(small: str, big: str) -> bool:
+
+Ejemplos:
+    hidenp("abc", "a1b2c3") -> True
+    hidenp("ace", "abcde")  -> True
+    hidenp("aec", "abcde")  -> False
+    hidenp("", "abc")       -> True

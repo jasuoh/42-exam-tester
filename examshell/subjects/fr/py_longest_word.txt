@@ -1,0 +1,11 @@
+Écrivez une fonction qui renvoie le mot le plus long d'une phrase.
+Les mots sont séparés par un ou plusieurs espaces ; si deux mots sont
+à égalité pour le plus long, renvoyez le premier. Une chaîne vide, ou
+une chaîne sans aucun mot, renvoie "".
+
+    def longest_word(text: str) -> str:
+
+Exemples :
+    longest_word("the quick brown fox") -> "quick"
+    longest_word("aaa bbb ccc")          -> "aaa"
+    longest_word("")                     -> ""

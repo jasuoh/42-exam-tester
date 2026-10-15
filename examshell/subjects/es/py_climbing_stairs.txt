@@ -1,0 +1,11 @@
+Estás subiendo una escalera de n escalones. En cada movimiento
+puedes subir 1 o 2 escalones. Devuelve el número de formas
+distintas de llegar arriba. Para n = 0 hay exactamente una forma
+(no hacer nada).
+
+    def climbing_stairs(n: int) -> int:
+
+Ejemplos:
+    climbing_stairs(2) -> 2   # 1+1, 2
+    climbing_stairs(3) -> 3   # 1+1+1, 1+2, 2+1
+    climbing_stairs(0) -> 1

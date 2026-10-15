@@ -15,6 +15,14 @@ below as a GitHub Release. Entries before 0.2.0 are grouped by date.
   relaxed, blind, seed, strict grading, valgrind, the solutions folder —
   for this session. While an exam runs it offers nothing that could
   change the exam.
+- **Right-click menu:**
+  - **Copy** for selected text. GNOME Terminal (and every VTE terminal)
+    keeps ctrl+shift+c for itself, and its own right-click menu can't see
+    the app's selection, so there ctrl+c was the only way to copy.
+  - Over a subject: its **language** — English, Français, Español,
+    Русский, like the real exam's `subject.<lang>.txt`. The header stays
+    English, as in the exam; the choice is remembered. Only the app shows
+    translations, grading always uses the English subject.
 
 ### Removed
 - **Watch mode** (`w` in Practice): the app grades only when you press

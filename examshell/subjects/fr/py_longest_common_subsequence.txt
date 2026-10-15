@@ -1,0 +1,11 @@
+Écrivez une fonction qui renvoie la LONGUEUR de la plus longue
+sous-séquence commune de deux chaînes : la plus longue suite de
+caractères qui apparaît, dans l'ordre mais pas nécessairement de
+façon contiguë, dans les deux.
+
+    def longest_common_subsequence(s1: str, s2: str) -> int:
+
+Exemples :
+    longest_common_subsequence("abcde", "ace") -> 3
+    longest_common_subsequence("abc", "def")    -> 0
+    longest_common_subsequence("", "abc")       -> 0

@@ -1,0 +1,9 @@
+Escribe una función que determine si un número dado es una potencia
+de 2. Devuelve 1 si lo es, y 0 en caso contrario.
+
+Ejemplos:
+    is_power_of_2(16) -> 1
+    is_power_of_2(15) -> 0
+    is_power_of_2(0)  -> 0
+
+    int is_power_of_2(unsigned int n);

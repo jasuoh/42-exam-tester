@@ -1,0 +1,11 @@
+Écrivez une fonction qui renvoie l'indice du premier caractère d'une
+chaîne qui ne se répète nulle part ailleurs dans celle-ci. Sensible à
+la casse. Si tous les caractères se répètent (ou si la chaîne est
+vide), renvoyez -1.
+
+    def first_unique_char(text: str) -> int:
+
+Exemples :
+    first_unique_char("leetcode")  -> 0
+    first_unique_char("aabb")      -> -1
+    first_unique_char("")          -> -1

@@ -1,0 +1,15 @@
+Écrivez une fonction qui vérifie si une chaîne est un palindrome.
+Seuls les caractères alphabétiques sont pris en compte : la casse,
+les espaces, les chiffres et la ponctuation sont tous ignorés. S'il
+ne reste aucune lettre à comparer (chaîne vide, "42", "!!!", …), la
+réponse est False.
+
+    def echo_validator(text: str) -> bool:
+
+Exemples :
+    echo_validator("racecar")                     -> True
+    echo_validator("A man a plan a canal Panama") -> True
+    echo_validator("No lemon, no melon")          -> True
+    echo_validator("race a car")                  -> False
+    echo_validator("")                            -> False
+    echo_validator("12 21")                       -> False

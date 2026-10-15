@@ -1,0 +1,14 @@
+Écrivez un PROGRAMME qui prend une chaîne et affiche "yes" si c'est
+un palindrome, "no" sinon, suivi d'un retour à la ligne. Seules les
+lettres sont comparées, sans tenir compte de la casse ; tout le
+reste (espaces, chiffres, ponctuation) est ignoré. Une chaîne qui ne
+contient aucune lettre n'est pas un palindrome. Si argc != 2,
+affichez seulement un retour à la ligne.
+
+Exemples :
+    ./is_palindrome_str "racecar"                     -> yes
+    ./is_palindrome_str "A man a plan a canal Panama"  -> yes
+    ./is_palindrome_str "hello"                        -> no
+    ./is_palindrome_str "12 21"                        -> no
+
+    int main(int argc, char **argv);

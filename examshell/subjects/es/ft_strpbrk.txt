@@ -1,0 +1,9 @@
+Reproduce el comportamiento de la función estándar strpbrk():
+devuelve un puntero al primer carácter de s1 que también aparezca
+en cualquier posición de s2 (NULL si no hay ninguno).
+
+Ejemplos:
+    ft_strpbrk("hello", "lo") -> "llo" (points at the first 'l')
+    ft_strpbrk("hello", "xyz") -> NULL
+
+    char *ft_strpbrk(const char *s1, const char *s2);

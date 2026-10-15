@@ -1,0 +1,12 @@
+Écrivez un PROGRAMME appelé search_and_replace qui prend 3
+arguments : une chaîne, un caractère à rechercher et un caractère par
+lequel le remplacer. Chaque occurrence du premier caractère du 2e
+argument dans la chaîne est remplacée par le premier caractère du 3e
+argument ; le résultat est affiché suivi d'un retour à la ligne. Si
+argc != 4, affichez seulement un retour à la ligne.
+
+Exemples :
+    ./search_and_replace "hello world" "o" "0" -> hell0 w0rld
+    ./search_and_replace "banana" "a" "e"        -> benene
+
+    int main(int argc, char **argv);

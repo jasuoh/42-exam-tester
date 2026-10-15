@@ -1,0 +1,13 @@
+Escribe una función que encuentre todos los tripletes únicos de
+elementos de una lista cuya suma sea cero. Ordena de forma
+ascendente los tres valores de cada triplete, y ordena también de
+forma ascendente la lista exterior de tripletes (es lo que produce
+de forma natural el enfoque estándar de ordenar y usar dos
+punteros: respeta exactamente ese orden).
+
+    def three_sum(lst: list[int]) -> list[list[int]]:
+
+Ejemplos:
+    three_sum([-1,0,1,2,-1,-4]) -> [[-1,-1,2], [-1,0,1]]
+    three_sum([0,0,0])          -> [[0,0,0]]
+    three_sum([1,2,-2,-1])      -> []

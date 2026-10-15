@@ -42,6 +42,7 @@ from textual import events, work
 from textual.app import App, ComposeResult, SystemCommand
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.errors import NoWidget
 from textual.screen import ModalScreen, Screen
 from textual.selection import Selection
 from textual.widgets import (
@@ -58,8 +59,16 @@ from textual.visual import VisualType
 from textual.widgets.option_list import Option
 from textual.worker import WorkerFailed
 
-from .. import session_store, settings, shell_common, stats, ui, update_check
-from .._types import Event, Tester, TesterConfig
+from .. import (
+    session_store,
+    settings,
+    shell_common,
+    stats,
+    subject_lang,
+    ui,
+    update_check,
+)
+from .._types import Event, Exercise, Tester, TesterConfig
 from ..grader import BankError, Report
 from ..shell_common import ExamResult, ExamRun, GradeOutcome
 from ..sync import SyncResult
@@ -251,6 +260,8 @@ class HelpModal(ModalScreen[None]):
         ("Progress", ""),
         ("p", "practise your gaps"),
         ("Everywhere", ""),
+        ("ctrl+c", "copy the text you selected (or right-click it)"),
+        ("right-click", "on a subject: its language"),
         ("ctrl+p", "palette — settings and options"),
     )
 
@@ -292,6 +303,53 @@ class ChoiceModal(ModalScreen[Optional[str]]):
 
     def action_cancel(self) -> None:
         self.dismiss(None)
+
+
+class ContextMenu(ModalScreen[Optional[str]]):
+    """The right-click menu, at the mouse: Copy for selected text, the
+    subject's languages over a subject. Dismisses with the picked
+    option's id, or None.
+
+    GNOME Terminal (every VTE terminal) keeps ctrl+shift+c for itself,
+    and its own right-click menu can't see the app's selection — Copy
+    here is what students reach for there."""
+
+    BINDINGS = [Binding("escape", "dismiss", "close")]
+
+    def __init__(
+        self,
+        options: Sequence[Union[Tuple[str, str], None]],
+        at: Tuple[int, int],
+    ) -> None:
+        super().__init__()
+        self.options, self.at = options, at  # None: a separator line
+
+    def compose(self) -> ComposeResult:
+        yield OptionList(
+            *[
+                None if opt is None else Option(opt[1], id=opt[0])
+                for opt in self.options
+            ],
+            id="context-menu",
+        )
+
+    def on_mount(self) -> None:
+        menu = self.query_one("#context-menu", OptionList)
+        # next to the pointer, but never pushed off the screen
+        width, height = 16, len(self.options) + 2
+        x = max(0, min(self.at[0], self.size.width - width))
+        y = max(0, min(self.at[1], self.size.height - height))
+        menu.styles.offset = (x, y)
+        menu.focus()
+
+    def on_option_list_option_selected(
+        self, event: OptionList.OptionSelected
+    ) -> None:
+        self.dismiss(event.option.id)
+
+    def on_click(self, event: events.Click) -> None:
+        if event.widget is self:  # a click next to the menu closes it
+            self.dismiss(None)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -413,6 +471,7 @@ class PickerScreen(AppScreen[None]):
     def __init__(self, pool: str = "exam") -> None:
         super().__init__()
         self.pool = pool
+        self.previewing = ""  # the exercise in the preview pane
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -520,7 +579,10 @@ class PickerScreen(AppScreen[None]):
     ) -> None:
         if event.row_key is None:
             return
-        name = cast(str, event.row_key.value)  # rows are keyed by name
+        self.show_preview(cast(str, event.row_key.value))  # keyed by name
+
+    def show_preview(self, name: str) -> None:
+        self.previewing = name
         row = self.status[name]
         pane = self.query_one("#preview-pane")
         pane.border_title = name
@@ -530,10 +592,13 @@ class PickerScreen(AppScreen[None]):
             else "never tried"
         )
         self.query_one("#preview", Copyable).update(
-            ui.subject_blocks(
-                self.app.sh.ALL_EXERCISES[name], code_background=None
-            )
+            ui.subject_blocks(self.app.subject_of(name), code_background=None)
         )
+
+    def show_subject(self) -> None:
+        """Again, in the language just picked."""
+        if self.previewing in self.status:
+            self.show_preview(self.previewing)
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         name = cast(str, event.row_key.value)  # rows are keyed by name
@@ -581,17 +646,12 @@ class SplitScreen(AppScreen[None]):
     def show_exercise(self, ex_name: str) -> None:
         sh = self.app.sh
         self.ex_name = ex_name
-        ex = sh.ALL_EXERCISES[ex_name]
         pane = self.query_one("#subject-pane")
         pane.border_title = ex_name
         pane.border_subtitle = shell_common.solution_path(
             sh, ex_name, self.app.cfg
         )
-        self.query_one("#subject", Copyable).update(
-            ui.subject_blocks(
-                ex, lexer_theme=SUBJECT_SYNTAX, code_background=None
-            )
-        )  # the theme's own code background
+        self.show_subject()
         self.set_results(
             render.waiting_view(
                 "Write your solution in %s, then press g to grade."
@@ -599,6 +659,18 @@ class SplitScreen(AppScreen[None]):
             )
         )
         self.show_attempts()
+
+    def show_subject(self) -> None:
+        """The subject, in the language picked with a right-click."""
+        if not self.ex_name:
+            return
+        self.query_one("#subject", Copyable).update(
+            ui.subject_blocks(
+                self.app.subject_of(self.ex_name),
+                lexer_theme=SUBJECT_SYNTAX,
+                code_background=None,  # the theme's own code background
+            )
+        )
 
     def log_report(self, report: Report) -> None:
         self.log_entries.append(
@@ -1160,6 +1232,12 @@ class ExamShellApp(App[None]):
         width: 64; height: auto; padding: 1 2; border: round $primary;
     }
     ModalScreen { align: center middle; }
+    ContextMenu { align: left top; background: transparent; }
+    #context-menu {
+        width: 16; height: auto; padding: 0;
+        border: round $primary; background: $surface;
+        scrollbar-size: 0 0;
+    }
     .modal-question { margin-bottom: 1; }
     .modal-hint { color: $text-muted; }
     """
@@ -1183,6 +1261,15 @@ class ExamShellApp(App[None]):
         # the very first start: ask which exam, instead of assuming Rank 03
         self.ask_exam = ask_exam
         self.update_notice: Dict[str, Optional[str]] = {"notice": None}
+        # the release of the right-click that opened ContextMenu is
+        # swallowed
+        self._right_click_menu = False
+        lang = settings.load_config().get("subject_lang")
+        self.subject_lang: str = (
+            str(lang)
+            if subject_lang.is_language(lang)
+            else subject_lang.DEFAULT
+        )
 
     def action_help(self) -> None:
         if not isinstance(self.screen, HelpModal):
@@ -1205,6 +1292,74 @@ class ExamShellApp(App[None]):
         macOS Terminal, ...) — see clipboard.py."""
         super().copy_to_clipboard(text)
         system_clipboard.copy(text)
+
+    # ── the subject's language and the right-click menu ──────────────
+    def subject_of(self, ex_name: str) -> Exercise:
+        """The exercise with its subject in the language picked."""
+        return subject_lang.translated(
+            ex_name, self.sh.ALL_EXERCISES[ex_name], self.subject_lang
+        )
+
+    def set_subject_lang(self, lang: str) -> None:
+        """Show every subject in `lang` from now on, the open ones too."""
+        self.subject_lang = lang
+        settings.update_config("subject_lang", lang)
+        for screen in self.screen_stack:
+            if isinstance(screen, (SplitScreen, PickerScreen)):
+                screen.show_subject()
+
+    async def on_event(self, event: events.Event) -> None:
+        """A right-click opens ContextMenu, where it has something to
+        offer. Textual would treat it like a left click and drop the
+        selection, so the press (and its release) never reach the
+        screen."""
+        if (
+            isinstance(event, (events.MouseDown, events.MouseUp))
+            and event.button == 3
+            and not event.is_forwarded
+        ):
+            if isinstance(event, events.MouseUp):
+                if self._right_click_menu:
+                    self._right_click_menu = False
+                    return
+            elif self.open_context_menu(event.x, event.y):
+                self._right_click_menu = True
+                return
+        await super().on_event(event)
+
+    def open_context_menu(self, x: int, y: int) -> bool:
+        """ContextMenu for a right-click at (x, y); False if it would be
+        empty there."""
+        text = self.screen.get_selected_text()
+        options: List[Optional[Tuple[str, str]]] = []
+        if text:
+            options.append(("copy", "  Copy"))  # in line with the languages
+        try:
+            widget, _ = self.get_widget_at(x, y)
+        except NoWidget:
+            widget = None
+        over_subject = widget is not None and any(
+            node.id in ("subject-pane", "preview-pane")
+            for node in widget.ancestors_with_self
+        )
+        if over_subject:
+            if options:
+                options.append(None)
+            for lang, name in subject_lang.LANGUAGES:
+                mark = "●" if lang == self.subject_lang else " "
+                options.append(("lang:" + lang, "%s %s" % (mark, name)))
+        if not options:
+            return False
+
+        def picked(choice: Optional[str]) -> None:
+            if choice == "copy" and text:
+                self.copy_to_clipboard(text)
+                self.notify("Copied", timeout=2)
+            elif choice and choice.startswith("lang:"):
+                self.set_subject_lang(choice[len("lang:"):])
+
+        self.push_screen(ContextMenu(options, (x, y)), picked)
+        return True
 
     @property
     def clipboard(self) -> str:

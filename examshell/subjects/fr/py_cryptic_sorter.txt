@@ -1,0 +1,16 @@
+Écrivez une fonction qui trie une liste de chaînes selon plusieurs
+critères :
+  1. Principal  : par longueur (la plus courte d'abord)
+  2. Secondaire : ordre ASCII, lettres comparées sans tenir compte
+     de la casse
+  3. Tertiaire  : par nombre de voyelles (croissant)
+  4. Les chaînes égales conservent leur ordre d'entrée d'origine
+     (tri stable).
+
+    def cryptic_sorter(strings: list[str]) -> list[str]:
+
+Exemples :
+    cryptic_sorter(["apple","cat","banana","dog","elephant"])
+        -> ["cat","dog","apple","banana","elephant"]
+    cryptic_sorter(["aaa","bbb","AAA","BBB"]) -> ["aaa","AAA","bbb","BBB"]
+    cryptic_sorter([]) -> []

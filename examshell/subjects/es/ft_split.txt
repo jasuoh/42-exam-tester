@@ -1,0 +1,12 @@
+Escribe una función que reciba una cadena, la divida en palabras y
+las devuelva como un array de cadenas terminado en NULL. Una
+"palabra" es una parte de la cadena delimitada por
+espacios/tabulaciones/saltos de línea, o por el principio/final de
+la cadena.
+
+Ejemplos:
+    ft_split("hello world") -> ["hello", "world"]
+    ft_split("   ")          -> []
+    ft_split("")             -> []
+
+    char **ft_split(char *str);

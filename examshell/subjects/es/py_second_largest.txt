@@ -1,0 +1,11 @@
+Escribe una función que devuelva el segundo valor DISTINTO más
+grande de una lista de enteros. Los duplicados del valor más grande
+no cuentan como segundo valor. Si hay menos de dos valores
+distintos, devuelve None.
+
+    def second_largest(lst: list[int]) -> int | None:
+
+Ejemplos:
+    second_largest([3,1,4,1,5,9,2,6]) -> 5
+    second_largest([1,1,1])           -> None
+    second_largest([])                -> None

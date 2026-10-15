@@ -1,0 +1,8 @@
+Reproduisez le comportement de la fonction standard strcpy() :
+copiez la chaîne s2 (y compris son octet nul final) dans s1, et
+renvoyez s1.
+
+Exemples :
+    ft_strcpy(dest, "hello") -> dest becomes "hello", returns dest
+
+    char *ft_strcpy(char *s1, char *s2);

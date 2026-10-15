@@ -1,0 +1,9 @@
+Écrivez une fonction qui détermine si un nombre donné est une
+puissance de 2. Elle renvoie 1 si c'est le cas, 0 sinon.
+
+Exemples :
+    is_power_of_2(16) -> 1
+    is_power_of_2(15) -> 0
+    is_power_of_2(0)  -> 0
+
+    int is_power_of_2(unsigned int n);

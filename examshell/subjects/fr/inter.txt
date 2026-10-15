@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend deux chaînes et affiche, sans
+doublons, les caractères présents dans LES DEUX chaînes, dans
+l'ordre où ils apparaissent dans la première, suivis d'un retour à
+la ligne. Si argc != 3, affichez seulement un retour à la ligne.
+
+Exemples :
+    ./inter "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" -> padinto
+    ./inter "ddf6vewg64f" "gtwthgdwthdwfteewhrtag6h4ffdhsd" -> df6ewg4
+    ./inter "rien" "cette phrase ne cache rien" -> rien
+
+    int main(int argc, char **argv);

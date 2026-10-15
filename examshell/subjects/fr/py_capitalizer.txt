@@ -1,0 +1,13 @@
+Écrivez une fonction qui met en majuscule la première lettre de
+chaque mot et le reste en minuscules. Les mots sont séparés par des
+espaces simples : plusieurs espaces consécutifs produisent des
+« mots » vides qui doivent rester vides (ni transformés en espaces
+supplémentaires, ni supprimés).
+
+    def capitalizer(text: str) -> str:
+
+Exemples :
+    capitalizer("hello world")  -> "Hello World"
+    capitalizer("HELLO WORLD")  -> "Hello World"
+    capitalizer("")             -> ""
+    capitalizer("a  b")         -> "A  B"

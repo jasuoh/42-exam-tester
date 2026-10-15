@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba una cadena y la muestre con
+exactamente un espacio entre palabras y sin espacios en blanco al
+principio ni al final, seguida de un salto de línea. Una palabra es
+una secuencia de caracteres que no son espacios ni tabulaciones. Si
+argc != 2, o si no hay ninguna palabra, solo un salto de línea.
+
+Ejemplos:
+    ./epur_str "  hello    world  " -> hello world
+    ./epur_str "a   b   c"           -> a b c
+
+    int main(int argc, char **argv);

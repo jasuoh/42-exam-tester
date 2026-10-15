@@ -1,0 +1,11 @@
+Écrivez une fonction qui compte les voyelles (a, e, i, o, u) d'une
+chaîne, sans tenir compte de la casse. Les lettres accentuées et le
+'y' ne comptent pas.
+
+    def vowel_counter(text: str) -> int:
+
+Exemples :
+    vowel_counter("hello")               -> 2
+    vowel_counter("The Quick Brown Fox")  -> 4
+    vowel_counter("")                     -> 0
+    vowel_counter("xyz")                  -> 0

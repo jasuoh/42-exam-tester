@@ -1,0 +1,8 @@
+Escribe una función que reciba un byte, intercambie sus dos mitades
+de 4 bits (nibbles) y devuelva el resultado.
+
+Ejemplos:
+    swap_bits(0x41) -> 0x14   # 0100 0001 -> 0001 0100
+    swap_bits(0)    -> 0
+
+    unsigned char swap_bits(unsigned char octet);

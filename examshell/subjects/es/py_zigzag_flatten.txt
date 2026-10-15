@@ -1,0 +1,11 @@
+Escribe una función que aplane una matriz en una sola lista en
+orden de zigzag (bustrofedón): la primera fila de izquierda a
+derecha, la segunda de derecha a izquierda, la tercera otra vez de
+izquierda a derecha, y así sucesivamente.
+
+    def zigzag_flatten(matrix: list[list[int]]) -> list[int]:
+
+Ejemplos:
+    zigzag_flatten([[1,2,3],[4,5,6],[7,8,9]]) -> [1,2,3,6,5,4,7,8,9]
+    zigzag_flatten([[1,2],[3,4]])              -> [1,2,4,3]
+    zigzag_flatten([])                         -> []

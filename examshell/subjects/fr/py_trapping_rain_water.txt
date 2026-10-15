@@ -1,0 +1,10 @@
+Étant donné une liste de hauteurs de barres positives ou nulles
+(chacune de largeur 1), calculez combien d'unités d'eau sont
+retenues entre les barres après la pluie.
+
+    def trapping_rain_water(heights: list[int]) -> int:
+
+Exemples :
+    trapping_rain_water([0,1,0,2,1,0,1,3,2,1,2,1]) -> 6
+    trapping_rain_water([4,2,0,3,2,5])              -> 9
+    trapping_rain_water([])                          -> 0

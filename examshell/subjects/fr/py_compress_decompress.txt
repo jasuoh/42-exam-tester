@@ -1,0 +1,28 @@
+Écrivez DEUX fonctions : un compresseur par plages (run-length) et
+son inverse exact.
+
+    def compress(s: str) -> str:
+    def decompress(s: str) -> str:
+
+compress :
+  · Réduisez chaque suite de caractères répétés au caractère suivi du
+    nombre de fois qu'il se répète.
+  · Une suite d'exactement UN caractère ne prend pas de nombre :
+    "abc" reste "abc", et ne devient pas "a1b1c1".
+  · Une chaîne vide se compresse en une chaîne vide.
+  · L'entrée ne contient que des lettres.
+
+decompress :
+  · Redéveloppez une chaîne compressée dans sa forme d'origine.
+  · Un nombre peut avoir plusieurs chiffres : "a12" correspond à
+    douze a.
+  · Un caractère sans chiffre après lui compte pour un.
+
+Les deux fonctions sont notées, elles doivent donc toutes les deux
+être définies dans votre fichier.
+
+Exemples :
+    compress("aabcccccaaa")   -> "a2bc5a3"
+    decompress("a2bc5a3")     -> "aabcccccaaa"
+    compress("")              -> ""
+    decompress("a12")         -> "aaaaaaaaaaaa"

@@ -1,0 +1,22 @@
+Écrivez une fonction qui détermine si un graphe ORIENTÉ contient au
+moins un cycle.
+
+    def graph_cycle_detector(graph: dict[int, list[int]]) -> bool:
+
+· graph est une liste d'adjacence : chaque clé est l'identifiant
+  d'un nœud, chaque valeur est la liste des nœuds vers lesquels il
+  pointe.
+· Renvoyez True si le graphe contient un cycle, False s'il est
+  acyclique — y compris pour un graphe vide.
+· Le graphe peut avoir plusieurs composantes non connexes ; un cycle
+  dans n'importe laquelle d'entre elles compte.
+· Une arête pointant vers un nœud qui n'est pas lui-même une clé du
+  dictionnaire ne mène nulle part et ne fait partie d'aucun cycle.
+
+(Certains campus nomment cette fonction py_graph_cycle_detector — le
+comportement demandé est le même.)
+
+Exemples :
+    graph_cycle_detector({0: [1], 1: [2], 2: [0]}) -> True
+    graph_cycle_detector({0: [1], 1: [2], 2: []})  -> False
+    graph_cycle_detector({})                       -> False

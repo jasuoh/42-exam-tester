@@ -1,0 +1,13 @@
+Escribe una función que fusione todos los pares de intervalos que
+se solapan. Cada intervalo es [start, end] con start <= end. Dos
+intervalos se solapan cuando uno empieza antes de que termine el
+otro o justo cuando termina. Devuelve los intervalos fusionados
+ordenados por start.
+
+    def merge_intervals(intervals: list[list[int]]) -> list[list[int]]:
+
+Ejemplos:
+    merge_intervals([[1,3],[2,6],[8,10],[15,18]])
+        -> [[1,6],[8,10],[15,18]]
+    merge_intervals([[1,4],[4,5]]) -> [[1,5]]
+    merge_intervals([])            -> []

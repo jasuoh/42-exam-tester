@@ -1,0 +1,12 @@
+Écrivez une fonction qui trouve deux éléments DIFFÉRENTS d'une liste
+dont la somme vaut target et renvoie leurs indices [i, j] avec
+i < j. Si plusieurs paires conviennent, renvoyez la première trouvée
+en parcourant i par ordre croissant, puis j par ordre croissant. Si
+aucune paire ne convient, renvoyez [].
+
+    def two_sum_indices(lst: list[int], target: int) -> list[int]:
+
+Exemples :
+    two_sum_indices([2,7,11,15], 9) -> [0, 1]
+    two_sum_indices([3,2,4], 6)     -> [1, 2]
+    two_sum_indices([1,2,3], 100)   -> []

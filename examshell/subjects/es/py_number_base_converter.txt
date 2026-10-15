@@ -1,0 +1,20 @@
+Escribe una función que convierta un número de una base a otra.
+Ambas bases van de 2 a 36, ambas incluidas. Los dígitos son 0-9 y
+luego A-Z para los valores 10-35; la SALIDA usa siempre letras
+mayúsculas, la ENTRADA acepta mayúsculas o minúsculas. Se admite un
+'-' inicial, nada más: ni '+', ni espacios, ni guiones bajos.
+
+Devuelve la cadena "ERROR" ante cualquier entrada no válida: una
+base fuera de 2..36, un número vacío o un dígito que no existe en
+`from_base`.
+
+    def number_base_converter(number: str, from_base: int, to_base: int) -> str:
+
+Ejemplos:
+    number_base_converter("1010", 2, 10) -> "10"
+    number_base_converter("FF", 16, 10)  -> "255"
+    number_base_converter("ff", 16, 10)  -> "255"
+    number_base_converter("255", 10, 16) -> "FF"
+    number_base_converter("-1010", 2, 10)-> "-10"
+    number_base_converter("123", 1, 10)  -> "ERROR"
+    number_base_converter("G", 16, 10)   -> "ERROR"

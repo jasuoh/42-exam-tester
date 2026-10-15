@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba una única cadena en snake_case
+(palabras en minúsculas, unidas por '_') y la convierta a
+lowerCamelCase (cada palabra con mayúscula inicial salvo la
+primera, sin separadores), seguida de un salto de línea. Si
+argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./snake_to_camel "hello_world"    -> helloWorld
+    ./snake_to_camel "this_is_a_test" -> thisIsATest
+
+    int main(int argc, char **argv);

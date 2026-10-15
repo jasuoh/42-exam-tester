@@ -1,0 +1,22 @@
+Escribe una función que cuente las islas de una matriz 2D formada
+por las cadenas "1" (tierra) y "0" (agua).
+
+    def island_matrix_counter(matrix: list[list[str]]) -> int:
+
+· Una isla es un grupo de celdas "1" conectadas horizontal o
+  verticalmente. Los vecinos en diagonal NO se conectan.
+· Cuenta cada isla separada exactamente una vez.
+· Una matriz vacía (o sin filas) devuelve 0.
+· No modifiques la matriz que recibes: haz tu propia copia o lleva
+  tu propio conjunto de celdas visitadas.
+
+Ejemplos:
+    island_matrix_counter([["1","1","1","1","0"],
+                           ["1","1","1","0","0"],
+                           ["1","1","1","1","0"],
+                           ["0","0","0","0","0"]]) -> 1
+    island_matrix_counter([["1","1","0","0","0"],
+                           ["1","1","0","0","0"],
+                           ["0","0","1","0","0"],
+                           ["0","0","0","1","1"]]) -> 3
+    island_matrix_counter([])                       -> 0

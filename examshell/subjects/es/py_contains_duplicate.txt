@@ -1,0 +1,10 @@
+Escribe una función que devuelva True si algún valor aparece al
+menos dos veces en la lista, y False si todos los valores son
+distintos.
+
+    def contains_duplicate(lst: list[int]) -> bool:
+
+Ejemplos:
+    contains_duplicate([1,2,3,1]) -> True
+    contains_duplicate([1,2,3,4]) -> False
+    contains_duplicate([])        -> False

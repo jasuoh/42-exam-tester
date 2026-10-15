@@ -1,0 +1,9 @@
+Escribe un PROGRAMA que reciba un int estrictamente positivo y
+muestre su tabla de multiplicar de 1x a 9x, una línea por cada
+uno, con el formato "i x n = i*n". Sin argumentos: solo un salto de
+línea.
+
+Ejemplos:
+    ./tab_mult 9 -> 1 x 9 = 9 ... 9 x 9 = 81 (9 lines)
+
+    int main(int argc, char **argv);

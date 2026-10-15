@@ -1,0 +1,11 @@
+Напишите функцию, которая подсчитывает гласные (a, e, i, o, u) в
+строке без учёта регистра. Буквы с диакритическими знаками и 'y' не
+учитываются.
+
+    def vowel_counter(text: str) -> int:
+
+Примеры:
+    vowel_counter("hello")               -> 2
+    vowel_counter("The Quick Brown Fox")  -> 4
+    vowel_counter("")                     -> 0
+    vowel_counter("xyz")                  -> 0

@@ -1,0 +1,12 @@
+Escribe el clásico FizzBuzz. Devuelve una lista de cadenas para
+cada número de 1 a n (ambos incluidos): "Fizz" para los múltiplos
+de 3, "Buzz" para los múltiplos de 5, "FizzBuzz" para los múltiplos
+de ambos y, en otro caso, el propio número como cadena. n = 0
+devuelve una lista vacía.
+
+    def fizzbuzz_list(n: int) -> list[str]:
+
+Ejemplos:
+    fizzbuzz_list(5)  -> ["1", "2", "Fizz", "4", "Buzz"]
+    fizzbuzz_list(15)[-1] -> "FizzBuzz"
+    fizzbuzz_list(0)  -> []

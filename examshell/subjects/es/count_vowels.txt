@@ -1,0 +1,9 @@
+Escribe un PROGRAMA que reciba una cadena y muestre cuántas vocales
+(a, e, i, o, u, sin distinguir mayúsculas de minúsculas) contiene,
+seguido de un salto de línea. Si argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./count_vowels "hello"  -> 2
+    ./count_vowels "AEIOU"  -> 5
+
+    int main(int argc, char **argv);

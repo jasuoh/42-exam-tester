@@ -1,0 +1,9 @@
+Écrivez une fonction qui renvoie le nombre de paires d'indices
+(i, j), i < j, telles que arr[i] > arr[j] — c'est-à-dire à quel
+point le tableau est loin d'être trié.
+
+Exemples :
+    count_inversions([4,3,2,1], 4) -> 6   (every pair)
+    count_inversions([1,2,3,4], 4) -> 0   (already sorted)
+
+    int count_inversions(int *arr, unsigned int size);
