@@ -995,6 +995,28 @@ class TuiClipboardTests(_Isolated, unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.isolate()
 
+    async def test_language_change_keeps_empty_search_preview_empty(
+        self,
+    ) -> None:
+        from textual.widgets import Input
+
+        app = tui_app.ExamShellApp(
+            py_shell, _cfg(self.rendu), start="practice"
+        )
+        async with app.run_test(size=(140, 36)) as pilot:
+            await pilot.pause()
+            screen = app.screen
+            screen.query_one(Input).value = "no-such-exercise-zzzzz"
+            await pilot.pause()
+            self.assertEqual(screen.query_one(DataTable).row_count, 0)
+            app.set_subject_lang("fr")
+            await pilot.pause()
+            self.assertIn(
+                "no exercise matches",
+                str(screen.query_one("#preview").render()),
+            )
+            self.assertIsNone(screen.query_one("#preview-pane").border_title)
+
     async def test_copy_and_paste_use_the_system_clipboard(self) -> None:
         app = tui_app.ExamShellApp(py_shell, _cfg(self.rendu))
         with mock.patch.object(
@@ -1006,9 +1028,7 @@ class TuiClipboardTests(_Isolated, unittest.IsolatedAsyncioTestCase):
         # no system clipboard here: what was copied inside the app
         self.assertEqual(app.clipboard, "hello")
 
-    async def _right_click(
-        self, app: Any, pilot: Any, wid: str
-    ) -> None:
+    async def _right_click(self, app: Any, pilot: Any, wid: str) -> None:
         """A right-click through the app, like the terminal driver's
         (Pilot.click hands its events straight to the screen)."""
         x, y = app.screen.query_one(wid).region.center
@@ -1021,8 +1041,7 @@ class TuiClipboardTests(_Isolated, unittest.IsolatedAsyncioTestCase):
     def _menu_ids(self, app: Any) -> List[Optional[str]]:
         menu = app.screen.query_one("#context-menu", OptionList)
         return [
-            menu.get_option_at_index(i).id
-            for i in range(menu.option_count)
+            menu.get_option_at_index(i).id for i in range(menu.option_count)
         ]
 
     async def test_right_click_on_a_selection_offers_copy(self) -> None:

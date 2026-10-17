@@ -919,6 +919,12 @@ def render_call(
     elif returns == "str":
         lines.append("char *ret = " + call_expr + ";")
         lines.append('printf("%s\\n", ret ? ret : "(null)");')
+        if "in_place_arg" in ex:
+            target = call_args[ex["in_place_arg"]]
+            # Matching return text alone cannot prove strcpy copied, or
+            # strrev reversed the caller's buffer rather than a new one.
+            lines.append(f'printf("buffer: %s\\n", {target});')
+            lines.append(f'printf("same buffer: %d\\n", ret == {target});')
     elif returns == "str_owned":
         lines.append("char *ret = " + call_expr + ";")
         lines.append('printf("%s\\n", ret ? ret : "(null)");')

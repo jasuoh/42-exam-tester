@@ -29,6 +29,16 @@ below as a GitHub Release. Entries before 0.2.0 are grouped by date.
   `g`, like `grademe`.
 
 ### Fixed
+- **C in-place grading:** `ft_strcpy` and `ft_strrev` must change the
+  caller's buffer and return its address; returning matching text from
+  another buffer no longer passes.
+- **Sync:** archived and deleted solutions stay removed across devices.
+  Files removed by sync are backed up; a newer edit can restore a file.
+- **Resume:** saved exams retain their time limit and grading rules,
+  including when resumed on another device. Invalid saved values and
+  exercises are rejected before opening the exam.
+- **Subject preview:** changing language after a search with no matches
+  no longer brings back the previous exercise.
 - **The exam grades like the real one, again:**
   - every `grademe` of a level runs the same random tests, so grading
     unchanged code again can't turn FAILURE into SUCCESS;

@@ -158,6 +158,97 @@ class SyncTests(unittest.TestCase):
         self.b.sync()
         self.assertEqual(self.b.read("rendu", "py_inter.py"), "v2")
 
+    def test_new_exam_archive_is_not_restored_by_sync(self) -> None:
+        from examshell import examshell as sh, shell_common
+
+        name = sh.STANDARD_LEVELS[1][0] + ".py"
+        path = self.a.write("rendu", name, "old exam solution", 1000)
+        self.a.setup(self.url)
+        self.b.setup(self.url)
+        archive = shell_common.archive_exam_solutions(
+            sh, sh.default_config(rendu=self.a.dirs["rendu"])
+        )
+        assert archive is not None
+        self.a.sync()
+        result = self.b.sync()
+        self.a.sync()
+        self.assertFalse(os.path.exists(path))
+        self.assertFalse(
+            os.path.exists(os.path.join(self.b.dirs["rendu"], name))
+        )
+        with open(os.path.join(archive, name)) as fh:
+            self.assertEqual(fh.read(), "old exam solution")
+        self.assertEqual(result.pulled["removals"], 1)
+        with open(result.backups[0]) as fh:
+            self.assertEqual(fh.read(), "old exam solution")
+
+    def test_archive_before_first_sync_is_still_remembered(self) -> None:
+        self.b.write("rendu", "py_inter.py", "old", 1000)
+        self.b.setup(self.url)
+        path = self.a.write("rendu", "py_inter.py", "old", 1000)
+        os.remove(path)
+        sync.mark_removed(self.a.dirs["rendu"], ["py_inter.py"])
+        self.a.setup(self.url)
+        self.assertFalse(os.path.exists(path))
+
+    def test_deleted_file_stays_deleted_and_can_be_created_again(self) -> None:
+        path = self.a.write("rendu", "py_inter.py", "old", 1000)
+        self.a.setup(self.url)
+        self.b.setup(self.url)
+        os.remove(path)
+        with mock.patch.object(time, "time", return_value=2000):
+            self.a.sync()
+        self.b.sync()
+        self.assertFalse(os.path.exists(path))
+        self.a.write("rendu", "py_inter.py", "new attempt", 3000)
+        self.a.sync()
+        self.b.sync()
+        self.assertEqual(self.b.read("rendu", "py_inter.py"), "new attempt")
+
+    def test_edit_newer_than_removal_survives(self) -> None:
+        path = self.a.write("rendu", "py_inter.py", "old", 1000)
+        self.a.setup(self.url)
+        self.b.setup(self.url)
+        os.remove(path)
+        with mock.patch.object(time, "time", return_value=2000):
+            self.a.sync()
+        self.b.write("rendu", "py_inter.py", "new offline edit", 3000)
+        self.b.sync()
+        self.a.sync()
+        self.assertEqual(
+            self.a.read("rendu", "py_inter.py"), "new offline edit"
+        )
+
+    def test_failed_push_keeps_pending_removal_for_retry(self) -> None:
+        path = self.a.write("rendu", "py_inter.py", "old", 1000)
+        self.a.setup(self.url)
+        os.remove(path)
+        real_git = sync._git
+
+        def offline_push(
+            repo: str, *args: str, check: bool = True
+        ) -> subprocess.CompletedProcess[str]:
+            if args[0] == "push":
+                raise sync.SyncError("offline")
+            return real_git(repo, *args, check=check)
+
+        with mock.patch.object(sync, "_git", side_effect=offline_push):
+            with self.assertRaises(sync.SyncError):
+                self.a.sync()
+        self.a.sync()
+        self.b.setup(self.url)
+        self.assertFalse(os.path.exists(path))
+        self.assertFalse(
+            os.path.exists(os.path.join(self.b.dirs["rendu"], "py_inter.py"))
+        )
+
+    def test_new_solution_folder_is_not_treated_as_deletion(self) -> None:
+        self.a.write("rendu", "py_inter.py", "old", 1000)
+        self.a.setup(self.url)
+        self.a.dirs["rendu"] += "-new"
+        self.a.sync()
+        self.assertEqual(self.a.read("rendu", "py_inter.py"), "old")
+
     def test_paused_exam_resumes_on_the_other_device_and_stays_finished(
         self,
     ) -> None:

@@ -20,10 +20,20 @@ missed convenience, never a reason to crash the exam.
 from __future__ import annotations
 
 import json
+import math
 import os
 import random
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from ._types import Event
 
@@ -31,6 +41,20 @@ from .settings import DATA_DIR, write_atomic
 
 if TYPE_CHECKING:
     from .shell_common import Session
+
+
+# Portable exam rules, never device paths (rendu, compiler, ...).
+BOOL_RULES = (
+    "relaxed",
+    "blind",
+    "bare_stub",
+    "strict_imports",
+    "strict_norm",
+    "strict_forbidden",
+    "valgrind",
+    "strict_valgrind",
+)
+EXAM_RULES = BOOL_RULES + ("timeout", "fuzz", "time_limit", "seed")
 
 
 def _path(tool: str) -> str:
@@ -56,6 +80,7 @@ def save(
     current_ex: Optional[str],
     level_attempts: int = 0,
     level_started: Optional[float] = None,
+    rules: Optional[Dict[str, Any]] = None,
 ) -> bool:
     """Persist enough state to resume exactly where the student left off.
 
@@ -82,6 +107,8 @@ def save(
         # what examshell/sync.py compares when two devices both have a save
         "saved_at": time.time(),
     }
+    if rules is not None:
+        data["rules"] = rules
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
         write_atomic(_path(tool), json.dumps(data))
@@ -90,7 +117,73 @@ def save(
         return False
 
 
-def load(tool: str) -> Optional[Event]:
+def _nonnegative(value: Any) -> bool:
+    return type(value) in (int, float) and math.isfinite(value) and value >= 0
+
+
+def _valid_rules(rules: Any) -> bool:
+    if not isinstance(rules, dict):
+        return False
+    for key, value in rules.items():
+        if key in BOOL_RULES:
+            if type(value) is not bool:
+                return False
+        elif key in ("time_limit", "seed") and value is None:
+            continue
+        elif key in ("timeout", "fuzz", "time_limit", "seed"):
+            if type(value) is not int:
+                return False
+            if key != "seed" and value < (0 if key == "fuzz" else 1):
+                return False
+        else:
+            return False
+    return True
+
+
+def _valid(data: Event) -> bool:
+    if not isinstance(data["login"], str):
+        return False
+    if type(data["level"]) is not int or data["level"] < 1:
+        return False
+    if data["current_ex"] is not None and not isinstance(
+        data["current_ex"], str
+    ):
+        return False
+    if not isinstance(data["passed"], list) or not all(
+        isinstance(name, str) for name in data["passed"]
+    ):
+        return False
+    for key in ("attempts", "level_attempts"):
+        value = data.get(key, 0)
+        if type(value) is not int or value < 0:
+            return False
+    for key in ("elapsed_seconds", "level_elapsed_seconds", "saved_at"):
+        if not _nonnegative(data.get(key, 0)):
+            return False
+    if not isinstance(data["history"], list):
+        return False
+    for row in data["history"]:
+        if not isinstance(row, list) or len(row) != 4:
+            return False
+        level, name, attempts, seconds = row
+        if (
+            type(level) is not int
+            or level < 1
+            or not isinstance(name, str)
+            or type(attempts) is not int
+            or attempts < 0
+            or not _nonnegative(seconds)
+        ):
+            return False
+    if "rules" in data and not _valid_rules(data["rules"]):
+        return False
+    rng_from_saved(data)  # setstate validates the RNG's internal shape
+    return True
+
+
+def load(
+    tool: str, levels: Optional[Mapping[int, Sequence[str]]] = None
+) -> Optional[Event]:
     """The saved dict, or None if there is nothing (or nothing usable)
     to resume."""
     try:
@@ -110,8 +203,22 @@ def load(tool: str) -> Optional[Event]:
         )
         if not isinstance(data, dict) or not all(k in data for k in required):
             return None
+        if not _valid(data):
+            return None
+        if levels is not None:
+            pool = levels.get(data["level"])
+            if pool is None or (
+                data["current_ex"] is not None
+                and data["current_ex"] not in pool
+            ):
+                return None
+            if any(
+                name not in levels.get(level, ())
+                for level, name, _attempts, _seconds in data["history"]
+            ):
+                return None
         return data
-    except (OSError, ValueError):
+    except (OSError, ValueError, TypeError, KeyError, OverflowError):
         return None
 
 

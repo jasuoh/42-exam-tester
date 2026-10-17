@@ -241,6 +241,51 @@ class ExamRunTests(_TempDataDir):
         with mock.patch.object(time, "time", return_value=1060.0):
             self.assertTrue(resumed.times_up())
 
+    def test_resume_restores_original_rules_not_current_defaults(self) -> None:
+        for sh in self.SHELLS:
+            with self.subTest(tester=sh.TOOL):
+                run = shell_common.ExamRun(
+                    sh, _cfg(sh, time_limit=1, fuzz=17, blind=True)
+                )
+                run.start()
+                run.ensure_exercise()
+                assert run.session.start_time is not None
+                run.session.start_time -= 120
+                run.save()
+                saved = session_store.load(sh.TOOL)
+                assert saved is not None
+                other = shell_common.ExamRun(
+                    sh, _cfg(sh, relaxed=True, time_limit=None, seed=None)
+                )
+                other.resume(saved)
+                self.assertTrue(other.times_up())
+                self.assertEqual(other.cfg.time_limit, 1)
+                self.assertEqual(other.cfg.fuzz, 17)
+                self.assertTrue(other.cfg.blind)
+                self.assertFalse(other.cfg.relaxed)
+                self.assertEqual(other.cfg.seed, run.cfg.seed)
+                for key in sh.STRICT_EXAM_FLAGS:
+                    self.assertEqual(
+                        getattr(other.cfg, key), getattr(run.cfg, key)
+                    )
+                other.pass_level()
+                other.save_between_levels()
+                between = session_store.load(sh.TOOL)
+                assert between is not None
+                self.assertEqual(between["rules"], saved["rules"])
+
+    def test_legacy_save_keeps_current_rules(self) -> None:
+        run = shell_common.ExamRun(py_shell, _cfg(py_shell))
+        run.start()
+        run.ensure_exercise()
+        run.save()
+        saved = session_store.load(py_shell.TOOL)
+        assert saved is not None
+        del saved["rules"]
+        other = shell_common.ExamRun(py_shell, _cfg(py_shell, time_limit=45))
+        other.resume(saved)
+        self.assertEqual(other.cfg.time_limit, 45)
+
     # issue #15: a new exam starts from an empty rendu/ — solutions to exam
     # exercises from earlier runs go to rendu/archive/<when>/; a resumed
     # exam keeps its files where they are.
@@ -435,9 +480,7 @@ class FinishAndBlindTests(_TempDataDir):
             ui, "spinner"
         ), mock.patch.object(ui, "_rich", False), mock.patch.object(
             ui, "_color", False
-        ), contextlib.redirect_stdout(
-            out
-        ):
+        ), contextlib.redirect_stdout(out):
             shell_common.grade_exercise(
                 sh,
                 "py_inter",
@@ -473,9 +516,7 @@ class FinishAndBlindTests(_TempDataDir):
             sh, "prepare_grading", return_value=job
         ), mock.patch.object(ui, "_rich", False), mock.patch.object(
             ui, "_color", False
-        ), contextlib.redirect_stdout(
-            out
-        ):
+        ), contextlib.redirect_stdout(out):
             shell_common.grade_exercise(
                 sh, "py_inter", random.Random(0), _cfg(sh), mode="exam"
             )
@@ -492,9 +533,7 @@ class RunTuiTests(unittest.TestCase):
         args = argparse.Namespace(exam=False, practice="")
         with mock.patch(
             "examshell.tui.available", return_value=True
-        ), mock.patch(
-            "examshell.tui.run", return_value=0
-        ) as run:
+        ), mock.patch("examshell.tui.run", return_value=0) as run:
             code = shell_common.run_tui(py_shell, _cfg(py_shell), args)
             self.assertEqual(code, 0)
             self.assertEqual(run.call_args[0][2], "practice")
@@ -503,9 +542,7 @@ class RunTuiTests(unittest.TestCase):
         args = argparse.Namespace(exam=False, practice="py_inter")
         with mock.patch(
             "examshell.tui.available", return_value=True
-        ), mock.patch(
-            "examshell.tui.run", return_value=0
-        ) as run:
+        ), mock.patch("examshell.tui.run", return_value=0) as run:
             code = shell_common.run_tui(py_shell, _cfg(py_shell), args)
             self.assertEqual(code, 0)
             self.assertEqual(run.call_args[0][2], ("practice", "py_inter"))

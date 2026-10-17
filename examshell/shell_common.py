@@ -307,6 +307,8 @@ def archive_exam_solutions(sh: Tester, cfg: TesterConfig) -> Optional[str]:
     stays together. Practice-only files are left alone. Returns the folder,
     or None if there was nothing to move. The archive is a subdirectory, so
     grading and sync (both top-level only) skip it."""
+    from . import sync
+
     exam_exercises = {n for pool in sh.STANDARD_LEVELS.values() for n in pool}
     paths = [
         path
@@ -327,6 +329,7 @@ def archive_exam_solutions(sh: Tester, cfg: TesterConfig) -> Optional[str]:
     os.makedirs(folder)
     for path in paths:
         os.replace(path, os.path.join(folder, os.path.basename(path)))
+    sync.mark_removed(cfg.rendu, [os.path.basename(path) for path in paths])
     return folder
 
 
@@ -372,6 +375,9 @@ class ExamRun(object):
         quitting. A save from before `saved_at` existed resumes its clocks
         where they stopped, as it always did."""
         now = time.time()
+        for key, value in saved.get("rules", {}).items():
+            if key in session_store.EXAM_RULES and hasattr(self.cfg, key):
+                setattr(self.cfg, key, value)
         # never in the future: a save synced from a device whose clock is
         # ahead must not hand out extra time
         anchor = min(saved.get("saved_at") or now, now)
@@ -499,12 +505,27 @@ class ExamRun(object):
             self.session.current_ex,
             self.level_attempts,
             self.level_started,
+            self._saved_rules(),
         )
+
+    def _saved_rules(self) -> Dict[str, Any]:
+        return {
+            key: getattr(self.cfg, key)
+            for key in session_store.EXAM_RULES
+            if hasattr(self.cfg, key)
+        }
 
     def save_between_levels(self) -> None:
         """Save right after a level was cleared — the next one isn't drawn
         yet."""
-        session_store.save(self.sh.TOOL, self.session, self.rng, None, 0)
+        session_store.save(
+            self.sh.TOOL,
+            self.session,
+            self.rng,
+            None,
+            0,
+            rules=self._saved_rules(),
+        )
 
     def discard_save(self) -> None:
         session_store.clear(self.sh.TOOL)
@@ -714,7 +735,7 @@ def exam_mode(sh: Tester, cfg: TesterConfig) -> None:
     session = run.session
     _screen(sh)
 
-    saved = session_store.load(sh.TOOL)
+    saved = session_store.load(sh.TOOL, sh.STANDARD_LEVELS)
     if saved:
         try:
             resume = ui.confirm(

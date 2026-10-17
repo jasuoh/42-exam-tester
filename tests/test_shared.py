@@ -8,6 +8,7 @@ touches the student's real ~/.examshell/."""
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import random
 import tempfile
@@ -379,6 +380,45 @@ class SessionStoreTests(unittest.TestCase):
         with open(path, "w", encoding="utf-8") as fh:
             fh.write("{not json")
         self.assertIsNone(session_store.load("py"))
+
+    def test_load_rejects_invalid_values_without_removing_the_save(
+        self,
+    ) -> None:
+        session_store.save(
+            "py", self._session(), random.Random(1), "py_hidenp"
+        )
+        valid = session_store.load("py")
+        assert valid is not None
+        invalid = {
+            "rng_state": [],
+            "level": "3",
+            "login": [],
+            "current_ex": [],
+            "passed": [False],
+            "history": [[1]],
+            "attempts": -1,
+            "level_attempts": True,
+            "elapsed_seconds": float("nan"),
+            "level_elapsed_seconds": float("inf"),
+            "saved_at": "yesterday",
+            "rules": {"timeout": 0},
+        }
+        for key, value in invalid.items():
+            with self.subTest(key=key):
+                path = session_store._path("py")
+                with open(path, "w", encoding="utf-8") as fh:
+                    json.dump(dict(valid, **{key: value}), fh)
+                self.assertIsNone(session_store.load("py"))
+                self.assertTrue(os.path.isfile(path))
+
+    def test_load_rejects_unknown_exercise_or_level_for_the_active_bank(
+        self,
+    ) -> None:
+        session_store.save(
+            "py", self._session(), random.Random(1), "py_hidenp"
+        )
+        self.assertIsNone(session_store.load("py", {1: ["py_inter"]}))
+        self.assertIsNone(session_store.load("py", {3: ["py_inter"]}))
 
     def test_clear_removes_the_file(self) -> None:
         session = self._session()

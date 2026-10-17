@@ -555,6 +555,7 @@ class PickerScreen(AppScreen[None]):
                 key=name,
             )
         if not table.row_count:
+            self.previewing = ""
             pane = self.query_one("#preview-pane")
             pane.border_title = pane.border_subtitle = None
             self.query_one("#preview", Copyable).update(
@@ -885,7 +886,7 @@ class ExamScreen(SplitScreen):
         app = self.app
         self.run = shell_common.ExamRun(app.sh, app.cfg)
         self.set_results(render.waiting_view("Starting the exam …"))
-        saved = session_store.load(app.sh.TOOL)
+        saved = session_store.load(app.sh.TOOL, app.sh.STANDARD_LEVELS)
         if saved:
             question = "Resume your saved exam for [b]%s[/b] — level %d?" % (
                 saved["login"],
@@ -1356,7 +1357,7 @@ class ExamShellApp(App[None]):
                 self.copy_to_clipboard(text)
                 self.notify("Copied", timeout=2)
             elif choice and choice.startswith("lang:"):
-                self.set_subject_lang(choice[len("lang:"):])
+                self.set_subject_lang(choice.partition(":")[2])
 
         self.push_screen(ContextMenu(options, (x, y)), picked)
         return True

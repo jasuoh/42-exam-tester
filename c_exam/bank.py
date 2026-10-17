@@ -371,6 +371,7 @@ EXERCISES: Dict[str, Exercise] = {
         "prototype": "char *ft_strcpy(char *s1, char *s2);",
         "args": ["buf", "str"],
         "returns": "str",
+        "in_place_arg": 0,
         "forbidden": ["strcpy"],
         "hint": (
             "The terminating null byte has to be copied too, not "
@@ -1318,6 +1319,7 @@ EXERCISES: Dict[str, Exercise] = {
         "prototype": "char *ft_strrev(char *str);",
         "args": ["buf"],
         "returns": "str",
+        "in_place_arg": 0,
         "hint": (
             "Watch the empty-string case: computing the last index "
             "as strlen(str) - 1 without checking for length 0 first "
