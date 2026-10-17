@@ -1,0 +1,11 @@
+Escribe una función que determine si dos cadenas son permutaciones
+la una de la otra. DISTINGUE MAYÚSCULAS DE MINÚSCULAS. Los espacios
+en blanco y los signos de puntuación cuentan como caracteres
+normales. Dos cadenas vacías son permutaciones.
+
+    def string_permutation_checker(s1: str, s2: str) -> bool:
+
+Ejemplos:
+    string_permutation_checker("abc", "bca") -> True
+    string_permutation_checker("Abc", "abc") -> False
+    string_permutation_checker("", "")       -> True

@@ -1,0 +1,11 @@
+Recibes una lista de n enteros distintos tomados del rango 0..n
+(ambos incluidos) en la que falta exactamente uno, en cualquier
+orden. Devuelve el número que falta.
+
+    def missing_number(lst: list[int]) -> int:
+
+Ejemplos:
+    missing_number([3, 0, 1])                 -> 2
+    missing_number([9,6,4,2,3,5,7,0,1])        -> 8
+    missing_number([0])                        -> 1
+    missing_number([1])                         -> 0

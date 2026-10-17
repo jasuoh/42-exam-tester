@@ -1,0 +1,11 @@
+Écrivez une fonction qui vérifie si deux chaînes sont des
+anagrammes. Elles doivent contenir exactement les mêmes lettres en
+mêmes quantités, sans tenir compte de la casse ni des espaces.
+
+    def anagram(s1: str, s2: str) -> bool:
+
+Exemples :
+    anagram("listen", "silent")        -> True
+    anagram("Dormitory", "Dirty Room") -> True
+    anagram("hello", "world")          -> False
+    anagram("", "")                    -> True

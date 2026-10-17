@@ -1,0 +1,15 @@
+Escribe una función que construya una matriz de n x n rellena con
+los números 1..n² en orden de espiral en el sentido de las agujas
+del reloj.
+
+    def generate_spiral(n: int) -> list[list[int]]:
+
+La espiral empieza en la celda superior izquierda (0, 0) yendo
+hacia la derecha, luego hacia abajo, luego hacia la izquierda y
+luego hacia arriba, girando hacia dentro. Un n de 0 o menos da una
+lista vacía.
+
+Ejemplos:
+    generate_spiral(3) -> [[1, 2, 3], [8, 9, 4], [7, 6, 5]]
+    generate_spiral(1) -> [[1]]
+    generate_spiral(0) -> []

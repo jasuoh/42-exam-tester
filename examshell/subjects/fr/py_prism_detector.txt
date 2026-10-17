@@ -1,0 +1,29 @@
+Écrivez une fonction qui trouve toutes les occurrences d'un motif dans
+une grille 2D de caractères, dans les 8 directions.
+
+    def prism_detector(grid: list[str], pattern: str) -> list[tuple]:
+
+Les directions (dx, dy) et le code renvoyé pour chacune, dans cet
+ordre :
+
+    (1, 0)    "H"     horizontale, vers la droite
+    (-1, 0)   "H-"    horizontale, vers la gauche
+    (0, 1)    "V"     verticale, vers le bas
+    (0, -1)   "V-"    verticale, vers le haut
+    (1, 1)    "D1"    diagonale, vers le bas à droite
+    (-1, -1)  "D1-"   diagonale, vers le haut à gauche
+    (-1, 1)   "D2"    diagonale, vers le haut à droite
+    (1, -1)   "D2-"   diagonale, vers le bas à gauche
+
+· Renvoyez une liste de tuples (x, y, direction_code), un par
+  correspondance, où x est la colonne et y la ligne du PREMIER
+  caractère du motif.
+· Parcourez la grille ligne par ligne, de gauche à droite, et essayez
+  les directions dans l'ordre indiqué ci-dessus.
+· Renvoyez [] si la grille ou le motif est vide.
+
+Exemples :
+    prism_detector(["CAT", "A..", "T.."], "CAT")
+        -> [(0, 0, "H"), (0, 0, "V")]
+    prism_detector([], "CAT")   -> []
+    prism_detector(["CAT"], "") -> []

@@ -1,0 +1,11 @@
+Écrivez une fonction qui transforme un texte en leetspeak en
+remplaçant les voyelles par des chiffres :
+a/A -> 4, e/E -> 3, i/I -> 1, o/O -> 0. 'u'/'U' et tous les autres
+caractères restent inchangés, casse comprise.
+
+    def leet_speak(text: str) -> str:
+
+Exemples :
+    leet_speak("hello")  -> "h3ll0"
+    leet_speak("aeiou")  -> "4310u"
+    leet_speak("")       -> ""

@@ -1,0 +1,10 @@
+Écrivez un PROGRAMME qui prend un nombre positif ou nul en base 10 et
+l'affiche en base 16 (chiffres en minuscules, sans zéros initiaux),
+suivi d'un retour à la ligne. Si argc != 2, affichez seulement un
+retour à la ligne.
+
+Exemples :
+    ./print_hex 255  -> ff
+    ./print_hex 4096 -> 1000
+
+    int main(int argc, char **argv);

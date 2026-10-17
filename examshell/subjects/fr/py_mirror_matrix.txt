@@ -1,0 +1,8 @@
+Étant donné une matrice 2D (liste de listes), renvoyez une NOUVELLE
+matrice dans laquelle chaque ligne est inversée.
+
+    def mirror_matrix(matrix: list[list[int]]) -> list[list[int]]:
+
+Exemples :
+    mirror_matrix([[1,2,3],[4,5,6]]) -> [[3,2,1],[6,5,4]]
+    mirror_matrix([[7]])             -> [[7]]

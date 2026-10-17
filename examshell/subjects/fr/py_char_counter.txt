@@ -1,0 +1,10 @@
+Écrivez une fonction qui compte le nombre de fois qu'un caractère
+apparaît dans une chaîne. ch est toujours un seul caractère ; la
+comparaison est sensible à la casse.
+
+    def char_counter(text: str, ch: str) -> int:
+
+Exemples :
+    char_counter("hello", "l")        -> 2
+    char_counter("Hello World", "o")  -> 2
+    char_counter("", "a")              -> 0

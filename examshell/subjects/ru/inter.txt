@@ -1,0 +1,11 @@
+Напишите ПРОГРАММУ, которая принимает две строки и выводит без
+повторов символы, встречающиеся в ОБЕИХ строках, в том порядке, в
+котором они появляются в первой, а затем символ новой строки. Если
+argc != 3, выведите только символ новой строки.
+
+Примеры:
+    ./inter "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" -> padinto
+    ./inter "ddf6vewg64f" "gtwthgdwthdwfteewhrtag6h4ffdhsd" -> df6ewg4
+    ./inter "rien" "cette phrase ne cache rien" -> rien
+
+    int main(int argc, char **argv);

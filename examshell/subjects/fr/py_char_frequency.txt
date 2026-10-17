@@ -1,0 +1,12 @@
+Écrivez une fonction qui renvoie le caractère le plus fréquent d'une
+chaîne (sensible à la casse). Si plusieurs caractères sont à égalité
+pour le nombre d'occurrences le plus élevé, renvoyez celui qui
+atteint ce nombre en premier en parcourant la chaîne de gauche à
+droite. Pour une chaîne vide, renvoyez "".
+
+    def char_frequency(text: str) -> str:
+
+Exemples :
+    char_frequency("aabbb")  -> "b"
+    char_frequency("aabb")   -> "a"
+    char_frequency("")       -> ""

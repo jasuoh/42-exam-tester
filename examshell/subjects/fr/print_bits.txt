@@ -1,0 +1,9 @@
+Écrivez une fonction qui affiche un octet en binaire (8 caractères,
+'0' ou '1'), bit de poids fort en premier, SANS retour à la ligne
+final.
+
+Exemples :
+    print_bits(2)   -> prints: 00000010
+    print_bits(255) -> prints: 11111111
+
+    void print_bits(unsigned char octet);

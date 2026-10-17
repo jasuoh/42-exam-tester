@@ -1,0 +1,10 @@
+Напишите функцию, которая проверяет, является ли целое число простым.
+Числа меньше 2 (0, 1 и все отрицательные числа) простыми не являются.
+
+    def prime_finder(n: int) -> bool:
+
+Примеры:
+    prime_finder(2)   -> True
+    prime_finder(17)  -> True
+    prime_finder(1)   -> False
+    prime_finder(100) -> False

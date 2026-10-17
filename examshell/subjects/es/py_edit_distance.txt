@@ -1,0 +1,10 @@
+Escribe una función que devuelva el número mínimo de inserciones,
+eliminaciones o sustituciones de un solo carácter necesarias para
+transformar s1 en s2 (la clásica distancia de Levenshtein).
+
+    def edit_distance(s1: str, s2: str) -> int:
+
+Ejemplos:
+    edit_distance("horse", "ros")            -> 3
+    edit_distance("intention", "execution")  -> 5
+    edit_distance("", "abc")                  -> 3

@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend deux chaînes représentant deux entiers
+strictement positifs et affiche leur plus grand commun diviseur,
+suivi d'un retour à la ligne. Si argc != 3, affichez seulement un
+retour à la ligne.
+
+Exemples :
+    ./pgcd 42 10 -> 2
+    ./pgcd 42 12 -> 6
+    ./pgcd 17 3  -> 1
+
+    int main(int argc, char **argv);

@@ -1,0 +1,10 @@
+Escribe un PROGRAMA que reciba una cadena y la muestre con cada
+letra reflejada en el alfabeto ('a' <-> 'z', 'b' <-> 'y', ...),
+sin cambiar mayúsculas ni minúsculas, seguida de un salto de línea.
+Si argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./alpha_mirror "abc" -> zyx
+    ./alpha_mirror "Hi!" -> Sr!
+
+    int main(int argc, char **argv);

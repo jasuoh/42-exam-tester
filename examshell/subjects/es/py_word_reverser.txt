@@ -1,0 +1,11 @@
+Escribe una función que invierta cada palabra de una frase pero
+mantenga las palabras en su orden original. Las palabras están
+separadas por un único espacio; las secuencias de varios espacios
+producen palabras vacías que siguen vacías.
+
+    def word_reverser(text: str) -> str:
+
+Ejemplos:
+    word_reverser("hello world")  -> "olleh dlrow"
+    word_reverser("Python Exam")  -> "nohtyP maxE"
+    word_reverser("")             -> ""

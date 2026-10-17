@@ -1,0 +1,7 @@
+Escribe una función que intercambie el contenido de dos enteros
+cuyas direcciones se pasan como parámetros.
+
+Ejemplos:
+    ft_swap(&a, &b)  where a=5, b=10 -> a becomes 10, b becomes 5
+
+    void ft_swap(int *a, int *b);

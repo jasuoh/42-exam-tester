@@ -1,0 +1,9 @@
+Escribe una función que devuelva la suma de los cuadrados de todos
+los números de una lista. Una lista vacía devuelve 0.
+
+    def sum_of_squares(lst: list[int]) -> int:
+
+Ejemplos:
+    sum_of_squares([1,2,3]) -> 14
+    sum_of_squares([])      -> 0
+    sum_of_squares([-3])    -> 9

@@ -1,0 +1,22 @@
+Écrivez une fonction qui détermine le nombre minimal de salles de
+réunion nécessaires pour une liste de réunions, et quelle réunion va
+dans quelle salle.
+
+    def schedule_meetings(intervals: list[tuple[int, int]]) -> tuple[int, list]:
+
+· Chaque réunion est un tuple (start_time, end_time).
+· Parcourez les réunions par ordre d'heure de début et placez
+  chacune dans la PREMIÈRE salle déjà libre (une salle est libre
+  quand sa dernière réunion se termine au plus tard au moment où
+  celle-ci commence) ; n'ouvrez une nouvelle salle que si aucune
+  salle existante n'est libre.
+· Renvoyez un tuple (num_rooms, rooms), où rooms est une liste de
+  listes contenant les réunions de chaque salle dans l'ordre où elles
+  ont été attribuées.
+· Une entrée vide renvoie (0, []).
+
+Exemples :
+    schedule_meetings([(0,30), (5,10), (15,20)])
+        -> (2, [[(0, 30)], [(5, 10), (15, 20)]])
+    schedule_meetings([])                    -> (0, [])
+    schedule_meetings([(0,5), (5,10)])       -> (1, [[(0, 5), (5, 10)]])

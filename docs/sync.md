@@ -99,6 +99,18 @@ auto-sync is on.
 You never have to resolve a git conflict yourself: the tester combines both
 sides on its own, then pushes.
 
+Starting a new exam archives your old solutions locally. Sync remembers
+that removal and keeps the active solution folder clear on other devices
+too. Deleting a previously synced file has the same effect. A file removed
+on another device is backed up before sync removes it here; an edit newer
+than the removal wins. New files on a newly connected device still download
+normally. Keep each solution folder's hidden `.examshell-sync.json` file:
+it remembers which files were synced or archived. Use an updated tester on
+every device so all of them understand removals.
+
+A paused exam carries its own time limit and grading rules. Your device's
+saved settings continue to apply to new exams.
+
 ## When something goes wrong
 
 | Message | Fix |

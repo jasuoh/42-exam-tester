@@ -1,0 +1,11 @@
+Écrivez une fonction qui décode une chaîne encodée par plages
+(run-length) : chaque caractère est suivi d'une suite de chiffres qui
+indique son nombre de répétitions (ce nombre peut comporter plus d'un
+chiffre).
+
+    def run_length_decoder(text: str) -> str:
+
+Exemples :
+    run_length_decoder("a3b2c1")  -> "aaabbc"
+    run_length_decoder("z10")     -> "zzzzzzzzzz"
+    run_length_decoder("")        -> ""

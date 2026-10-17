@@ -1,0 +1,12 @@
+Écrivez une fonction qui fait pivoter un tableau de k positions vers
+la DROITE. Pivoter de k vers la droite signifie que les k derniers
+éléments passent au début. k n'est jamais négatif mais peut être plus
+grand que la longueur du tableau. Renvoyez une NOUVELLE liste ; ne
+modifiez pas celle que vous avez reçue.
+
+    def twist_sequence(arr: list[int], k: int) -> list[int]:
+
+Exemples :
+    twist_sequence([1,2,3,4,5], 2) -> [4,5,1,2,3]
+    twist_sequence([1,2,3], 5)     -> [2,3,1]
+    twist_sequence([], 3)          -> []

@@ -1,0 +1,13 @@
+Напишите функцию, которая возвращает самую длинную непрерывную
+подстроку, читающуюся одинаково слева направо и справа налево.
+Сравнение учитывает регистр. Если несколько подстрок имеют
+максимальную длину, верните ту, что начинается раньше. Для пустой
+строки возвращается "".
+
+    def longest_palindromic_substring(text: str) -> str:
+
+Примеры:
+    longest_palindromic_substring("babad")     -> "bab"
+    longest_palindromic_substring("cbbd")      -> "bb"
+    longest_palindromic_substring("racecar")   -> "racecar"
+    longest_palindromic_substring("")          -> ""

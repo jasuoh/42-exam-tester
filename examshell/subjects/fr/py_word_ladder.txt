@@ -1,0 +1,19 @@
+Écrivez une fonction qui renvoie la longueur de la PLUS COURTE
+suite de transformations qui change `start` en `end`.
+
+    def word_ladder(start: str, end: str, sentence: list[str]) -> int:
+
+· Chaque étape change exactement un caractère.
+· Chaque mot par lequel vous passez (y compris le mot final) doit se
+  trouver dans `sentence` ; le mot de départ n'a pas besoin d'y être.
+· Renvoyez le nombre de mots de la plus courte échelle, en comptant
+  `start` et `end`.
+· Renvoyez 0 quand aucune suite de ce type n'existe — y compris quand
+  `end` n'est pas du tout dans `sentence`.
+· Quand `start` et `end` sont le même mot (et qu'il est dans
+  `sentence`), l'échelle se compose de ce seul mot : renvoyez 1.
+
+Exemples :
+    word_ladder("hit", "cog", ["hot","dot","dog","lot","log","cog"]) -> 5
+    word_ladder("hit", "cog", ["hot","dot","dog","lot","log"])       -> 0
+    word_ladder("hit", "hot", ["hot"])                               -> 2

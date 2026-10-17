@@ -1,0 +1,9 @@
+Воспроизведите поведение стандартной функции strpbrk(): верните
+указатель на первый символ в s1, который также встречается где-либо
+в s2 (NULL, если такого нет).
+
+Примеры:
+    ft_strpbrk("hello", "lo") -> "llo" (points at the first 'l')
+    ft_strpbrk("hello", "xyz") -> NULL
+
+    char *ft_strpbrk(const char *s1, const char *s2);

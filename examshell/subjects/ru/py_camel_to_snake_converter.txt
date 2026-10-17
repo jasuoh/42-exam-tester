@@ -1,0 +1,13 @@
+Напишите функцию, которая преобразует строку в формате lowerCamelCase
+в snake_case: каждая заглавная буква заменяется символом
+подчёркивания, за которым следует её строчная форма. Все остальные
+символы (включая цифры и любые подчёркивания, уже имеющиеся в строке)
+остаются в точности как есть — даже заглавная буква в начале просто
+даёт подчёркивание в начале.
+
+    def camel_to_snake_converter(text: str) -> str:
+
+Примеры:
+    camel_to_snake_converter("helloWorld")   -> "hello_world"
+    camel_to_snake_converter("thisIsATest")  -> "this_is_a_test"
+    camel_to_snake_converter("single")       -> "single"

@@ -1,0 +1,12 @@
+Écrivez un PROGRAMME qui prend trois arguments : un entier en base
+10, un opérateur arithmétique (l'un de + - * / %) et un autre entier.
+Il affiche le résultat de cette opération, suivi d'un retour à la
+ligne. Les entrées sont toujours valides et le résultat tient
+toujours dans un int. Si argc != 4, affichez seulement un retour à
+la ligne.
+
+Exemples :
+    ./do_op 3 + 4  -> 7
+    ./do_op 20 / 4 -> 5
+
+    int main(int argc, char **argv);

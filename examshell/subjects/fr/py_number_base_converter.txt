@@ -1,0 +1,21 @@
+Écrivez une fonction qui convertit un nombre d'une base vers une
+autre. Les deux bases vont de 2 à 36 inclus. Les chiffres sont 0-9
+puis A-Z pour les valeurs 10-35 ; la SORTIE utilise toujours des
+lettres majuscules, l'ENTRÉE accepte les deux casses. Un '-' initial
+est autorisé, rien d'autre ne l'est : pas de '+', pas d'espaces, pas
+de tirets bas (underscores).
+
+Renvoyez la chaîne "ERROR" pour toute entrée invalide : une base hors
+de 2..36, un nombre vide, ou un chiffre qui n'existe pas dans
+`from_base`.
+
+    def number_base_converter(number: str, from_base: int, to_base: int) -> str:
+
+Exemples :
+    number_base_converter("1010", 2, 10) -> "10"
+    number_base_converter("FF", 16, 10)  -> "255"
+    number_base_converter("ff", 16, 10)  -> "255"
+    number_base_converter("255", 10, 16) -> "FF"
+    number_base_converter("-1010", 2, 10)-> "-10"
+    number_base_converter("123", 1, 10)  -> "ERROR"
+    number_base_converter("G", 16, 10)   -> "ERROR"

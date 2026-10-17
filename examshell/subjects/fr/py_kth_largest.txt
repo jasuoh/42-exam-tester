@@ -1,0 +1,11 @@
+Écrivez une fonction qui renvoie le k-ième plus grand élément d'une
+liste d'entiers (k = 1 désigne le plus grand). Les valeurs en double
+comptent individuellement. k est toujours valide :
+1 <= k <= len(lst).
+
+    def kth_largest(lst: list[int], k: int) -> int:
+
+Exemples :
+    kth_largest([3,2,1,5,6,4], 2)             -> 5
+    kth_largest([3,2,3,1,2,4,5,5,6], 4)       -> 4
+    kth_largest([7,7,7], 2)                    -> 7

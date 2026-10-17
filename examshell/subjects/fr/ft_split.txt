@@ -1,0 +1,12 @@
+Écrivez une fonction qui prend une chaîne, la découpe en mots et les
+renvoie sous forme d'un tableau de chaînes terminé par NULL. Un
+« mot » est une partie de la chaîne délimitée par des
+espaces/tabulations/retours à la ligne, ou par le début/la fin de la
+chaîne.
+
+Exemples :
+    ft_split("hello world") -> ["hello", "world"]
+    ft_split("   ")          -> []
+    ft_split("")             -> []
+
+    char **ft_split(char *str);

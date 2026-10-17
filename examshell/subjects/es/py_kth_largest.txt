@@ -1,0 +1,11 @@
+Escribe una función que devuelva el k-ésimo elemento más grande de
+una lista de enteros (k = 1 significa el mayor de todos). Los
+valores duplicados cuentan individualmente. k siempre es válido:
+1 <= k <= len(lst).
+
+    def kth_largest(lst: list[int], k: int) -> int:
+
+Ejemplos:
+    kth_largest([3,2,1,5,6,4], 2)             -> 5
+    kth_largest([3,2,3,1,2,4,5,5,6], 4)       -> 4
+    kth_largest([7,7,7], 2)                    -> 7

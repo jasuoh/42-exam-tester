@@ -1,0 +1,7 @@
+Воспроизведите поведение стандартной функции strcpy(): скопируйте
+строку s2 (включая завершающий нулевой байт) в s1 и верните s1.
+
+Примеры:
+    ft_strcpy(dest, "hello") -> dest becomes "hello", returns dest
+
+    char *ft_strcpy(char *s1, char *s2);

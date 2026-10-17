@@ -1,0 +1,12 @@
+Escribe una función que compruebe si dos cadenas son anagramas.
+Deben contener exactamente las mismas letras en las mismas
+cantidades, sin distinguir mayúsculas de minúsculas e ignorando
+los espacios.
+
+    def anagram(s1: str, s2: str) -> bool:
+
+Ejemplos:
+    anagram("listen", "silent")        -> True
+    anagram("Dormitory", "Dirty Room") -> True
+    anagram("hello", "world")          -> False
+    anagram("", "")                    -> True

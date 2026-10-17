@@ -1,0 +1,16 @@
+Escribe una función que ordene la lista recibida como parámetro,
+usando el puntero a función `cmp` para elegir el orden, y devuelva
+un puntero al primer elemento de la lista ordenada. Los duplicados
+deben conservarse. `cmp` devuelve un valor != 0 cuando sus dos
+argumentos ya están en el orden correcto, y 0 en caso contrario.
+Por ejemplo, esto ordena de forma ascendente:
+
+    int ascending(int a, int b) { return (a <= b); }
+
+Debes usar el tipo t_list descrito en list.h (proporcionado).
+
+Ejemplos:
+    sort_list([5,3,1,4,2], ascending) -> [1,2,3,4,5]
+    sort_list([], ascending)           -> []
+
+    t_list *sort_list(t_list *lst, int (*cmp)(int, int));

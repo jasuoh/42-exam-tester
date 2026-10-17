@@ -1,0 +1,9 @@
+Écrivez une fonction qui prend un octet, l'inverse bit à bit et
+renvoie le résultat. Par exemple, 0010 0110 devient 0110 0100.
+
+Exemples :
+    reverse_bits(38)  -> 100   # 00100110 -> 01100100
+    reverse_bits(170) -> 85    # 10101010 -> 01010101
+    reverse_bits(0)   -> 0
+
+    unsigned char reverse_bits(unsigned char octet);

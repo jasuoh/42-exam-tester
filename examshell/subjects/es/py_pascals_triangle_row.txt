@@ -1,0 +1,11 @@
+Escribe una función que devuelva la fila n (empezando en 0) del
+triángulo de Pascal, donde la fila 0 es [1] y cada una de las demás
+filas empieza y termina en 1, y cada valor interior es la suma de
+los dos valores que tiene encima.
+
+    def pascals_triangle_row(n: int) -> list[int]:
+
+Ejemplos:
+    pascals_triangle_row(0) -> [1]
+    pascals_triangle_row(3) -> [1, 3, 3, 1]
+    pascals_triangle_row(4) -> [1, 4, 6, 4, 1]

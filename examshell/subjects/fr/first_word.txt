@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend une chaîne et affiche son premier mot
+(délimité par des blancs), suivi d'un retour à la ligne. Un mot est
+une suite de caractères située entre des espaces/tabulations (ou le
+début/la fin de la chaîne). Si argc != 2, ou s'il n'y a aucun mot,
+affichez seulement un retour à la ligne.
+
+Exemples :
+    ./first_word "hello world" -> hello
+    ./first_word "   "          -> (just a newline)
+
+    int main(int argc, char **argv);

@@ -1,0 +1,9 @@
+Напишите функцию, которая возвращает количество пар индексов (i, j),
+i < j, для которых arr[i] > arr[j], — то есть насколько массив далёк
+от отсортированного.
+
+Примеры:
+    count_inversions([4,3,2,1], 4) -> 6   (every pair)
+    count_inversions([1,2,3,4], 4) -> 0   (already sorted)
+
+    int count_inversions(int *arr, unsigned int size);

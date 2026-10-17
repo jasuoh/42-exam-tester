@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend une chaîne et l'affiche après une
+rotation d'un mot vers la gauche : le premier mot passe à la fin, les
+autres conservent leur ordre, séparés par un seul espace, suivis d'un
+retour à la ligne. Si argc != 2, affichez seulement un retour à la
+ligne.
+
+Exemples :
+    ./rostring "one two three" -> two three one
+    ./rostring "single"         -> single
+
+    int main(int argc, char **argv);

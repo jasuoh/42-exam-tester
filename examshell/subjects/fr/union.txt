@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend deux chaînes et affiche, sans
+doublons, chaque caractère présent dans l'une ou l'autre, dans
+l'ordre de sa première apparition (en parcourant la première chaîne
+puis la seconde), suivis d'un retour à la ligne. Si argc != 3,
+affichez seulement un retour à la ligne.
+
+Exemples :
+    ./union "abc" "bcd" -> abcd
+    ./union "aaa" "aaa" -> a
+
+    int main(int argc, char **argv);

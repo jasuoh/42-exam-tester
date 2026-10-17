@@ -1,0 +1,8 @@
+Escribe un PROGRAMA que reciba una cadena y la muestre invertida,
+seguida de un salto de línea. Si argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./rev_print "abc"         -> cba
+    ./rev_print "hello world" -> dlrow olleh
+
+    int main(int argc, char **argv);

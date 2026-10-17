@@ -39,6 +39,10 @@ dev = [
 # never installed.
 packages = ["examshell", "examshell.tui", "c_exam"]
 
+[tool.setuptools.package-data]
+# the translated subjects (examshell/subject_lang.py)
+examshell = ["subjects/*/*.txt"]
+
 [tool.ruff]
 line-length = 79
 target-version = "py38"

@@ -1,0 +1,13 @@
+Escribe una función que devuelva la subcadena contigua más larga
+que se lee igual de izquierda a derecha que de derecha a izquierda.
+La comparación distingue mayúsculas de minúsculas. Si varias
+subcadenas tienen la longitud máxima, devuelve la que empieza
+antes. Una cadena vacía devuelve "".
+
+    def longest_palindromic_substring(text: str) -> str:
+
+Ejemplos:
+    longest_palindromic_substring("babad")     -> "bab"
+    longest_palindromic_substring("cbbd")      -> "bb"
+    longest_palindromic_substring("racecar")   -> "racecar"
+    longest_palindromic_substring("")          -> ""

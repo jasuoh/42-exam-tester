@@ -1,0 +1,11 @@
+Escribe tu propia versión de atoi(): convierte la parte inicial de
+la cadena en un int, saltando los espacios en blanco iniciales y
+respetando un '+' o '-' inicial opcional.
+
+Ejemplos:
+    ft_atoi("42")       -> 42
+    ft_atoi("   -17")   -> -17
+    ft_atoi("+123abc")  -> 123
+    ft_atoi("abc")      -> 0
+
+    int ft_atoi(const char *str);

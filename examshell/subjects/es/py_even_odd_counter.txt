@@ -1,0 +1,11 @@
+Escribe una función que cuente cuántos números pares y cuántos
+impares hay en una lista de enteros.
+
+    def even_odd_counter(lst: list[int]) -> list[int]:
+
+Devuelve una lista [even_count, odd_count].
+
+Ejemplos:
+    even_odd_counter([1,2,3,4,5]) -> [2, 3]
+    even_odd_counter([])          -> [0, 0]
+    even_odd_counter([-4,-2,0])   -> [3, 0]

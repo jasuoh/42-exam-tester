@@ -1,0 +1,8 @@
+Écrivez une fonction qui renvoie le plus grand élément d'un tableau
+d'int. Pour un tableau vide, renvoyez 0.
+
+Exemples :
+    find_max([3,1,4,1,5,9,2,6], 8) -> 9
+    find_max([], 0)                -> 0
+
+    int find_max(int *arr, unsigned int size);

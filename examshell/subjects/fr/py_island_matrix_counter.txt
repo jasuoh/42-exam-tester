@@ -1,0 +1,22 @@
+Écrivez une fonction qui compte les îles d'une matrice 2D composée
+des chaînes "1" (terre) et "0" (eau).
+
+    def island_matrix_counter(matrix: list[list[str]]) -> int:
+
+· Une île est un groupe de cases "1" reliées horizontalement ou
+  verticalement. Les voisines en diagonale ne sont PAS reliées.
+· Comptez chaque île distincte exactement une fois.
+· Une matrice vide (ou sans aucune ligne) renvoie 0.
+· Ne modifiez pas la matrice reçue — faites-en votre propre copie ou
+  tenez votre propre ensemble de cases visitées.
+
+Exemples :
+    island_matrix_counter([["1","1","1","1","0"],
+                           ["1","1","1","0","0"],
+                           ["1","1","1","1","0"],
+                           ["0","0","0","0","0"]]) -> 1
+    island_matrix_counter([["1","1","0","0","0"],
+                           ["1","1","0","0","0"],
+                           ["0","0","1","0","0"],
+                           ["0","0","0","1","1"]]) -> 3
+    island_matrix_counter([])                       -> 0

@@ -1,0 +1,12 @@
+Escribe una función que cree un cifrado César desplazando las
+letras una cantidad dada. Los caracteres no alfabéticos no cambian.
+El desplazamiento puede ser negativo (desplazamiento hacia la
+izquierda).
+
+    def whisper_cipher(text: str, shift: int) -> str:
+
+Ejemplos:
+    whisper_cipher("hello", 3)        -> "khoor"
+    whisper_cipher("Hello World!", 1) -> "Ifmmp Xpsme!"
+    whisper_cipher("xyz", 3)          -> "abc"
+    whisper_cipher("abc", -3)         -> "xyz"

@@ -1,0 +1,15 @@
+Étant donné une chaîne, trouvez le nombre MINIMAL de coupes
+nécessaires pour la découper de sorte que chaque morceau obtenu soit
+un palindrome.
+
+    def palindrome_partitioner(s: str) -> int:
+
+· Renvoyez le nombre de coupes, sous forme d'entier.
+· Une chaîne qui est déjà un palindrome nécessite 0 coupe.
+· Une chaîne d'un seul caractère nécessite 0 coupe, tout comme une
+  chaîne vide.
+
+Exemples :
+    palindrome_partitioner("aab") -> 1     # "aa" | "b"
+    palindrome_partitioner("aba") -> 0     # already a palindrome
+    palindrome_partitioner("abc") -> 2     # "a" | "b" | "c"

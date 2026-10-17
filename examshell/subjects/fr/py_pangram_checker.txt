@@ -1,0 +1,11 @@
+Écrivez une fonction qui vérifie si une chaîne est un pangramme :
+elle doit contenir chaque lettre de l'alphabet au moins une fois,
+sans tenir compte de la casse. Les caractères qui ne sont pas des
+lettres sont ignorés.
+
+    def pangram_checker(text: str) -> bool:
+
+Exemples :
+    pangram_checker("The quick brown fox jumps over the lazy dog") -> True
+    pangram_checker("hello world")                                -> False
+    pangram_checker("")                                           -> False

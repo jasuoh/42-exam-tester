@@ -1,0 +1,12 @@
+Écrivez un PROGRAMME qui prend une chaîne et l'affiche en répétant
+chaque caractère alphabétique autant de fois que son rang dans
+l'alphabet ('a' -> 'a', 'b' -> 'bb', 'e' -> 'eeeee', ...). La casse
+et les caractères qui ne sont pas des lettres ne sont pas modifiés.
+Le tout est suivi d'un retour à la ligne. Si argc != 2, affichez
+seulement un retour à la ligne.
+
+Exemples :
+    ./repeat_alpha "abc"  -> abbccc
+    ./repeat_alpha "Alex." -> Alllllllllllleeeeexxxxxxxxxxxxxxxxxxxxxxxx.
+
+    int main(int argc, char **argv);

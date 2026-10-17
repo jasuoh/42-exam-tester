@@ -1,0 +1,13 @@
+Écrivez un PROGRAMME qui prend deux chaînes et vérifie si la première
+peut être écrite à l'aide de caractères de la seconde, dans l'ordre
+(pas nécessairement de façon consécutive — c'est-à-dire si la
+première est une sous-séquence de la seconde). Si c'est le cas,
+affichez la première chaîne, suivie d'un retour à la ligne ; sinon,
+affichez seulement un retour à la ligne. Si argc != 3, affichez
+seulement un retour à la ligne.
+
+Exemples :
+    ./wdmatch "abc" "xaxbxc" -> abc
+    ./wdmatch "abc" "xbxax"  -> (just a newline)
+
+    int main(int argc, char **argv);

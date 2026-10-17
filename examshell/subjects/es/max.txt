@@ -1,0 +1,8 @@
+Escribe una función que devuelva el número más grande de un array
+de `len` enteros. Un array vacío (len == 0) devuelve 0.
+
+Ejemplos:
+    max([3,7,2,9,4], 5) -> 9
+    max([], 0)          -> 0
+
+    int max(int *tab, unsigned int len);

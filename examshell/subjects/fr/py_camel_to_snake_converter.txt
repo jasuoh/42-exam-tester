@@ -1,0 +1,13 @@
+Écrivez une fonction qui convertit une chaîne en lowerCamelCase en
+snake_case : chaque lettre majuscule est remplacée par un underscore
+suivi de sa forme minuscule. Tout autre caractère (y compris les
+chiffres et les underscores déjà présents dans la chaîne) est laissé
+exactement tel quel — même une majuscule initiale produit
+simplement un underscore initial.
+
+    def camel_to_snake_converter(text: str) -> str:
+
+Exemples :
+    camel_to_snake_converter("helloWorld")   -> "hello_world"
+    camel_to_snake_converter("thisIsATest")  -> "this_is_a_test"
+    camel_to_snake_converter("single")       -> "single"

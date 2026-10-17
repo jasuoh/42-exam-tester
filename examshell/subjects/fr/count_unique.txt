@@ -1,0 +1,8 @@
+Écrivez une fonction qui renvoie le nombre de valeurs DISTINCTES
+présentes dans un tableau d'int.
+
+Exemples :
+    count_unique([1,2,2,3,3,3], 6) -> 3
+    count_unique([], 0)            -> 0
+
+    int count_unique(int *arr, unsigned int size);

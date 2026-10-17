@@ -1,0 +1,12 @@
+Escribe una función que compruebe si los paréntesis de una cadena
+son válidos. Válido significa que cada paréntesis de apertura tiene
+su paréntesis de cierre correspondiente, en el orden correcto.
+Paréntesis admitidos: (), [], {}. Los demás caracteres se ignoran.
+
+    def bracket_validator(s: str) -> bool:
+
+Ejemplos:
+    bracket_validator("()[]{}")       -> True
+    bracket_validator("([)]")         -> False
+    bracket_validator("hello(world)") -> True
+    bracket_validator("")             -> True

@@ -1,0 +1,14 @@
+Напишите функцию, которая проверяет, является ли строка палиндромом.
+Учитываются только буквенные символы: регистр, пробелы, цифры и знаки
+препинания игнорируются. Если для сравнения не остаётся ни одной
+буквы (пустая строка, "42", "!!!", …), ответ — False.
+
+    def echo_validator(text: str) -> bool:
+
+Примеры:
+    echo_validator("racecar")                     -> True
+    echo_validator("A man a plan a canal Panama") -> True
+    echo_validator("No lemon, no melon")          -> True
+    echo_validator("race a car")                  -> False
+    echo_validator("")                            -> False
+    echo_validator("12 21")                       -> False

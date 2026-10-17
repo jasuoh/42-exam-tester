@@ -1,0 +1,10 @@
+Escribe una función que convierta un texto a leetspeak sustituyendo
+las vocales por dígitos: a/A -> 4, e/E -> 3, i/I -> 1, o/O -> 0.
+'u'/'U' y cualquier otro carácter no cambian, mayúsculas incluidas.
+
+    def leet_speak(text: str) -> str:
+
+Ejemplos:
+    leet_speak("hello")  -> "h3ll0"
+    leet_speak("aeiou")  -> "4310u"
+    leet_speak("")       -> ""

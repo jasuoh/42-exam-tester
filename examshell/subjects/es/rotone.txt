@@ -1,0 +1,15 @@
+Escribe un PROGRAMA (tu propio main(), argc/argv, no una función a
+la que llama otro) que reciba una cadena y la muestre sustituyendo
+cada una de sus letras por la siguiente en el orden alfabético.
+
+'z' se convierte en 'a' y 'Z' en 'A'. Las mayúsculas y minúsculas
+no cambian. La salida va seguida de un salto de línea. Si el número
+de argumentos no es exactamente 1, el programa muestra solo un
+salto de línea.
+
+Ejemplos:
+    ./rotone "abc"  -> bcd
+    ./rotone ""     -> (just a newline)
+    ./rotone a b    -> (just a newline, 2 arguments)
+
+    int main(int argc, char **argv);

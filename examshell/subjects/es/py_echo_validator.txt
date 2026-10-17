@@ -1,0 +1,15 @@
+Escribe una función que compruebe si una cadena es un palíndromo.
+Solo se tienen en cuenta los caracteres alfabéticos: se ignoran las
+mayúsculas y minúsculas, los espacios, los dígitos y los signos de
+puntuación. Si no queda ninguna letra que comparar (cadena vacía,
+"42", "!!!", …) la respuesta es False.
+
+    def echo_validator(text: str) -> bool:
+
+Ejemplos:
+    echo_validator("racecar")                     -> True
+    echo_validator("A man a plan a canal Panama") -> True
+    echo_validator("No lemon, no melon")          -> True
+    echo_validator("race a car")                  -> False
+    echo_validator("")                            -> False
+    echo_validator("12 21")                       -> False

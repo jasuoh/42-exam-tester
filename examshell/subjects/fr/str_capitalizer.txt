@@ -1,0 +1,10 @@
+Écrivez un PROGRAMME qui prend une ou plusieurs chaînes et, pour
+chacune, met en majuscule la PREMIÈRE lettre de chaque mot et le
+reste en minuscules, en affichant le résultat de chaque argument sur
+sa propre ligne. Sans argument : affichez seulement un retour à la
+ligne.
+
+Exemples :
+    ./str_capitalizer "a first test" -> A First Test
+
+    int main(int argc, char **argv);

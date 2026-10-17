@@ -1,0 +1,13 @@
+Écrivez une fonction qui prend une grille de caractères en 2D, ses
+dimensions sous forme de t_point (x = largeur, y = hauteur) et un
+point de départ. À partir de `begin`, elle remplit toute la zone
+connexe de caractères identiques (haut/bas/gauche/droite uniquement,
+jamais en diagonale) en les remplaçant par 'F'. Vous devez utiliser
+le type t_point décrit dans flood_fill.h (fourni) :
+`{ int x; int y; }`.
+
+Exemples :
+    flood_fill(["111","101","111"], {3,3}, {0,0})
+        -> ["FFF","F0F","FFF"]   # the outer ring of 1s gets filled
+
+    void flood_fill(char **tab, t_point size, t_point begin);

@@ -1,0 +1,12 @@
+Écrivez le FizzBuzz classique. Renvoyez une liste de chaînes pour
+chaque nombre de 1 à n (inclus) : "Fizz" pour les multiples de 3,
+"Buzz" pour les multiples de 5, "FizzBuzz" pour les multiples des
+deux, sinon le nombre lui-même sous forme de chaîne. Pour n = 0,
+renvoyez une liste vide.
+
+    def fizzbuzz_list(n: int) -> list[str]:
+
+Exemples :
+    fizzbuzz_list(5)  -> ["1", "2", "Fizz", "4", "Buzz"]
+    fizzbuzz_list(15)[-1] -> "FizzBuzz"
+    fizzbuzz_list(0)  -> []

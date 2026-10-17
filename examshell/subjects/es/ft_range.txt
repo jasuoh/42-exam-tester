@@ -1,0 +1,11 @@
+Escribe una función que reserve con malloc un array de int relleno
+con todos los valores consecutivos desde `start` hasta `end`,
+ambos incluidos (en orden ascendente aunque start > end: eso es
+tarea de ft_rrange), y devuelva un puntero a él.
+
+Ejemplos:
+    ft_range(1, 3)  -> [1, 2, 3]
+    ft_range(-1, 2) -> [-1, 0, 1, 2]
+    ft_range(0, 0)  -> [0]
+
+    int *ft_range(int start, int end);

@@ -1,0 +1,10 @@
+Écrivez un PROGRAMME qui prend une chaîne et inverse la casse de
+chaque lettre (les autres caractères restent inchangés), suivie d'un
+retour à la ligne. Si argc != 2, affichez seulement un retour à la
+ligne.
+
+Exemples :
+    ./ulstr "Hello World" -> hELLO wORLD
+    ./ulstr "ABCabc123"   -> abcABC123
+
+    int main(int argc, char **argv);

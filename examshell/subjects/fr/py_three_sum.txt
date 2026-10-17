@@ -1,0 +1,13 @@
+Écrivez une fonction qui trouve tous les triplets uniques d'éléments
+d'une liste dont la somme vaut zéro. Triez les trois valeurs de
+chaque triplet par ordre croissant, et triez aussi la liste externe
+des triplets par ordre croissant (c'est ce que produit naturellement
+l'approche classique « tri + deux pointeurs » — respectez exactement
+cet ordre).
+
+    def three_sum(lst: list[int]) -> list[list[int]]:
+
+Exemples :
+    three_sum([-1,0,1,2,-1,-4]) -> [[-1,-1,2], [-1,0,1]]
+    three_sum([0,0,0])          -> [[0,0,0]]
+    three_sum([1,2,-2,-1])      -> []

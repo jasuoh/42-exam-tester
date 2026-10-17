@@ -1,0 +1,11 @@
+Cada valor de la lista es la altura de una barra de histograma de
+ancho 1, todas colocadas una junto a otra. Devuelve el área del
+mayor rectángulo que cabe por completo dentro del contorno del
+histograma.
+
+    def largest_rectangle_histogram(heights: list[int]) -> int:
+
+Ejemplos:
+    largest_rectangle_histogram([2,1,5,6,2,3]) -> 10
+    largest_rectangle_histogram([2,4])           -> 4
+    largest_rectangle_histogram([])               -> 0

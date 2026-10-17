@@ -1,0 +1,9 @@
+Reproduce el comportamiento de la función estándar strcmp():
+compara dos cadenas. (Solo se evalúa el SIGNO de tu valor de
+retorno, exactamente como en la moulinette real.)
+
+Ejemplos:
+    ft_strcmp("abc", "abc") -> 0
+    ft_strcmp("abc", "abd") -> negative
+
+    int ft_strcmp(char *s1, char *s2);

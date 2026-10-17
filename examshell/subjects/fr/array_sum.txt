@@ -1,0 +1,8 @@
+Écrivez une fonction qui renvoie la somme des `size` éléments d'un
+tableau d'int. Un tableau vide a pour somme 0.
+
+Exemples :
+    array_sum([1,2,3,4,5], 5) -> 15
+    array_sum([], 0)          -> 0
+
+    int array_sum(int *arr, unsigned int size);

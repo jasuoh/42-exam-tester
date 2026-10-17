@@ -1,0 +1,9 @@
+Écrivez un PROGRAMME qui prend une chaîne et l'affiche à l'envers,
+suivie d'un retour à la ligne. Si argc != 2, affichez seulement un
+retour à la ligne.
+
+Exemples :
+    ./rev_print "abc"         -> cba
+    ./rev_print "hello world" -> dlrow olleh
+
+    int main(int argc, char **argv);

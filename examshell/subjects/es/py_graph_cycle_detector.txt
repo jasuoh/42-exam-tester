@@ -1,0 +1,22 @@
+Escribe una función que decida si un grafo DIRIGIDO contiene al
+menos un ciclo.
+
+    def graph_cycle_detector(graph: dict[int, list[int]]) -> bool:
+
+· graph es una lista de adyacencia: cada clave es el id de un nodo
+  y cada valor es la lista de nodos a los que apunta.
+· Devuelve True cuando el grafo contiene un ciclo, y False cuando
+  es acíclico, también en el caso de un grafo vacío.
+· El grafo puede tener varias componentes no conexas; un ciclo en
+  cualquiera de ellas cuenta.
+· Una arista que apunta a un nodo que no es a su vez una clave del
+  diccionario no lleva a ninguna parte y no forma parte de ningún
+  ciclo.
+
+(Algunos campus llaman a esta función py_graph_cycle_detector; el
+comportamiento pedido es el mismo.)
+
+Ejemplos:
+    graph_cycle_detector({0: [1], 1: [2], 2: [0]}) -> True
+    graph_cycle_detector({0: [1], 1: [2], 2: []})  -> False
+    graph_cycle_detector({})                       -> False

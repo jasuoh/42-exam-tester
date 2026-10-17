@@ -1,0 +1,10 @@
+Écrivez une fonction qui renvoie le nombre d'éléments de la liste
+chaînée qui lui est passée. Vous devez utiliser le type t_list
+décrit dans list.h (fourni) : un nœud contient un int `data` et un
+pointeur `next` vers le nœud suivant (NULL à la fin de la liste).
+
+Exemples :
+    ft_list_size([1,2,3]) -> 3
+    ft_list_size([])       -> 0
+
+    int ft_list_size(t_list *begin_list);

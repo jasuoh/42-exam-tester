@@ -1,0 +1,10 @@
+Escribe una función que extraiga todos los caracteres que son
+dígitos de una cadena, en orden, y los devuelva como una lista de
+enteros. Los caracteres que no son dígitos se omiten.
+
+    def digit_extractor(text: str) -> list[int]:
+
+Ejemplos:
+    digit_extractor("a1b22c3")  -> [1, 2, 2, 3]
+    digit_extractor("nothing")  -> []
+    digit_extractor("")         -> []

@@ -1,0 +1,29 @@
+Écrivez une fonction qui renvoie un ordre d'installation de paquets
+valide : chaque paquet vient après toutes les dépendances dont il a
+besoin.
+
+    def package_dependency_resolver(packages: dict[str, list[str]]) -> list[str]:
+
+· packages associe un nom de paquet à la liste des noms dont il
+  dépend.
+· Les dépendances sont installées avant ce qui les requiert.
+· Une référence à un paquet qui n'est pas une clé du dictionnaire est
+  ignorée — ce n'est pas quelque chose que vous pouvez installer.
+· Renvoyez [] quand aucun ordre valide n'existe (une dépendance
+  circulaire), et [] pour une entrée vide.
+· Quand plusieurs paquets pourraient être installés au même moment,
+  installez-les dans l'ordre alphabétique.
+
+Exemples :
+    package_dependency_resolver({"app": ["database"],
+                                 "database": ["driver"],
+                                 "driver": []})
+        -> ["driver", "database", "app"]
+    package_dependency_resolver({"A": [], "B": ["A"], "C": ["A","B"]})
+        -> ["A", "B", "C"]
+    package_dependency_resolver({"X": ["Y"], "Y": ["X"]})  -> []
+    package_dependency_resolver({})                        -> []
+    package_dependency_resolver({"web": [], "api": [],
+                                 "frontend": ["web"],
+                                 "backend": ["api"]})
+        -> ["api", "web", "backend", "frontend"]

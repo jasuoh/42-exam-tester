@@ -1,0 +1,9 @@
+Cada elemento de la lista aparece exactamente dos veces, salvo uno
+que aparece exactamente una vez. Encuentra y devuelve ese elemento.
+
+    def single_number(lst: list[int]) -> int:
+
+Ejemplos:
+    single_number([2,2,1])       -> 1
+    single_number([4,1,2,1,2])   -> 4
+    single_number([1])           -> 1

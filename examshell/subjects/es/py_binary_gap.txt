@@ -1,0 +1,12 @@
+Escribe una función que encuentre la secuencia más larga de ceros
+consecutivos rodeada de unos por ambos lados en la representación
+binaria de un entero no negativo n. Los ceros finales (sin un 1
+que los cierre) no cuentan.
+
+    def binary_gap(n: int) -> int:
+
+Ejemplos:
+    binary_gap(9)   -> 2   # 1001
+    binary_gap(529) -> 4   # 1000010001
+    binary_gap(20)  -> 1   # 10100
+    binary_gap(32)  -> 0   # 100000 (trailing zeros don't count)

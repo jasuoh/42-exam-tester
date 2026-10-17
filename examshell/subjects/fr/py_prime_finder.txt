@@ -1,0 +1,11 @@
+Écrivez une fonction qui vérifie si un entier est premier. Les
+nombres inférieurs à 2 (0, 1 et tous les nombres négatifs) ne sont
+pas premiers.
+
+    def prime_finder(n: int) -> bool:
+
+Exemples :
+    prime_finder(2)   -> True
+    prime_finder(17)  -> True
+    prime_finder(1)   -> False
+    prime_finder(100) -> False

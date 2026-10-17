@@ -1,0 +1,27 @@
+Escribe DOS funciones: un compresor por longitud de secuencias
+(run-length) y su inversa exacta.
+
+    def compress(s: str) -> str:
+    def decompress(s: str) -> str:
+
+compress:
+  · Reduce cada secuencia de caracteres repetidos al carácter
+    seguido del número de veces que se repite.
+  · Una secuencia de UN solo carácter no lleva número: "abc" se
+    queda en "abc", no se convierte en "a1b1c1".
+  · Una cadena vacía se comprime en una cadena vacía.
+  · La entrada contiene solo letras.
+
+decompress:
+  · Devuelve una cadena comprimida a su forma original.
+  · Un número puede tener varios dígitos: "a12" son doce aes.
+  · Un carácter sin dígitos detrás cuenta como uno.
+
+Se evalúan las dos funciones, así que ambas deben estar definidas
+en tu archivo.
+
+Ejemplos:
+    compress("aabcccccaaa")   -> "a2bc5a3"
+    decompress("a2bc5a3")     -> "aabcccccaaa"
+    compress("")              -> ""
+    decompress("a12")         -> "aaaaaaaaaaaa"

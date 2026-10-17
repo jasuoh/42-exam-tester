@@ -1,0 +1,10 @@
+Écrivez un PROGRAMME qui prend une ou plusieurs chaînes et, pour
+chacune, met en majuscule la DERNIÈRE lettre de chaque mot et le
+reste en minuscules (un mot d'une seule lettre est mis en majuscule),
+en affichant le résultat de chaque argument sur sa propre ligne. Sans
+argument : affichez seulement un retour à la ligne.
+
+Exemples :
+    ./rstr_capitalizer "a first test" -> a firsT tesT
+
+    int main(int argc, char **argv);

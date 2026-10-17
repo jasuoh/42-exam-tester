@@ -1,0 +1,9 @@
+Reproduisez le comportement de la fonction standard strpbrk() :
+renvoyez un pointeur sur le premier caractère de s1 qui apparaît
+aussi n'importe où dans s2 (NULL s'il n'y en a aucun).
+
+Exemples :
+    ft_strpbrk("hello", "lo") -> "llo" (points at the first 'l')
+    ft_strpbrk("hello", "xyz") -> NULL
+
+    char *ft_strpbrk(const char *s1, const char *s2);

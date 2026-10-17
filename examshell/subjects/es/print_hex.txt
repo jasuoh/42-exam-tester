@@ -1,0 +1,10 @@
+Escribe un PROGRAMA que reciba un número no negativo en base 10 y
+lo muestre en base 16 (dígitos en minúscula, sin ceros a la
+izquierda), seguido de un salto de línea. Si argc != 2, solo un
+salto de línea.
+
+Ejemplos:
+    ./print_hex 255  -> ff
+    ./print_hex 4096 -> 1000
+
+    int main(int argc, char **argv);

@@ -1,0 +1,11 @@
+Escribe una función que compruebe si una cadena es un pangrama:
+debe contener cada letra del alfabeto al menos una vez, sin
+distinguir mayúsculas de minúsculas. Los caracteres que no son
+letras se ignoran.
+
+    def pangram_checker(text: str) -> bool:
+
+Ejemplos:
+    pangram_checker("The quick brown fox jumps over the lazy dog") -> True
+    pangram_checker("hello world")                                -> False
+    pangram_checker("")                                           -> False

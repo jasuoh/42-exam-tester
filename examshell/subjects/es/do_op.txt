@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba tres argumentos: un entero en base
+10, un operador aritmético (uno de + - * / %) y otro entero.
+Muestra el resultado de esa operación, seguido de un salto de
+línea. Las entradas son siempre válidas y el resultado siempre cabe
+en un int. Si argc != 4, solo un salto de línea.
+
+Ejemplos:
+    ./do_op 3 + 4  -> 7
+    ./do_op 20 / 4 -> 5
+
+    int main(int argc, char **argv);

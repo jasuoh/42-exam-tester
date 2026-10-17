@@ -32,17 +32,21 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import shutil
 import socket
 import subprocess
 import time
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
+
+from .settings import write_atomic
 
 REPO_DIRNAME = "sync-repo"
 BACKUP_DIRNAME = "sync-backup"
 BRANCH = "main"
 MANIFEST = "manifest.json"
+SOLUTION_STATE = ".examshell-sync.json"
 SOLUTION_EXTS = (".py", ".c", ".h")
 GIT_TIMEOUT = 180  # seconds per git call (a password prompt may be waiting)
 
@@ -73,12 +77,14 @@ class SyncResult(object):
             "solutions": 0,
             "reports": 0,
             "exams": 0,
+            "removals": 0,
         }
         self.pushed: Dict[str, int] = {
             "attempts": 0,
             "solutions": 0,
             "reports": 0,
             "exams": 0,
+            "removals": 0,
         }
         self.backups: List[
             str
@@ -300,8 +306,11 @@ def _merge_stats(
     for path, side in ((local_path, local), (remote_path, remote)):
         if side != set(merged):
             os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, "w", encoding="utf-8") as fh:
+            # temp file + replace: an interrupted sync must not leave a
+            # cut-off stats file — it holds the whole attempt history
+            with open(path + ".tmp", "w", encoding="utf-8") as fh:
                 fh.write(text)
+            os.replace(path + ".tmp", path)
 
 
 def _exam_stamp(path: str) -> float:
@@ -384,6 +393,80 @@ def _solution_files(folder: str) -> Set[str]:
     }
 
 
+def _timestamps(value: Any) -> Dict[str, float]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        key: float(stamp)
+        for key, stamp in value.items()
+        if isinstance(key, str)
+        and type(stamp) in (int, float)
+        and math.isfinite(stamp)
+        and stamp >= 0
+    }
+
+
+def _solution_state(folder: str) -> Tuple[Set[str], Dict[str, float]]:
+    try:
+        with open(
+            os.path.join(folder, SOLUTION_STATE), encoding="utf-8"
+        ) as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return set(), {}
+    if not isinstance(data, dict):
+        return set(), {}
+    seen = data.get("seen", [])
+    return (
+        {n for n in seen if isinstance(n, str)}
+        if isinstance(seen, list)
+        else set(),
+        _timestamps(data.get("removed")),
+    )
+
+
+def _save_solution_state(
+    folder: str, seen: Set[str], removed: Dict[str, float]
+) -> None:
+    os.makedirs(folder, exist_ok=True)
+    write_atomic(
+        os.path.join(folder, SOLUTION_STATE),
+        json.dumps({"seen": sorted(seen), "removed": removed}) + "\n",
+    )
+
+
+def mark_removed(folder: str, names: Sequence[str]) -> None:
+    """Remember an archive even before this folder's first sync.
+
+    This stays beside the solutions, so changing --rendu cannot make a
+    fresh folder look like deletions from the previously used one.
+    """
+    seen, removed = _solution_state(folder)
+    now = time.time()
+    for name in names:
+        removed[name] = now
+        seen.discard(name)
+    _save_solution_state(folder, seen, removed)
+
+
+def _backup_solution(
+    path: str,
+    root: str,
+    stamp: str,
+    slot: str,
+    name: str,
+    result: SyncResult,
+) -> None:
+    backup = os.path.join(root, stamp, slot, name)
+    os.makedirs(os.path.dirname(backup), exist_ok=True)
+    candidate, number = backup, 1
+    while os.path.exists(candidate):
+        candidate = "%s.%d" % (backup, number)
+        number += 1
+    shutil.copy2(path, candidate)
+    result.backups.append(candidate)
+
+
 def _merge_solutions(
     repo: str,
     solution_dirs: Mapping[str, str],
@@ -398,14 +481,26 @@ def _merge_solutions(
         manifest = {}
     if not isinstance(manifest, dict):
         manifest = {}
-    mtimes: Dict[str, float] = manifest.setdefault("solutions", {})
+    mtimes = _timestamps(manifest.get("solutions"))
+    deleted = _timestamps(manifest.get("removed"))
+    manifest["solutions"], manifest["removed"] = mtimes, deleted
     stamp = time.strftime("%Y%m%d_%H%M%S")
 
     for slot, local_dir in sorted(solution_dirs.items()):
         remote_dir = os.path.join(repo, "solutions", slot)
+        local_files = _solution_files(local_dir)
+        seen, removed = _solution_state(local_dir)
+        for name in seen - local_files:
+            removed[name] = time.time()
+        # Keep pending removals even if commit/push later fails.
+        _save_solution_state(local_dir, local_files, removed)
         for name in sorted(
-            _solution_files(local_dir) | _solution_files(remote_dir)
+            local_files | _solution_files(remote_dir) | set(removed)
         ):
+            if os.path.basename(name) != name or not name.endswith(
+                SOLUTION_EXTS
+            ):
+                continue
             key = "%s/%s" % (slot, name)
             local, remote = (
                 os.path.join(local_dir, name),
@@ -417,15 +512,42 @@ def _merge_solutions(
             )
             remote_mtime = mtimes.get(key, 0)
 
-            if has_local and has_remote and _sha(local) == _sha(remote):
-                continue
+            deletion = max(removed.get(name, 0), deleted.get(key, 0))
             local_mtime = os.path.getmtime(local) if has_local else -1
+            if deletion:
+                if deletion > deleted.get(key, 0):
+                    result.pushed["removals"] += 1
+                deleted[key] = removed[name] = deletion
+                if has_local and local_mtime <= deletion:
+                    _backup_solution(
+                        local, backup_root, stamp, slot, name, result
+                    )
+                    os.remove(local)
+                    has_local = False
+                    result.pulled["removals"] += 1
+                if has_remote and remote_mtime <= deletion:
+                    _backup_solution(
+                        remote,
+                        backup_root,
+                        stamp,
+                        "remote-" + slot,
+                        name,
+                        result,
+                    )
+                    os.remove(remote)
+                    mtimes.pop(key, None)
+                    has_remote = False
+                if not has_local and not has_remote:
+                    continue
+
+            if has_local and has_remote and _sha(local) == _sha(remote):
+                mtimes[key] = max(local_mtime, remote_mtime)
+                continue
             if has_remote and (not has_local or remote_mtime > local_mtime):
                 if has_local:  # keep the older version, never lose code
-                    backup = os.path.join(backup_root, stamp, slot, name)
-                    os.makedirs(os.path.dirname(backup), exist_ok=True)
-                    shutil.copy2(local, backup)
-                    result.backups.append(backup)
+                    _backup_solution(
+                        local, backup_root, stamp, slot, name, result
+                    )
                 os.makedirs(local_dir, exist_ok=True)
                 shutil.copyfile(remote, local)
                 if remote_mtime:
@@ -436,7 +558,8 @@ def _merge_solutions(
                 shutil.copyfile(local, remote)
                 mtimes[key] = local_mtime
                 result.pushed["solutions"] += 1
+        _save_solution_state(local_dir, _solution_files(local_dir), removed)
 
-    with open(manifest_path, "w", encoding="utf-8") as fh:
-        json.dump(manifest, fh, indent=1, sort_keys=True)
-        fh.write("\n")
+    write_atomic(
+        manifest_path, json.dumps(manifest, indent=1, sort_keys=True) + "\n"
+    )

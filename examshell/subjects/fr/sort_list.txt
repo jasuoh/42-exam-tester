@@ -1,0 +1,16 @@
+Écrivez une fonction qui trie la liste passée en paramètre, en
+utilisant le pointeur sur fonction `cmp` pour choisir l'ordre, et qui
+renvoie un pointeur sur le premier élément de la liste triée. Les
+doublons doivent être conservés. `cmp` renvoie une valeur != 0 quand
+ses deux arguments sont déjà dans le bon ordre, 0 sinon — ainsi,
+ceci trie par ordre croissant :
+
+    int ascending(int a, int b) { return (a <= b); }
+
+Vous devez utiliser le type t_list décrit dans list.h (fourni).
+
+Exemples :
+    sort_list([5,3,1,4,2], ascending) -> [1,2,3,4,5]
+    sort_list([], ascending)           -> []
+
+    t_list *sort_list(t_list *lst, int (*cmp)(int, int));

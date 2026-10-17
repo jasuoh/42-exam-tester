@@ -1,0 +1,10 @@
+Escribe un PROGRAMA que reciba dos cadenas que representan dos
+enteros estrictamente positivos y muestre su máximo común divisor,
+seguido de un salto de línea. Si argc != 3, solo un salto de línea.
+
+Ejemplos:
+    ./pgcd 42 10 -> 2
+    ./pgcd 42 12 -> 6
+    ./pgcd 17 3  -> 1
+
+    int main(int argc, char **argv);

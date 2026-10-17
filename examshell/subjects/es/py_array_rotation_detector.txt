@@ -1,0 +1,17 @@
+Escribe una función que decida si arr2 es una rotación de arr1.
+Una rotación desplaza cíclicamente todos los elementos conservando
+su orden relativo: [4,5,1,2,3] es una rotación de [1,2,3,4,5],
+pero [3,2,1] no es una rotación de [1,2,3].
+
+    def array_rotation_detector(arr1: list, arr2: list) -> bool:
+
+Devuelve True cuando arr2 es una rotación válida de arr1, y False
+en caso contrario (también cuando las dos longitudes son
+distintas). Dos listas vacías cuentan como una rotación válida.
+
+Ejemplos:
+    array_rotation_detector([1,2,3,4,5], [4,5,1,2,3]) -> True
+    array_rotation_detector([1,2,3,4,5], [5,1,2,3,4]) -> True
+    array_rotation_detector([1,2,3], [3,2,1])         -> False
+    array_rotation_detector([1,2], [1,2,3])           -> False
+    array_rotation_detector([], [])                   -> True

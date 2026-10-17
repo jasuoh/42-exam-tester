@@ -1,0 +1,10 @@
+Escribe una función que devuelva el MCM (mínimo común múltiplo) de
+dos unsigned int: el menor entero positivo divisible por ambos. Si
+alguno de los dos es 0, el MCM es 0.
+
+Ejemplos:
+    lcm(4, 6)  -> 12
+    lcm(21, 6) -> 42
+    lcm(0, 5)  -> 0
+
+    unsigned int lcm(unsigned int a, unsigned int b);

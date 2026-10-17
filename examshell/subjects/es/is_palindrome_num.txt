@@ -1,0 +1,10 @@
+Escribe una función que devuelva 1 si los dígitos decimales de `n`
+se leen igual de izquierda a derecha que de derecha a izquierda, y
+0 en caso contrario. Los números negativos nunca son palíndromos.
+
+Ejemplos:
+    is_palindrome_num(121)  -> 1
+    is_palindrome_num(-121) -> 0
+    is_palindrome_num(10)   -> 0
+
+    int is_palindrome_num(int n);

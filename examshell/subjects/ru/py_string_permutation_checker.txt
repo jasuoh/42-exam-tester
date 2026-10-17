@@ -1,0 +1,11 @@
+Напишите функцию, которая определяет, являются ли две строки
+перестановками друг друга. С УЧЁТОМ РЕГИСТРА. Пробельные символы и
+знаки препинания считаются обычными символами. Две пустые строки
+являются перестановками.
+
+    def string_permutation_checker(s1: str, s2: str) -> bool:
+
+Примеры:
+    string_permutation_checker("abc", "bca") -> True
+    string_permutation_checker("Abc", "abc") -> False
+    string_permutation_checker("", "")       -> True

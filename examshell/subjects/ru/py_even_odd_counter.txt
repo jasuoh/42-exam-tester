@@ -1,0 +1,11 @@
+Напишите функцию, которая подсчитывает, сколько чётных и сколько
+нечётных чисел в списке целых чисел.
+
+    def even_odd_counter(lst: list[int]) -> list[int]:
+
+Возвращает список [even_count, odd_count].
+
+Примеры:
+    even_odd_counter([1,2,3,4,5]) -> [2, 3]
+    even_odd_counter([])          -> [0, 0]
+    even_odd_counter([-4,-2,0])   -> [3, 0]

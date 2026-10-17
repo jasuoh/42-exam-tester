@@ -1,0 +1,10 @@
+Écrivez un PROGRAMME qui prend une chaîne et affiche le nombre de
+voyelles (a, e, i, o, u, sans tenir compte de la casse) qu'elle
+contient, suivi d'un retour à la ligne. Si argc != 2, affichez
+seulement un retour à la ligne.
+
+Exemples :
+    ./count_vowels "hello"  -> 2
+    ./count_vowels "AEIOU"  -> 5
+
+    int main(int argc, char **argv);

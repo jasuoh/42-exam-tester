@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend une chaîne et l'affiche en remplaçant
+chaque lettre par son miroir dans l'alphabet
+('a' <-> 'z', 'b' <-> 'y', ...), sans changer la casse, suivie d'un
+retour à la ligne. Si argc != 2, affichez seulement un retour à la
+ligne.
+
+Exemples :
+    ./alpha_mirror "abc" -> zyx
+    ./alpha_mirror "Hi!" -> Sr!
+
+    int main(int argc, char **argv);

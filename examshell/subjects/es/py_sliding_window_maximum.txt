@@ -1,0 +1,17 @@
+Escribe una función que devuelva el máximo de cada ventana de
+tamaño k a medida que esa ventana se desliza por la lista, una
+posición cada vez.
+
+    def sliding_window_maximum(nums: list[int], k: int) -> list[int]:
+
+Devuelve [] ante una entrada no válida: una lista vacía, un k de 0
+o menos, o un k mayor que la propia lista.
+
+Ejemplos:
+    sliding_window_maximum([1,3,-1,-3,5,3,6,7], 3) -> [3,3,5,5,6,7]
+    sliding_window_maximum([1,2,3,4,5], 2)         -> [2,3,4,5]
+    sliding_window_maximum([5,4,3,2,1], 1)         -> [5,4,3,2,1]
+    sliding_window_maximum([1,2,3], 3)             -> [3]
+    sliding_window_maximum([1,2,3], 4)             -> []
+    sliding_window_maximum([], 2)                  -> []
+    sliding_window_maximum([1,2,3], 0)             -> []

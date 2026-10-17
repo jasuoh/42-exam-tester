@@ -1,0 +1,9 @@
+Escribe una función que devuelva la mayor suma posible de un
+subarray CONTIGUO (de al menos un elemento). Un array vacío
+devuelve 0.
+
+Ejemplos:
+    kadane_max_sum([-2,1,-3,4,-1,2,1,-5,4], 9) -> 6   ([4,-1,2,1])
+    kadane_max_sum([-1,-2,-3], 3)              -> -1
+
+    int kadane_max_sum(int *arr, unsigned int size);

@@ -1,0 +1,11 @@
+Écrivez une fonction qui détermine si deux chaînes sont des
+permutations l'une de l'autre. SENSIBLE À LA CASSE. Les blancs et la
+ponctuation comptent comme des caractères ordinaires. Deux chaînes
+vides sont des permutations.
+
+    def string_permutation_checker(s1: str, s2: str) -> bool:
+
+Exemples :
+    string_permutation_checker("abc", "bca") -> True
+    string_permutation_checker("Abc", "abc") -> False
+    string_permutation_checker("", "")       -> True

@@ -1,0 +1,16 @@
+Escribe una función que ordene una lista de cadenas según varios
+criterios:
+  1. Primario   : por longitud (la más corta primero)
+  2. Secundario : orden ASCII, comparando las letras sin distinguir
+     mayúsculas de minúsculas
+  3. Terciario  : por número de vocales (ascendente)
+  4. Las cadenas iguales conservan su orden original de entrada
+     (ordenación estable).
+
+    def cryptic_sorter(strings: list[str]) -> list[str]:
+
+Ejemplos:
+    cryptic_sorter(["apple","cat","banana","dog","elephant"])
+        -> ["cat","dog","apple","banana","elephant"]
+    cryptic_sorter(["aaa","bbb","AAA","BBB"]) -> ["aaa","AAA","bbb","BBB"]
+    cryptic_sorter([]) -> []

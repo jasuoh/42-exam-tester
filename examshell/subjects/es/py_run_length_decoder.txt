@@ -1,0 +1,11 @@
+Escribe una función que decodifique una cadena codificada por
+longitud de secuencias (run-length): cada carácter va seguido de
+una secuencia de dígitos que indica cuántas veces se repite (el
+número puede tener más de un dígito).
+
+    def run_length_decoder(text: str) -> str:
+
+Ejemplos:
+    run_length_decoder("a3b2c1")  -> "aaabbc"
+    run_length_decoder("z10")     -> "zzzzzzzzzz"
+    run_length_decoder("")        -> ""

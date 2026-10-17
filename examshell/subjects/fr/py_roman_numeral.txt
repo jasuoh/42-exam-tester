@@ -1,0 +1,9 @@
+Écrivez une fonction qui convertit un entier (toujours compris entre
+1 et 3999 inclus) en sa représentation en chiffres romains.
+
+    def roman_numeral(n: int) -> str:
+
+Exemples :
+    roman_numeral(3)    -> "III"
+    roman_numeral(58)   -> "LVIII"
+    roman_numeral(1994) -> "MCMXCIV"

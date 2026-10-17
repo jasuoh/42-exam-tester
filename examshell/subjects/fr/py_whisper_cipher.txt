@@ -1,0 +1,11 @@
+Écrivez une fonction qui réalise un chiffre de César en décalant les
+lettres d'une valeur donnée. Les caractères non alphabétiques restent
+inchangés. Le décalage peut être négatif (décalage vers la gauche).
+
+    def whisper_cipher(text: str, shift: int) -> str:
+
+Exemples :
+    whisper_cipher("hello", 3)        -> "khoor"
+    whisper_cipher("Hello World!", 1) -> "Ifmmp Xpsme!"
+    whisper_cipher("xyz", 3)          -> "abc"
+    whisper_cipher("abc", -3)         -> "xyz"

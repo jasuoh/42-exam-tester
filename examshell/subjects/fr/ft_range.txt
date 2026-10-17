@@ -1,0 +1,11 @@
+Écrivez une fonction qui alloue avec malloc un tableau d'int rempli
+de toutes les valeurs consécutives de `start` à `end` inclus (dans
+l'ordre croissant même si start > end — c'est le rôle de
+ft_rrange), et renvoie un pointeur sur ce tableau.
+
+Exemples :
+    ft_range(1, 3)  -> [1, 2, 3]
+    ft_range(-1, 2) -> [-1, 0, 1, 2]
+    ft_range(0, 0)  -> [0]
+
+    int *ft_range(int start, int end);

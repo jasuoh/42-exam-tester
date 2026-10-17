@@ -1,0 +1,10 @@
+Escribe un PROGRAMA que reciba una cadena y la muestre rotada una
+palabra a la izquierda: la primera palabra pasa al final, las demás
+conservan su orden, separadas por un único espacio, seguido de un
+salto de línea. Si argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./rostring "one two three" -> two three one
+    ./rostring "single"         -> single
+
+    int main(int argc, char **argv);

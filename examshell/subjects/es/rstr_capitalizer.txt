@@ -1,0 +1,10 @@
+Escribe un PROGRAMA que reciba una o más cadenas y, para cada una,
+ponga en mayúscula la ÚLTIMA letra de cada palabra y en minúscula
+el resto (una palabra de una sola letra se pone en mayúscula),
+imprimiendo el resultado de cada argumento en su propia línea. Sin
+argumentos: solo un salto de línea.
+
+Ejemplos:
+    ./rstr_capitalizer "a first test" -> a firsT tesT
+
+    int main(int argc, char **argv);

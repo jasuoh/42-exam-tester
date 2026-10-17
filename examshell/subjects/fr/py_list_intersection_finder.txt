@@ -1,0 +1,17 @@
+Écrivez une fonction qui trouve les éléments présents dans CHACUNE
+des listes d'entiers données, renvoyés sans doublons et triés par
+ordre croissant.
+
+    def list_intersection_finder(lists: list[list[int]]) -> list[int]:
+
+Renvoyez une liste vide quand la liste externe est vide, quand l'une
+des listes internes est vide, ou quand il n'y a aucun élément commun.
+
+Exemples :
+    list_intersection_finder([[1,2,3], [2,3,4], [2,3,5]]) -> [2, 3]
+    list_intersection_finder([[1,2,3,4], [2,4,6,8], [4,8,12]]) -> [4]
+    list_intersection_finder([[1,1,2,3], [1,2,2,3], [1,2,3,3]]) -> [1, 2, 3]
+    list_intersection_finder([[1,2,3], [4,5,6]])          -> []
+    list_intersection_finder([])                          -> []
+    list_intersection_finder([[1,2,3], []])               -> []
+    list_intersection_finder([[5]])                       -> [5]
