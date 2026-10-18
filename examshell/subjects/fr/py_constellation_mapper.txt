@@ -1,0 +1,21 @@
+Écrivez une fonction qui place une constellation d'étoiles sur une
+grille carrée et la renvoie sous forme de liste de chaînes, une par
+ligne.
+
+    def constellation_mapper(stars: list[tuple[int, int]], dim: int) -> list[str]:
+
+· stars est une liste de tuples (row, col) ; dim est la taille de la
+  grille.
+· Une étoile est '*', une case vide est '.'.
+· (0, 0) est la case en haut à gauche.
+· Les coordonnées hors de la grille (y compris négatives) sont
+  ignorées.
+· Une même coordonnée présente deux fois reste une seule étoile.
+· Un dim inférieur ou égal à 0 donne une liste vide.
+
+Exemples :
+    constellation_mapper([(0,0), (1,1), (2,2)], 3) -> ['*..', '.*.', '..*']
+    constellation_mapper([(1,1), (0,1), (2,1), (1,0), (1,2)], 3)
+                                                   -> ['.*.', '***', '.*.']
+    constellation_mapper([], 2)                    -> ['..', '..']
+    constellation_mapper([(0,0), (5,5)], 3)        -> ['*..', '...', '...']

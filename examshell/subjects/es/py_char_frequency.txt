@@ -1,0 +1,12 @@
+Escribe una función que devuelva el carácter más frecuente de una
+cadena (distinguiendo mayúsculas de minúsculas). Si varios
+caracteres empatan con el mayor número de apariciones, devuelve el
+que alcanza primero ese número recorriendo la cadena de izquierda a
+derecha. Una cadena vacía devuelve "".
+
+    def char_frequency(text: str) -> str:
+
+Ejemplos:
+    char_frequency("aabbb")  -> "b"
+    char_frequency("aabb")   -> "a"
+    char_frequency("")       -> ""

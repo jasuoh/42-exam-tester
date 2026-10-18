@@ -1,0 +1,9 @@
+Escribe una función que imprima un byte en binario (8 caracteres,
+'0' o '1'), con el bit más significativo primero y SIN salto de
+línea final.
+
+Ejemplos:
+    print_bits(2)   -> prints: 00000010
+    print_bits(255) -> prints: 11111111
+
+    void print_bits(unsigned char octet);

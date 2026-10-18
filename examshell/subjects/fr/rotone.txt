@@ -1,0 +1,16 @@
+Écrivez un PROGRAMME (votre propre main(), avec argc/argv — pas une
+fonction appelée par quelqu'un d'autre) qui prend une chaîne et
+l'affiche en remplaçant chacune de ses lettres par la suivante dans
+l'ordre alphabétique.
+
+'z' devient 'a' et 'Z' devient 'A'. La casse n'est pas modifiée. La
+sortie est suivie d'un retour à la ligne. Si le nombre d'arguments
+n'est pas exactement 1, le programme affiche seulement un retour à la
+ligne.
+
+Exemples :
+    ./rotone "abc"  -> bcd
+    ./rotone ""     -> (just a newline)
+    ./rotone a b    -> (just a newline, 2 arguments)
+
+    int main(int argc, char **argv);

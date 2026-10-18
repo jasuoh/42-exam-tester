@@ -1,0 +1,10 @@
+Напишите функцию, которая возвращает True, если какое-либо значение
+встречается в списке хотя бы дважды, и False, если все значения
+различны.
+
+    def contains_duplicate(lst: list[int]) -> bool:
+
+Примеры:
+    contains_duplicate([1,2,3,1]) -> True
+    contains_duplicate([1,2,3,4]) -> False
+    contains_duplicate([])        -> False

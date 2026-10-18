@@ -1,0 +1,10 @@
+Escribe una función que devuelva la longitud de la subsecuencia
+ESTRICTAMENTE CRECIENTE más larga de un array de int: los elementos
+no tienen que ser contiguos, pero deben conservar su orden relativo
+original. Un array vacío devuelve 0.
+
+Ejemplos:
+    lis_length([10,9,2,5,3,7,101,18], 8) -> 4   ([2,3,7,101] or [2,3,7,18])
+    lis_length([7,7,7,7], 4)             -> 1
+
+    int lis_length(int *arr, unsigned int size);

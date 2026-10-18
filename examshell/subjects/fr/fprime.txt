@@ -1,0 +1,12 @@
+Écrivez un PROGRAMME qui prend un int positif et affiche ses
+facteurs premiers sur la sortie standard, suivis d'un retour à la
+ligne. Les facteurs sont dans l'ordre croissant, séparés par '*'
+(ainsi l'expression affichée est égale à l'entrée). Si argc != 2,
+affichez seulement un retour à la ligne.
+
+Exemples :
+    ./fprime 225225 -> 3*3*5*5*7*11*13
+    ./fprime 42     -> 2*3*7
+    ./fprime 1      -> 1
+
+    int main(int argc, char **argv);

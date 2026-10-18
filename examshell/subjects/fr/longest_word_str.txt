@@ -1,0 +1,12 @@
+Écrivez un PROGRAMME qui prend une chaîne et affiche son mot le plus
+long (délimité par des espaces/tabulations), suivi d'un retour à la
+ligne. En cas d'égalité, le premier l'emporte. S'il n'y a aucun mot
+(entrée vide ou composée uniquement de blancs) : affichez seulement
+un retour à la ligne. Si argc != 2, affichez seulement un retour à
+la ligne.
+
+Exemples :
+    ./longest_word_str "the quick brown fox" -> quick
+    ./longest_word_str "a bb ccc dd"          -> ccc
+
+    int main(int argc, char **argv);

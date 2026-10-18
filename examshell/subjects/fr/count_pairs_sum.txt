@@ -1,0 +1,8 @@
+Écrivez une fonction qui renvoie le nombre de paires d'indices
+DISTINCTS (i, j), i < j, telles que arr[i] + arr[j] == target.
+
+Exemples :
+    count_pairs_sum([1,2,3,4], 4, 5) -> 2   ((1,4) and (2,3))
+    count_pairs_sum([2,2,2,2], 4, 4) -> 6
+
+    int count_pairs_sum(int *arr, unsigned int size, int target);

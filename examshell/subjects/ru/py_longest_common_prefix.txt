@@ -1,0 +1,10 @@
+Напишите функцию, которая возвращает самую длинную строку, являющуюся
+префиксом каждой строки в списке. Для пустого списка или при
+отсутствии общего префикса возвращается "". С учётом регистра.
+
+    def longest_common_prefix(strings: list[str]) -> str:
+
+Примеры:
+    longest_common_prefix(["flower","flow","flight"]) -> "fl"
+    longest_common_prefix(["dog","racecar","car"])    -> ""
+    longest_common_prefix([])                          -> ""

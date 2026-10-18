@@ -1,0 +1,12 @@
+Escribe una función que rote un array k posiciones hacia la
+DERECHA. Rotar hacia la derecha k posiciones significa que los
+últimos k elementos pasan al principio. k nunca es negativo, pero
+puede ser mayor que la longitud del array. Devuelve una lista
+NUEVA; no modifiques la que recibes.
+
+    def twist_sequence(arr: list[int], k: int) -> list[int]:
+
+Ejemplos:
+    twist_sequence([1,2,3,4,5], 2) -> [4,5,1,2,3]
+    twist_sequence([1,2,3], 5)     -> [2,3,1]
+    twist_sequence([], 3)          -> []

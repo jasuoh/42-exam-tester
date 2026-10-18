@@ -1,0 +1,11 @@
+Écrivez une fonction qui inverse chaque mot d'une phrase tout en
+conservant les mots dans leur ordre d'origine. Les mots sont séparés
+par des espaces simples ; plusieurs espaces consécutifs produisent
+des mots vides qui restent vides.
+
+    def word_reverser(text: str) -> str:
+
+Exemples :
+    word_reverser("hello world")  -> "olleh dlrow"
+    word_reverser("Python Exam")  -> "nohtyP maxE"
+    word_reverser("")             -> ""

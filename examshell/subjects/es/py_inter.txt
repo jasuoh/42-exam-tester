@@ -1,0 +1,10 @@
+Escribe una función que devuelva una cadena con los caracteres que
+aparecen en AMBAS cadenas, sin repeticiones, en el orden de su
+primera aparición en la PRIMERA cadena.
+
+    def inter(s1: str, s2: str) -> str:
+
+Ejemplos:
+    inter("hello", "world") -> "lo"
+    inter("banana", "band") -> "ban"
+    inter("abc", "xyz")     -> ""

@@ -1,0 +1,17 @@
+Écrivez une fonction qui renvoie le maximum de chaque fenêtre de
+taille k pendant que cette fenêtre glisse sur la liste, une position
+à la fois.
+
+    def sliding_window_maximum(nums: list[int], k: int) -> list[int]:
+
+Renvoyez [] pour une entrée invalide : une liste vide, un k inférieur
+ou égal à 0, ou un k plus grand que la liste elle-même.
+
+Exemples :
+    sliding_window_maximum([1,3,-1,-3,5,3,6,7], 3) -> [3,3,5,5,6,7]
+    sliding_window_maximum([1,2,3,4,5], 2)         -> [2,3,4,5]
+    sliding_window_maximum([5,4,3,2,1], 1)         -> [5,4,3,2,1]
+    sliding_window_maximum([1,2,3], 3)             -> [3]
+    sliding_window_maximum([1,2,3], 4)             -> []
+    sliding_window_maximum([], 2)                  -> []
+    sliding_window_maximum([1,2,3], 0)             -> []

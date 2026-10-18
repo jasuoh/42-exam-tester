@@ -1,0 +1,11 @@
+Escribe una función que devuelva la palabra más larga de una frase.
+Las palabras están separadas por espacios (posiblemente varios); si
+dos palabras empatan como las más largas, devuelve la primera. Una
+cadena vacía, o sin ninguna palabra, devuelve "".
+
+    def longest_word(text: str) -> str:
+
+Ejemplos:
+    longest_word("the quick brown fox") -> "quick"
+    longest_word("aaa bbb ccc")          -> "aaa"
+    longest_word("")                     -> ""

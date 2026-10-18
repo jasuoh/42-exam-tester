@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba una cadena y muestre su primera
+palabra delimitada por espacios en blanco, seguida de un salto de
+línea. Una palabra es una secuencia de caracteres entre
+espacios/tabulaciones (o el principio/final de la cadena). Si
+argc != 2, o si no hay ninguna palabra, solo un salto de línea.
+
+Ejemplos:
+    ./first_word "hello world" -> hello
+    ./first_word "   "          -> (just a newline)
+
+    int main(int argc, char **argv);

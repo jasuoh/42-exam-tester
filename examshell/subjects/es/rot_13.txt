@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba una cadena y la muestre sustituyendo
+cada una de sus letras por la letra que está 13 posiciones más
+adelante en el orden alfabético (ROT13). 'z' se convierte en 'm',
+'Z' en 'M'; las mayúsculas y minúsculas no cambian. Seguido de un
+salto de línea. Si argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./rot_13 "abc"  -> nop
+    ./rot_13 ""     -> (just a newline)
+
+    int main(int argc, char **argv);

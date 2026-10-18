@@ -1,0 +1,30 @@
+Escribe una función que encuentre todas las apariciones de un
+patrón dentro de una cuadrícula 2D de caracteres, en las 8
+direcciones.
+
+    def prism_detector(grid: list[str], pattern: str) -> list[tuple]:
+
+Las direcciones (dx, dy) y el código que indica cada una, en este
+orden:
+
+    (1, 0)    "H"     horizontal, derecha
+    (-1, 0)   "H-"    horizontal, izquierda
+    (0, 1)    "V"     vertical, abajo
+    (0, -1)   "V-"    vertical, arriba
+    (1, 1)    "D1"    diagonal, abajo-derecha
+    (-1, -1)  "D1-"   diagonal, arriba-izquierda
+    (-1, 1)   "D2"    diagonal, arriba-derecha
+    (1, -1)   "D2-"   diagonal, abajo-izquierda
+
+· Devuelve una lista de tuplas (x, y, direction_code), una por
+  coincidencia, donde x es la columna e y es la fila del PRIMER
+  carácter del patrón.
+· Recorre la cuadrícula fila a fila, de izquierda a derecha, y
+  prueba las direcciones en el orden indicado arriba.
+· Devuelve [] cuando la cuadrícula o el patrón están vacíos.
+
+Ejemplos:
+    prism_detector(["CAT", "A..", "T.."], "CAT")
+        -> [(0, 0, "H"), (0, 0, "V")]
+    prism_detector([], "CAT")   -> []
+    prism_detector(["CAT"], "") -> []

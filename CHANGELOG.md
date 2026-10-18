@@ -7,6 +7,68 @@ Versions follow `examshell/version.py`; when a merge to `main` bumps it,
 `.github/workflows/release.yml` tags it and publishes that version's section
 below as a GitHub Release. Entries before 0.2.0 are grouped by date.
 
+## 1.0.1 — unreleased
+
+### Added
+- **Command palette** (`ctrl+p`): the settings, Sync now, Feedback,
+  Switch exam, and the options that were command-line flags only —
+  relaxed, blind, seed, strict grading, valgrind, the solutions folder —
+  for this session. While an exam runs it offers nothing that could
+  change the exam.
+- **Right-click menu:**
+  - **Copy** for selected text. GNOME Terminal (and every VTE terminal)
+    keeps ctrl+shift+c for itself, and its own right-click menu can't see
+    the app's selection, so there ctrl+c was the only way to copy.
+  - Over a subject: its **language** — English, Français, Español,
+    Русский, like the real exam's `subject.<lang>.txt`. The header stays
+    English, as in the exam; the choice is remembered. Only the app shows
+    translations, grading always uses the English subject.
+
+### Removed
+- **Watch mode** (`w` in Practice): the app grades only when you press
+  `g`, like `grademe`.
+
+### Fixed
+- **C in-place grading:** `ft_strcpy` and `ft_strrev` must change the
+  caller's buffer and return its address; returning matching text from
+  another buffer no longer passes.
+- **Sync:** archived and deleted solutions stay removed across devices.
+  Files removed by sync are backed up; a newer edit can restore a file.
+- **Resume:** saved exams retain their time limit and grading rules,
+  including when resumed on another device. Invalid saved values and
+  exercises are rejected before opening the exam.
+- **Subject preview:** changing language after a search with no matches
+  no longer brings back the previous exercise.
+- **The exam grades like the real one, again:**
+  - every `grademe` of a level runs the same random tests, so grading
+    unchanged code again can't turn FAILURE into SUCCESS;
+  - the results line shows no passed/total score in the exam (Practice
+    still does).
+- **C tester:**
+  - a program that crashes after printing every expected output fails
+    instead of passing;
+  - output is compared with its `\r` intact, so `\r\n` no longer passes
+    for `\n`.
+- **Python tester:**
+  - a solution's `except Exception:` can no longer swallow the per-test
+    time limit;
+  - `from __future__ import annotations` is no longer a forbidden
+    import, so Rank 04/05 can be passed on Python 3.8.
+- **Saved data:** settings, a saved exam and a synced attempt history
+  are written to a temp file first and then swapped in, so a run killed
+  mid-write can no longer leave a cut-off file that the next start reads
+  as empty.
+- **App:**
+  - an exam that ends while a dialog is open (quit question, `?`) now
+    reaches the summary;
+  - leaving Practice while it grades no longer delivers the result to
+    the screen you left;
+  - starting with `--practice` (no exercise named) opens on the exercise
+    picker instead of falling back to the main menu.
+- **Makefile:**
+  - `make install` finds `uv` in `/opt/homebrew/bin` and `/usr/local/bin`
+    when `PATH` lacks Homebrew, instead of re-downloading it.
+
 ## 1.0.0 — 2026-10-08
 
 **Less, calmer, and the important things work.** One way in (`make`), one

@@ -1,0 +1,10 @@
+Dada una lista de alturas de barras no negativas (de ancho 1 cada
+una), calcula cuántas unidades de agua quedan atrapadas entre las
+barras después de llover.
+
+    def trapping_rain_water(heights: list[int]) -> int:
+
+Ejemplos:
+    trapping_rain_water([0,1,0,2,1,0,1,3,2,1,2,1]) -> 6
+    trapping_rain_water([4,2,0,3,2,5])              -> 9
+    trapping_rain_water([])                          -> 0

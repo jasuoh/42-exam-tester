@@ -1,0 +1,12 @@
+Escribe una función que reciba una cuadrícula 2D de caracteres, sus
+dimensiones como un t_point (x = ancho, y = alto) y un punto de
+partida. A partir de `begin`, rellena toda la zona conectada de
+caracteres idénticos (solo arriba/abajo/izquierda/derecha, nunca en
+diagonal) sustituyéndolos por 'F'. Debes usar el tipo t_point
+descrito en flood_fill.h (proporcionado): `{ int x; int y; }`.
+
+Ejemplos:
+    flood_fill(["111","101","111"], {3,3}, {0,0})
+        -> ["FFF","F0F","FFF"]   # the outer ring of 1s gets filled
+
+    void flood_fill(char **tab, t_point size, t_point begin);

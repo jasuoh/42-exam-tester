@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba dos cadenas y muestre, sin
+repeticiones, los caracteres que aparecen en AMBAS cadenas, en el
+orden en que aparecen en la primera, seguidos de un salto de línea.
+Si argc != 3, solo un salto de línea.
+
+Ejemplos:
+    ./inter "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" -> padinto
+    ./inter "ddf6vewg64f" "gtwthgdwthdwfteewhrtag6h4ffdhsd" -> df6ewg4
+    ./inter "rien" "cette phrase ne cache rien" -> rien
+
+    int main(int argc, char **argv);

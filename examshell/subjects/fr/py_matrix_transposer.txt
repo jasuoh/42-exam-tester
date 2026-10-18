@@ -1,0 +1,10 @@
+Écrivez une fonction qui transpose une matrice (les lignes deviennent
+des colonnes). La matrice est rectangulaire : toutes les lignes ont
+la même longueur.
+
+    def matrix_transposer(matrix: list[list[int]]) -> list[list[int]]:
+
+Exemples :
+    matrix_transposer([[1,2,3],[4,5,6]]) -> [[1,4],[2,5],[3,6]]
+    matrix_transposer([[7]])             -> [[7]]
+    matrix_transposer([])                -> []

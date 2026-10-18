@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba una cadena y la muestre repitiendo
+cada carácter alfabético tantas veces como su índice en el alfabeto
+('a' -> 'a', 'b' -> 'bb', 'e' -> 'eeeee', ...). Las mayúsculas y
+minúsculas y los caracteres que no son letras no cambian. Seguido
+de un salto de línea. Si argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./repeat_alpha "abc"  -> abbccc
+    ./repeat_alpha "Alex." -> Alllllllllllleeeeexxxxxxxxxxxxxxxxxxxxxxxx.
+
+    int main(int argc, char **argv);

@@ -1,0 +1,11 @@
+Écrivez une fonction qui renvoie une nouvelle liste où chaque élément
+est le produit de tous les AUTRES éléments de la liste d'entrée.
+N'utilisez pas la division. Pour une liste vide, renvoyez une liste
+vide.
+
+    def product_except_self(lst: list[int]) -> list[int]:
+
+Exemples :
+    product_except_self([1,2,3,4])     -> [24,12,8,6]
+    product_except_self([-1,1,0,-3,3]) -> [0,0,9,0,0]
+    product_except_self([5])           -> [1]

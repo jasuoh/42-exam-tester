@@ -1,0 +1,10 @@
+Écrivez une fonction qui renvoie la plus longue chaîne qui est un
+préfixe de toutes les chaînes d'une liste. Une liste vide, ou
+l'absence de tout préfixe commun, renvoie "". Sensible à la casse.
+
+    def longest_common_prefix(strings: list[str]) -> str:
+
+Exemples :
+    longest_common_prefix(["flower","flow","flight"]) -> "fl"
+    longest_common_prefix(["dog","racecar","car"])    -> ""
+    longest_common_prefix([])                          -> ""

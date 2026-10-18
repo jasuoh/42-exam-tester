@@ -1,0 +1,10 @@
+Écrivez une fonction qui renvoie le nombre minimal d'insertions,
+de suppressions ou de substitutions d'un seul caractère nécessaires
+pour transformer s1 en s2 (la distance de Levenshtein classique).
+
+    def edit_distance(s1: str, s2: str) -> int:
+
+Exemples :
+    edit_distance("horse", "ros")            -> 3
+    edit_distance("intention", "execution")  -> 5
+    edit_distance("", "abc")                  -> 3

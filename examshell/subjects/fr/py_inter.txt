@@ -1,0 +1,10 @@
+Écrivez une fonction qui renvoie une chaîne contenant les caractères
+présents dans LES DEUX chaînes, sans répétition, dans l'ordre de leur
+première apparition dans la PREMIÈRE chaîne.
+
+    def inter(s1: str, s2: str) -> str:
+
+Exemples :
+    inter("hello", "world") -> "lo"
+    inter("banana", "band") -> "ban"
+    inter("abc", "xyz")     -> ""

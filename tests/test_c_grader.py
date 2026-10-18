@@ -628,6 +628,22 @@ class GradeEndToEndTests(unittest.TestCase):
             self.assertEqual(report.passed, 0)
             self.assertEqual(report.failures[0].got, "42")
 
+    def test_crash_after_every_right_output_still_fails(self) -> None:
+        # e.g. abort() in free() or the stack protector on return: every
+        # case printed the right thing, but a crash is never a pass
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(
+                tmp,
+                "#include <stdlib.h>\n"
+                "__attribute__((destructor)) static void boom(void)\n"
+                "{\n    abort();\n}\n" + self.EX["oracle_c"],
+            )
+            report = grader.grade("ft_strlen", self.EX, tmp)
+        self.assertFalse(report.ok)
+        self.assertEqual(report.fatal, "CRASHED")
+        self.assertIn("SIGABRT", report.detail)
+        self.assertEqual(report.fatal_title, "Your program crashed")
+
     def test_unguarded_main_is_reported_as_forbidden(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             self._write(
@@ -961,6 +977,21 @@ class ProgramNewlineDisplayTests(unittest.TestCase):
         failure = report.failures[0]
         self.assertEqual((failure.expected, failure.got), ("a\n", "a"))
 
+    def test_carriage_return_is_kept_and_fails(self) -> None:
+        # text-mode pipes used to turn "\r\n" into "\n", so this passed
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(tmp + "/echo_arg.c", "w", encoding="utf-8") as fh:
+                fh.write(
+                    "#include <unistd.h>\n#include <string.h>\n"
+                    "int main(int ac, char **av)\n{\n"
+                    "    if (ac == 2) write(1, av[1], strlen(av[1]));\n"
+                    '    write(1, "\\r\\n", 2);\n    return 0;\n}\n'
+                )
+            report = grader.grade("echo_arg", self.EX, tmp, timeout=2)
+        self.assertFalse(report.ok)
+        failure = report.failures[0]
+        self.assertEqual((failure.expected, failure.got), ("a\n", "a\r\n"))
+
 
 class CaseFuzzerTests(unittest.TestCase):
     """Whole-case generators for flood_fill / ft_list_foreach /
@@ -1012,6 +1043,53 @@ class CaseFuzzerTests(unittest.TestCase):
         ]
         self.assertIn([], lists)
         self.assertTrue(any(len(lst) == 1 for lst in lists))
+
+
+@skip_without_cc
+class InPlaceContractTests(unittest.TestCase):
+    def test_return_text_is_not_enough_for_in_place_functions(self) -> None:
+        from c_exam.bank import EXERCISES
+
+        submissions = [
+            (
+                "ft_strcpy",
+                "char *ft_strcpy(char *a, char *b) { (void)a; return b; }",
+                [["old destination", "independent example"], ["old", ""]],
+            ),
+            (
+                "ft_strcpy",
+                "char *ft_strcpy(char *a, char *b) { int i=0; "
+                "while (b[i]) { a[i]=b[i]; i++; } a[i]=0; return b; }",
+                [["old destination", "copied, wrong pointer"]],
+            ),
+            (
+                "ft_strrev",
+                "char *ft_strrev(char *s) { static char b[128]; "
+                "int n=0, i=0; while(s[n]) n++; "
+                "while(i<n) { b[i]=s[n-1-i]; i++; } b[n]=0; return b; }",
+                [["bicycle"], ["Terminal 42"], [""]],
+            ),
+        ]
+        with tempfile.TemporaryDirectory() as rendu:
+            for name, source, cases in submissions:
+                with self.subTest(name=name, source=source):
+                    ex = dict(EXERCISES[name], cases=cases)
+                    path = os.path.join(rendu, name + ".c")
+                    for code, expected in (
+                        (source, False),
+                        (ex["oracle_c"], True),
+                    ):
+                        with open(path, "w", encoding="utf-8") as fh:
+                            fh.write(code)
+                        report = grader.grade(
+                            name,
+                            ex,
+                            rendu,
+                            strict_norm=True,
+                            strict_forbidden=True,
+                        )
+                        self.assertEqual(report.ok, expected, report.detail)
+                        self.assertEqual(report.total, len(cases))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,12 @@
+Écrivez une fonction qui trouve la plus longue suite de zéros
+consécutifs entourée de uns des deux côtés dans la représentation
+binaire d'un entier positif ou nul n. Les zéros de fin (sans 1 qui
+les referme) ne comptent pas.
+
+    def binary_gap(n: int) -> int:
+
+Exemples :
+    binary_gap(9)   -> 2   # 1001
+    binary_gap(529) -> 4   # 1000010001
+    binary_gap(20)  -> 1   # 10100
+    binary_gap(32)  -> 0   # 100000 (trailing zeros don't count)

@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba una cadena y muestre su palabra más
+larga delimitada por espacios/tabulaciones, seguida de un salto de
+línea. En caso de empate, gana la primera. Sin palabras (entrada
+vacía o solo con espacios en blanco): solo un salto de línea. Si
+argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./longest_word_str "the quick brown fox" -> quick
+    ./longest_word_str "a bb ccc dd"          -> ccc
+
+    int main(int argc, char **argv);

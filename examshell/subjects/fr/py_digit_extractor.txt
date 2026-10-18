@@ -1,0 +1,10 @@
+Écrivez une fonction qui extrait chaque caractère chiffre d'une
+chaîne, dans l'ordre, et les renvoie sous forme de liste d'entiers.
+Les caractères qui ne sont pas des chiffres sont ignorés.
+
+    def digit_extractor(text: str) -> list[int]:
+
+Exemples :
+    digit_extractor("a1b22c3")  -> [1, 2, 2, 3]
+    digit_extractor("nothing")  -> []
+    digit_extractor("")         -> []

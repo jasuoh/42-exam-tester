@@ -1,0 +1,9 @@
+Écrivez une fonction qui renvoie True si une valeur apparaît au moins
+deux fois dans la liste, False si toutes les valeurs sont distinctes.
+
+    def contains_duplicate(lst: list[int]) -> bool:
+
+Exemples :
+    contains_duplicate([1,2,3,1]) -> True
+    contains_duplicate([1,2,3,4]) -> False
+    contains_duplicate([])        -> False

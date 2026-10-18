@@ -1,0 +1,12 @@
+Écrivez un PROGRAMME qui affiche les nombres de 1 à 100, chacun
+séparé par un retour à la ligne.
+
+Si le nombre est un multiple de 3, affichez 'fizz' à la place. S'il
+est un multiple de 5, affichez 'buzz' à la place. S'il est un
+multiple des deux, affichez 'fizzbuzz' à la place. Le programme ne
+prend aucun argument.
+
+Exemples :
+    ./fizzbuzz -> 1\n2\nfizz\n4\nbuzz\nfizz\n7\n8\nfizz\nbuzz\n...
+
+    int main(void);

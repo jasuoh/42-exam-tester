@@ -1,0 +1,16 @@
+Напишите функцию, которая возвращает максимум каждого окна размера k
+по мере того, как это окно скользит по списку на одну позицию за раз.
+
+    def sliding_window_maximum(nums: list[int], k: int) -> list[int]:
+
+Верните [] для некорректных входных данных: пустого списка, k, равного
+0 или меньше, или k, превышающего длину списка.
+
+Примеры:
+    sliding_window_maximum([1,3,-1,-3,5,3,6,7], 3) -> [3,3,5,5,6,7]
+    sliding_window_maximum([1,2,3,4,5], 2)         -> [2,3,4,5]
+    sliding_window_maximum([5,4,3,2,1], 1)         -> [5,4,3,2,1]
+    sliding_window_maximum([1,2,3], 3)             -> [3]
+    sliding_window_maximum([1,2,3], 4)             -> []
+    sliding_window_maximum([], 2)                  -> []
+    sliding_window_maximum([1,2,3], 0)             -> []

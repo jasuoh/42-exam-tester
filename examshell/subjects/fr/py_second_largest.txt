@@ -1,0 +1,11 @@
+Écrivez une fonction qui renvoie la deuxième plus grande valeur
+DISTINCTE d'une liste d'entiers. Les doublons de la plus grande valeur
+ne comptent pas comme une deuxième valeur. S'il y a moins de deux
+valeurs distinctes, renvoyez None.
+
+    def second_largest(lst: list[int]) -> int | None:
+
+Exemples :
+    second_largest([3,1,4,1,5,9,2,6]) -> 5
+    second_largest([1,1,1])           -> None
+    second_largest([])                -> None

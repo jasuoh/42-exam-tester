@@ -1,0 +1,10 @@
+Напишите функцию, которая проверяет, является ли строка панграммой:
+она должна содержать каждую букву алфавита хотя бы один раз, без
+учёта регистра. Символы, не являющиеся буквами, игнорируются.
+
+    def pangram_checker(text: str) -> bool:
+
+Примеры:
+    pangram_checker("The quick brown fox jumps over the lazy dog") -> True
+    pangram_checker("hello world")                                -> False
+    pangram_checker("")                                           -> False

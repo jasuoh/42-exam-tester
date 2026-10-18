@@ -1,0 +1,9 @@
+Escribe una función que reciba un byte, lo invierta bit a bit y
+devuelva el resultado. P. ej., 0010 0110 se convierte en 0110 0100.
+
+Ejemplos:
+    reverse_bits(38)  -> 100   # 00100110 -> 01100100
+    reverse_bits(170) -> 85    # 10101010 -> 01010101
+    reverse_bits(0)   -> 0
+
+    unsigned char reverse_bits(unsigned char octet);

@@ -1,0 +1,11 @@
+Escribe una función que devuelva todos los elementos de una matriz
+en orden de espiral en el sentido de las agujas del reloj,
+empezando por la esquina superior izquierda, como una lista plana.
+La matriz es rectangular, pero no tiene por qué ser cuadrada.
+
+    def spiral_matrix(matrix: list[list[int]]) -> list[int]:
+
+Ejemplos:
+    spiral_matrix([[1,2,3],[4,5,6],[7,8,9]]) -> [1,2,3,6,9,8,7,4,5]
+    spiral_matrix([[1,2],[3,4]])              -> [1,2,4,3]
+    spiral_matrix([])                          -> []

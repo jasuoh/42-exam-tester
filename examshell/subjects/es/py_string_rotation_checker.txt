@@ -1,0 +1,12 @@
+Escribe una función que compruebe si s2 es una rotación de s1, es
+decir, si s2 puede obtenerse moviendo algún prefijo de s1 a su
+final (la rotación nula, s2 == s1, también cuenta). Distingue
+mayúsculas de minúsculas; dos cadenas de longitudes distintas nunca
+son rotaciones la una de la otra.
+
+    def string_rotation_checker(s1: str, s2: str) -> bool:
+
+Ejemplos:
+    string_rotation_checker("waterbottle", "erbottlewat") -> True
+    string_rotation_checker("abcd", "abdc")                -> False
+    string_rotation_checker("", "")                        -> True

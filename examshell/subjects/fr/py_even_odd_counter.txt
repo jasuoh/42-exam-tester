@@ -1,0 +1,11 @@
+Écrivez une fonction qui compte combien de nombres pairs et combien
+de nombres impairs contient une liste d'entiers.
+
+    def even_odd_counter(lst: list[int]) -> list[int]:
+
+Renvoie une liste [even_count, odd_count].
+
+Exemples :
+    even_odd_counter([1,2,3,4,5]) -> [2, 3]
+    even_odd_counter([])          -> [0, 0]
+    even_odd_counter([-4,-2,0])   -> [3, 0]

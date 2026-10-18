@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend une seule chaîne en snake_case (mots en
+minuscules, reliés par '_') et la convertit en lowerCamelCase (chaque
+mot commence par une majuscule, sauf le premier, sans séparateur),
+suivie d'un retour à la ligne. Si argc != 2, affichez seulement un
+retour à la ligne.
+
+Exemples :
+    ./snake_to_camel "hello_world"    -> helloWorld
+    ./snake_to_camel "this_is_a_test" -> thisIsATest
+
+    int main(int argc, char **argv);

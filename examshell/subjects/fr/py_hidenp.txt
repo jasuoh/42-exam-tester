@@ -1,0 +1,12 @@
+Écrivez une fonction qui vérifie si 'small' est une sous-séquence de
+'big'. Une sous-séquence signifie que tous les caractères de 'small'
+apparaissent dans 'big' dans le même ordre, mais pas nécessairement
+de façon consécutive. Sensible à la casse.
+
+    def hidenp(small: str, big: str) -> bool:
+
+Exemples :
+    hidenp("abc", "a1b2c3") -> True
+    hidenp("ace", "abcde")  -> True
+    hidenp("aec", "abcde")  -> False
+    hidenp("", "abc")       -> True

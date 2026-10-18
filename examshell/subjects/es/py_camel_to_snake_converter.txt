@@ -1,0 +1,13 @@
+Escribe una función que convierta una cadena en lowerCamelCase a
+snake_case: cada letra mayúscula se sustituye por un guion bajo
+seguido de su forma en minúscula. Cualquier otro carácter (incluidos
+los dígitos y los guiones bajos que ya haya en la cadena) se deja
+exactamente como está; incluso una mayúscula inicial produce
+simplemente un guion bajo inicial.
+
+    def camel_to_snake_converter(text: str) -> str:
+
+Ejemplos:
+    camel_to_snake_converter("helloWorld")   -> "hello_world"
+    camel_to_snake_converter("thisIsATest")  -> "this_is_a_test"
+    camel_to_snake_converter("single")       -> "single"

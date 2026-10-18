@@ -1,0 +1,10 @@
+Écrivez une fonction qui affiche une chaîne sur la sortie standard.
+
+Le pointeur passé à la fonction contient l'adresse du premier
+caractère de la chaîne.
+
+Exemples :
+    ft_putstr("hello") -> prints: hello
+    ft_putstr("")      -> prints nothing
+
+    void ft_putstr(char *str);

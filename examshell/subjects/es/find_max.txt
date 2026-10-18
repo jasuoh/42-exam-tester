@@ -1,0 +1,8 @@
+Escribe una función que devuelva el elemento más grande de un array
+de int. Un array vacío devuelve 0.
+
+Ejemplos:
+    find_max([3,1,4,1,5,9,2,6], 8) -> 9
+    find_max([], 0)                -> 0
+
+    int find_max(int *arr, unsigned int size);

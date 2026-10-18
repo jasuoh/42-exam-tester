@@ -1,0 +1,9 @@
+Reproduce el comportamiento de la función estándar strspn():
+devuelve la longitud del segmento inicial de `s` formado
+únicamente por caracteres de `accept`.
+
+Ejemplos:
+    ft_strspn("aabbcc", "ab") -> 4
+    ft_strspn("hello", "xyz") -> 0
+
+    size_t ft_strspn(const char *s, const char *accept);

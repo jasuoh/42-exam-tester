@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba una cadena con palabras separadas
+por un único espacio (sin espacios al principio ni al final) y
+muestre sus palabras en orden INVERSO, separadas por un único
+espacio, seguidas de un salto de línea. Si argc != 2, solo un salto
+de línea.
+
+Ejemplos:
+    ./rev_wstr "one two three" -> three two one
+    ./rev_wstr "single"         -> single
+
+    int main(int argc, char **argv);

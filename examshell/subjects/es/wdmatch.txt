@@ -1,0 +1,12 @@
+Escribe un PROGRAMA que reciba dos cadenas y compruebe si la
+primera puede escribirse usando caracteres de la segunda, en orden
+(no necesariamente consecutivos; es decir, la primera es una
+subsecuencia de la segunda). Si es así, muestra la primera cadena
+seguida de un salto de línea; si no, solo un salto de línea. Si
+argc != 3, solo un salto de línea.
+
+Ejemplos:
+    ./wdmatch "abc" "xaxbxc" -> abc
+    ./wdmatch "abc" "xbxax"  -> (just a newline)
+
+    int main(int argc, char **argv);

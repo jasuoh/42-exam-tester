@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend un entier positif en argument et
+affiche la somme de tous les nombres premiers <= à celui-ci, suivie
+d'un retour à la ligne. Si argc != 2, ou si l'argument n'est pas un
+nombre positif, affichez simplement 0 suivi d'un retour à la ligne.
+
+Exemples :
+    ./add_prime_sum 5 -> 10   # 2 + 3 + 5
+    ./add_prime_sum 7 -> 17   # 2 + 3 + 5 + 7
+    ./add_prime_sum   -> 0
+
+    int main(int argc, char **argv);

@@ -1,0 +1,6 @@
+Escribe una función que invierta una cadena IN SITU y la devuelva.
+
+Ejemplos:
+    ft_strrev("hello") -> "olleh" (str itself is modified)
+
+    char *ft_strrev(char *str);

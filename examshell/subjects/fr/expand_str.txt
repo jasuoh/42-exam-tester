@@ -1,0 +1,12 @@
+Écrivez un PROGRAMME qui prend une chaîne et l'affiche avec
+exactement trois espaces entre les mots et sans espaces au début
+ni à la fin, suivie d'un retour à la ligne. Un mot est une suite de
+caractères qui ne sont ni des espaces ni des tabulations. Si
+argc != 2, ou s'il n'y a aucun mot, affichez seulement un retour à
+la ligne.
+
+Exemples :
+    ./expand_str "hello world" -> hello   world
+    ./expand_str "a b"          -> a   b
+
+    int main(int argc, char **argv);

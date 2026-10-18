@@ -1,0 +1,10 @@
+Écrivez une fonction qui renvoie la longueur de la plus longue
+sous-suite STRICTEMENT CROISSANTE d'un tableau d'int — les éléments
+n'ont pas besoin d'être contigus, mais doivent conserver leur ordre
+relatif d'origine. Pour un tableau vide, renvoyez 0.
+
+Exemples :
+    lis_length([10,9,2,5,3,7,101,18], 8) -> 4   ([2,3,7,101] or [2,3,7,18])
+    lis_length([7,7,7,7], 4)             -> 1
+
+    int lis_length(int *arr, unsigned int size);

@@ -102,6 +102,21 @@ nach. `make doctor` zeigt, ob Auto-Sync an ist.
 Du musst nie selbst Git-Konflikte lösen: Der Tester führt beide Stände
 selbst zusammen und pusht dann.
 
+Beim Start einer neuen Prüfung werden alte Lösungen lokal archiviert.
+Sync merkt sich diese Entfernung und hält auch auf anderen Geräten den
+aktiven Lösungsordner frei. Dasselbe gilt für das Löschen einer bereits
+synchronisierten Datei. Bevor Sync eine Datei hier entfernt, legt es eine
+Sicherung an; eine neuere Bearbeitung gewinnt gegen eine ältere Entfernung.
+Auf einem neu verbundenen Gerät werden vorhandene Dateien wie bisher
+heruntergeladen. Die versteckte `.examshell-sync.json` im Lösungsordner
+speichert, was synchronisiert oder archiviert wurde; bitte aufbewahren.
+Alle Geräte sollten den aktualisierten Tester verwenden, damit sie
+Entfernungen berücksichtigen.
+
+Eine pausierte Prüfung bringt ihr eigenes Zeitlimit und ihre
+Bewertungsregeln mit. Gespeicherte Geräteeinstellungen gelten weiterhin
+für neue Prüfungen.
+
 ## Wenn etwas nicht klappt
 
 | Meldung | Lösung |

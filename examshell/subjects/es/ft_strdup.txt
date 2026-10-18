@@ -1,0 +1,7 @@
+Reproduce el comportamiento de la función estándar strdup():
+devuelve una copia de la cadena, nueva y reservada con malloc.
+
+Ejemplos:
+    ft_strdup("hello") -> a new, independent "hello" string
+
+    char *ft_strdup(char *src);

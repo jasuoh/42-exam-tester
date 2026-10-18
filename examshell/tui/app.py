@@ -21,9 +21,11 @@ import shlex
 import shutil
 import subprocess
 import time
+from functools import partial
 from typing import (
     Any,
     Dict,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -37,12 +39,12 @@ from rich.console import Group, RenderableType
 from rich.table import Table
 from rich.text import Text
 from textual import events, work
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, SystemCommand
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.errors import NoWidget
 from textual.screen import ModalScreen, Screen
 from textual.selection import Selection
-from textual.timer import Timer
 from textual.widgets import (
     DataTable,
     Footer,
@@ -57,8 +59,16 @@ from textual.visual import VisualType
 from textual.widgets.option_list import Option
 from textual.worker import WorkerFailed
 
-from .. import session_store, settings, shell_common, stats, ui, update_check
-from .._types import Event, Tester, TesterConfig
+from .. import (
+    session_store,
+    settings,
+    shell_common,
+    stats,
+    subject_lang,
+    ui,
+    update_check,
+)
+from .._types import Event, Exercise, Tester, TesterConfig
 from ..grader import BankError, Report
 from ..shell_common import ExamResult, ExamRun, GradeOutcome
 from ..sync import SyncResult
@@ -71,7 +81,6 @@ from . import render
 # (your Ghostty / VS Code theme) instead of bringing its own
 THEME = "ansi-dark"
 SUBJECT_SYNTAX = "ansi_dark"
-WATCH_INTERVAL = 1.0  # seconds between solution-file checks
 
 
 def editor_command(path: str) -> Optional[List[str]]:
@@ -92,6 +101,34 @@ NARROW = 120
 LogEntry = Tuple[str, str, Report]
 
 _ResultT = TypeVar("_ResultT")
+
+# ctrl+p: options that so far were only flags (`--blind`, `--strict` …).
+# Like a flag they last until the app quits, never saved; each tester
+# offers the ones its Config has. (attribute, title, what it does)
+SESSION_TOGGLES = (
+    ("relaxed", "Relaxed exam", "next exam: lenient grading, 'new' redraws"),
+    ("blind", "Blind grading", "next exam: grademe hides the failing test"),
+    (
+        "strict_imports",
+        "Strict imports",
+        "practice: any import fails, like the exam",
+    ),
+    (
+        "strict_norm",
+        "Strict warnings",
+        "practice: a compiler warning fails, like the exam",
+    ),
+    (
+        "strict_forbidden",
+        "Strict forbidden calls",
+        "practice: a forbidden call fails, like the exam",
+    ),
+    ("valgrind", "Valgrind", "check for leaks and memory errors (warns)"),
+    ("strict_valgrind", "Strict valgrind", "a leak or memory error fails"),
+)
+# what the palette still offers while an exam runs: nothing that changes
+# grading or the exam, which stays like the real one
+EXAM_SAFE_SETTINGS = ("auto_sync",)
 
 
 class AppScreen(Screen[_ResultT]):
@@ -215,7 +252,6 @@ class HelpModal(ModalScreen[None]):
         ("esc", "back — in the exam: quit and save"),
         ("Practice only", ""),
         ("d", "all the details of the last grade"),
-        ("w", "grade every time you save"),
         ("n", "next exercise of My gaps"),
         ("f", "feedback on this exercise"),
         ("Exercise list", ""),
@@ -223,6 +259,10 @@ class HelpModal(ModalScreen[None]):
         ("/", "filter by name"),
         ("Progress", ""),
         ("p", "practise your gaps"),
+        ("Everywhere", ""),
+        ("ctrl+c", "copy the text you selected (or right-click it)"),
+        ("right-click", "on a subject: its language"),
+        ("ctrl+p", "palette — settings and options"),
     )
 
     def compose(self) -> ComposeResult:
@@ -263,6 +303,53 @@ class ChoiceModal(ModalScreen[Optional[str]]):
 
     def action_cancel(self) -> None:
         self.dismiss(None)
+
+
+class ContextMenu(ModalScreen[Optional[str]]):
+    """The right-click menu, at the mouse: Copy for selected text, the
+    subject's languages over a subject. Dismisses with the picked
+    option's id, or None.
+
+    GNOME Terminal (every VTE terminal) keeps ctrl+shift+c for itself,
+    and its own right-click menu can't see the app's selection — Copy
+    here is what students reach for there."""
+
+    BINDINGS = [Binding("escape", "dismiss", "close")]
+
+    def __init__(
+        self,
+        options: Sequence[Union[Tuple[str, str], None]],
+        at: Tuple[int, int],
+    ) -> None:
+        super().__init__()
+        self.options, self.at = options, at  # None: a separator line
+
+    def compose(self) -> ComposeResult:
+        yield OptionList(
+            *[
+                None if opt is None else Option(opt[1], id=opt[0])
+                for opt in self.options
+            ],
+            id="context-menu",
+        )
+
+    def on_mount(self) -> None:
+        menu = self.query_one("#context-menu", OptionList)
+        # next to the pointer, but never pushed off the screen
+        width, height = 16, len(self.options) + 2
+        x = max(0, min(self.at[0], self.size.width - width))
+        y = max(0, min(self.at[1], self.size.height - height))
+        menu.styles.offset = (x, y)
+        menu.focus()
+
+    def on_option_list_option_selected(
+        self, event: OptionList.OptionSelected
+    ) -> None:
+        self.dismiss(event.option.id)
+
+    def on_click(self, event: events.Click) -> None:
+        if event.widget is self:  # a click next to the menu closes it
+            self.dismiss(None)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -347,26 +434,15 @@ class MenuScreen(AppScreen[None]):
         elif choice == "progress":
             app.push_screen(ProgressScreen())
         elif choice == "switch":
-            app.push_screen(
-                ChoiceModal("Switch exam", app.exam_choices()), app.switch_exam
-            )
+            app.ask_switch_exam()
         elif choice == "quit":
             app.exit()
 
     def action_settings(self) -> None:
-        self.app.push_screen(SettingsScreen())
+        self.app.open_settings()
 
     def action_feedback(self) -> None:
-        from .. import feedback
-
-        self.app.push_screen(
-            ChoiceModal(
-                "Give feedback — opens a GitHub form, nothing is "
-                "sent until you submit it",
-                list(feedback.KIND_LABELS),
-            ),
-            self.app.open_feedback,
-        )
+        self.app.ask_feedback()
 
 
 # ══════════════════════════════════════════════════════════════
@@ -395,6 +471,7 @@ class PickerScreen(AppScreen[None]):
     def __init__(self, pool: str = "exam") -> None:
         super().__init__()
         self.pool = pool
+        self.previewing = ""  # the exercise in the preview pane
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -478,6 +555,7 @@ class PickerScreen(AppScreen[None]):
                 key=name,
             )
         if not table.row_count:
+            self.previewing = ""
             pane = self.query_one("#preview-pane")
             pane.border_title = pane.border_subtitle = None
             self.query_one("#preview", Copyable).update(
@@ -502,7 +580,10 @@ class PickerScreen(AppScreen[None]):
     ) -> None:
         if event.row_key is None:
             return
-        name = cast(str, event.row_key.value)  # rows are keyed by name
+        self.show_preview(cast(str, event.row_key.value))  # keyed by name
+
+    def show_preview(self, name: str) -> None:
+        self.previewing = name
         row = self.status[name]
         pane = self.query_one("#preview-pane")
         pane.border_title = name
@@ -512,10 +593,13 @@ class PickerScreen(AppScreen[None]):
             else "never tried"
         )
         self.query_one("#preview", Copyable).update(
-            ui.subject_blocks(
-                self.app.sh.ALL_EXERCISES[name], code_background=None
-            )
+            ui.subject_blocks(self.app.subject_of(name), code_background=None)
         )
+
+    def show_subject(self) -> None:
+        """Again, in the language just picked."""
+        if self.previewing in self.status:
+            self.show_preview(self.previewing)
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         name = cast(str, event.row_key.value)  # rows are keyed by name
@@ -541,6 +625,8 @@ class SplitScreen(AppScreen[None]):
     """The subject on top, the grading results below — your code stays in
     your editor. Subclasses decide what grading means (practice vs exam)."""
 
+    SHOW_SCORE = True  # passed/total under the results; not in the exam
+
     def __init__(self) -> None:
         super().__init__()
         self.ex_name = ""  # empty while the exam still asks for the login
@@ -561,17 +647,12 @@ class SplitScreen(AppScreen[None]):
     def show_exercise(self, ex_name: str) -> None:
         sh = self.app.sh
         self.ex_name = ex_name
-        ex = sh.ALL_EXERCISES[ex_name]
         pane = self.query_one("#subject-pane")
         pane.border_title = ex_name
         pane.border_subtitle = shell_common.solution_path(
             sh, ex_name, self.app.cfg
         )
-        self.query_one("#subject", Copyable).update(
-            ui.subject_blocks(
-                ex, lexer_theme=SUBJECT_SYNTAX, code_background=None
-            )
-        )  # the theme's own code background
+        self.show_subject()
         self.set_results(
             render.waiting_view(
                 "Write your solution in %s, then press g to grade."
@@ -579,6 +660,18 @@ class SplitScreen(AppScreen[None]):
             )
         )
         self.show_attempts()
+
+    def show_subject(self) -> None:
+        """The subject, in the language picked with a right-click."""
+        if not self.ex_name:
+            return
+        self.query_one("#subject", Copyable).update(
+            ui.subject_blocks(
+                self.app.subject_of(self.ex_name),
+                lexer_theme=SUBJECT_SYNTAX,
+                code_background=None,  # the theme's own code background
+            )
+        )
 
     def log_report(self, report: Report) -> None:
         self.log_entries.append(
@@ -592,7 +685,7 @@ class SplitScreen(AppScreen[None]):
         self.query_one(
             "#results-pane"
         ).border_subtitle = render.attempt_summary(
-            self.log_entries, self.ex_name
+            self.log_entries, self.ex_name, score=self.SHOW_SCORE
         )
 
     def set_results(
@@ -645,13 +738,12 @@ class SplitScreen(AppScreen[None]):
 
 
 class PracticeScreen(SplitScreen):
-    """Practice/training/drill: grade as often as you like, optional watch
-    mode (re-grade on every save), hints after repeated fails."""
+    """Practice/training/drill: grade as often as you like, hints after
+    repeated fails."""
 
     BINDINGS = [
         Binding("g", "grade", "grademe"),
         Binding("d", "details", "details"),
-        Binding("w", "toggle_watch", "watch"),
         Binding("e", "edit", "edit"),
         Binding("t", "stub", "stub"),
         Binding("f", "feedback", "differs from exam?"),
@@ -673,8 +765,6 @@ class PracticeScreen(SplitScreen):
         self.queue, self.position = queue, position
         self.rng = random.Random()
         self.grading = False
-        self.watch_timer: Optional[Timer] = None
-        self.watch_mtime: Optional[float] = None
 
     def on_mount(self) -> None:
         self.show_exercise(self.start_ex)
@@ -690,11 +780,6 @@ class PracticeScreen(SplitScreen):
             )
             if self.position + 1 < len(self.queue):
                 text.append("  ·  n = next exercise", style="dim")
-        text.append("   watch: ", style="dim")
-        text.append(
-            "ON — grading on every save" if self.watch_timer else "off (w)",
-            style="bold green" if self.watch_timer else "dim",
-        )
         self.query_one("#status", Static).update(text)
 
     # ── grading ───────────────────────────────────────────────────────
@@ -722,10 +807,16 @@ class PracticeScreen(SplitScreen):
 
     def show_error(self, message: str) -> None:
         self.grading = False
+        if not self.is_attached:  # left while grading (see show_outcome)
+            return
         self.set_results(Text(message, style="bold red"), "error")
 
     def show_outcome(self, outcome: GradeOutcome) -> None:
         self.grading = False
+        # esc / n while grading: Textual cancels the worker, but its thread
+        # still delivers the result here, to a screen no longer shown
+        if not self.is_attached:
+            return
         report = outcome.report
         self.log_report(report)
         self.outcome, self.details = outcome, False
@@ -758,35 +849,6 @@ class PracticeScreen(SplitScreen):
             self.details = not self.details
             self.show_report()
 
-    # ── watch mode ────────────────────────────────────────────────────
-    def _mtime(self) -> Optional[float]:
-        try:
-            return os.path.getmtime(
-                shell_common.solution_path(
-                    self.app.sh, self.ex_name, self.app.cfg
-                )
-            )
-        except OSError:
-            return None
-
-    def action_toggle_watch(self) -> None:
-        if self.watch_timer:
-            self.watch_timer.stop()
-            self.watch_timer = None
-        else:
-            self.watch_mtime = self._mtime()
-            self.watch_timer = self.set_interval(
-                WATCH_INTERVAL, self.check_watch
-            )
-            self.notify("Watching your file — every save re-grades it.")
-        self.update_status()
-
-    def check_watch(self) -> None:
-        mtime = self._mtime()
-        if mtime is not None and mtime != self.watch_mtime:
-            self.watch_mtime = mtime
-            self.action_grade()
-
     def action_feedback(self) -> None:
         self.app.open_feedback("exam", self.ex_name)
 
@@ -802,6 +864,8 @@ class PracticeScreen(SplitScreen):
 
 class ExamScreen(SplitScreen):
     """The exam, driving one shell_common.ExamRun."""
+
+    SHOW_SCORE = False  # the real grademe says SUCCESS or FAILURE, no score
 
     BINDINGS = [
         Binding("g", "grade", "grademe"),
@@ -822,7 +886,7 @@ class ExamScreen(SplitScreen):
         app = self.app
         self.run = shell_common.ExamRun(app.sh, app.cfg)
         self.set_results(render.waiting_view("Starting the exam …"))
-        saved = session_store.load(app.sh.TOOL)
+        saved = session_store.load(app.sh.TOOL, app.sh.STANDARD_LEVELS)
         if saved:
             question = "Resume your saved exam for [b]%s[/b] — level %d?" % (
                 saved["login"],
@@ -841,9 +905,7 @@ class ExamScreen(SplitScreen):
         if not self.over and self.run.session.start_time is not None:
             self.run.save()
 
-    def after_resume_question(
-        self, yes: Optional[bool], saved: Event
-    ) -> None:
+    def after_resume_question(self, yes: Optional[bool], saved: Event) -> None:
         if yes is None:  # esc: back to the menu, the save stays
             self.app.pop_screen()
         elif yes:
@@ -934,11 +996,13 @@ class ExamScreen(SplitScreen):
 
     def show_error(self, message: str) -> None:
         self.grading = False
+        if not self.is_attached:  # left while grading (see show_outcome)
+            return
         self.set_results(Text(message, style="bold red"), "error")
 
     def show_outcome(self, outcome: GradeOutcome) -> None:
         self.grading = False
-        if self.over:
+        if self.over or not self.is_attached:
             return
         report = outcome.report
         self.log_report(report)
@@ -996,6 +1060,11 @@ class ExamScreen(SplitScreen):
         result = shell_common.finish_exam(
             self.app.sh, self.run.session, passed, timed_out
         )
+        # switch_screen replaces the top screen: a dialog still open when
+        # the last level passes or the time runs out (quit?, help) must go
+        # first, or it's the dialog that's replaced and the dead exam stays
+        while self.app.screen is not self and self in self.app.screen_stack:
+            self.app.pop_screen()
         self.app.switch_screen(SummaryScreen(result))
 
 
@@ -1090,7 +1159,8 @@ class ProgressScreen(AppScreen[None]):
 # ══════════════════════════════════════════════════════════════
 class SettingsScreen(AppScreen[None]):
     """The few things worth changing, saved to ~/.examshell/config.json
-    (settings.py) and applied right away. Esc in a prompt keeps the value."""
+    (settings.py) and applied right away. Esc in a prompt keeps the value.
+    Changing one is ExamShellApp.change_setting(), shared with ctrl+p."""
 
     BINDINGS = [Binding("escape", "app.pop_screen", "back")]
 
@@ -1108,107 +1178,18 @@ class SettingsScreen(AppScreen[None]):
         self.refresh_list()
         self.query_one("#settings", OptionList).focus()
 
-    def rows(self) -> List[Tuple[str, str, str]]:
-        from .. import sync
-
-        cfg = self.app.cfg
-        limit = getattr(cfg, "time_limit", None)
-        repo = sync.remote_url(settings.DATA_DIR)
-        rows = [
-            (
-                "time_limit",
-                "Exam time limit",
-                "%d min" % limit if limit else "off",
-            ),
-            ("timeout", "Time per test", "%d s" % cfg.timeout),
-            ("fuzz", "Random tests per exercise", str(cfg.fuzz)),
-        ]
-        if hasattr(cfg, "cc"):
-            rows.append(("cc", "C compiler", str(getattr(cfg, "cc"))))
-        rows += [
-            ("sync_repo", "Sync repo", repo or "not set up"),
-            (
-                "auto_sync",
-                "Auto-sync",
-                "on" if shell_common.auto_sync_enabled() else "off",
-            ),
-        ]
-        return rows
-
     def refresh_list(self) -> None:
         menu = self.query_one("#settings", OptionList)
         highlighted = menu.highlighted
         menu.clear_options()
-        for key, label, value in self.rows():
+        for key, label, value in self.app.setting_rows():
             menu.add_option(Option("%-28s [b]%s[/b]" % (label, value), id=key))
         menu.highlighted = highlighted if highlighted is not None else 0
 
     def on_option_list_option_selected(
         self, event: OptionList.OptionSelected
     ) -> None:
-        key = event.option.id or ""
-        cfg = self.app.cfg
-        if key == "auto_sync":
-            on = not shell_common.auto_sync_enabled()
-            self.save("auto_sync", on)
-            if on:
-                self.app.notify(
-                    "Auto-sync on: every session pulls first and pushes "
-                    "when it ends (once a sync repo is set up)."
-                )
-            return
-        if key == "sync_repo":
-            self.app.push_screen(
-                PromptModal(
-                    "URL of your PRIVATE git repo for sync "
-                    "(see docs/sync.md) — Esc to cancel",
-                ),
-                self.app.setup_sync,
-            )
-            return
-        prompts = {
-            "time_limit": "Exam time limit in minutes (0 = off):",
-            "timeout": "Seconds each test may run:",
-            "fuzz": "Random tests per exercise, on top of the fixed ones:",
-            "cc": "C compiler to use (cc, gcc, clang …):",
-        }
-        current = getattr(cfg, key, None)
-        default = str(current or 0) if key == "time_limit" else str(current)
-        self.app.push_screen(
-            PromptModal(prompts[key], default),
-            lambda value: self.apply(key, value),
-        )
-
-    def apply(self, key: str, value: Optional[str]) -> None:
-        if value is None:
-            return
-        if key == "cc":
-            if value and shutil.which(value) is None:
-                self.app.notify("%r is not on PATH" % value, severity="error")
-            elif value:
-                self.save("cc", value)
-            return
-        try:
-            number = int(value)
-        except ValueError:
-            self.app.notify("%r is not a number" % value, severity="error")
-            return
-        if key == "time_limit":
-            self.save("time_limit", number if number > 0 else None)
-        elif number < (1 if key == "timeout" else 0):
-            self.app.notify("that's too small", severity="error")
-        else:
-            self.save(key, number)
-
-    def save(self, key: str, value: Any) -> None:
-        if not settings.update_config(key, value):
-            self.app.notify(
-                "could not write %s" % settings.CONFIG_PATH, severity="error"
-            )
-            return
-        if key != "auto_sync":
-            setattr(self.app.cfg, key, value)
-        self.refresh_list()
+        self.app.change_setting(event.option.id or "")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1252,6 +1233,12 @@ class ExamShellApp(App[None]):
         width: 64; height: auto; padding: 1 2; border: round $primary;
     }
     ModalScreen { align: center middle; }
+    ContextMenu { align: left top; background: transparent; }
+    #context-menu {
+        width: 16; height: auto; padding: 0;
+        border: round $primary; background: $surface;
+        scrollbar-size: 0 0;
+    }
     .modal-question { margin-bottom: 1; }
     .modal-hint { color: $text-muted; }
     """
@@ -1275,6 +1262,15 @@ class ExamShellApp(App[None]):
         # the very first start: ask which exam, instead of assuming Rank 03
         self.ask_exam = ask_exam
         self.update_notice: Dict[str, Optional[str]] = {"notice": None}
+        # the release of the right-click that opened ContextMenu is
+        # swallowed
+        self._right_click_menu = False
+        lang = settings.load_config().get("subject_lang")
+        self.subject_lang: str = (
+            str(lang)
+            if subject_lang.is_language(lang)
+            else subject_lang.DEFAULT
+        )
 
     def action_help(self) -> None:
         if not isinstance(self.screen, HelpModal):
@@ -1297,6 +1293,74 @@ class ExamShellApp(App[None]):
         macOS Terminal, ...) — see clipboard.py."""
         super().copy_to_clipboard(text)
         system_clipboard.copy(text)
+
+    # ── the subject's language and the right-click menu ──────────────
+    def subject_of(self, ex_name: str) -> Exercise:
+        """The exercise with its subject in the language picked."""
+        return subject_lang.translated(
+            ex_name, self.sh.ALL_EXERCISES[ex_name], self.subject_lang
+        )
+
+    def set_subject_lang(self, lang: str) -> None:
+        """Show every subject in `lang` from now on, the open ones too."""
+        self.subject_lang = lang
+        settings.update_config("subject_lang", lang)
+        for screen in self.screen_stack:
+            if isinstance(screen, (SplitScreen, PickerScreen)):
+                screen.show_subject()
+
+    async def on_event(self, event: events.Event) -> None:
+        """A right-click opens ContextMenu, where it has something to
+        offer. Textual would treat it like a left click and drop the
+        selection, so the press (and its release) never reach the
+        screen."""
+        if (
+            isinstance(event, (events.MouseDown, events.MouseUp))
+            and event.button == 3
+            and not event.is_forwarded
+        ):
+            if isinstance(event, events.MouseUp):
+                if self._right_click_menu:
+                    self._right_click_menu = False
+                    return
+            elif self.open_context_menu(event.x, event.y):
+                self._right_click_menu = True
+                return
+        await super().on_event(event)
+
+    def open_context_menu(self, x: int, y: int) -> bool:
+        """ContextMenu for a right-click at (x, y); False if it would be
+        empty there."""
+        text = self.screen.get_selected_text()
+        options: List[Optional[Tuple[str, str]]] = []
+        if text:
+            options.append(("copy", "  Copy"))  # in line with the languages
+        try:
+            widget, _ = self.get_widget_at(x, y)
+        except NoWidget:
+            widget = None
+        over_subject = widget is not None and any(
+            node.id in ("subject-pane", "preview-pane")
+            for node in widget.ancestors_with_self
+        )
+        if over_subject:
+            if options:
+                options.append(None)
+            for lang, name in subject_lang.LANGUAGES:
+                mark = "●" if lang == self.subject_lang else " "
+                options.append(("lang:" + lang, "%s %s" % (mark, name)))
+        if not options:
+            return False
+
+        def picked(choice: Optional[str]) -> None:
+            if choice == "copy" and text:
+                self.copy_to_clipboard(text)
+                self.notify("Copied", timeout=2)
+            elif choice and choice.startswith("lang:"):
+                self.set_subject_lang(choice.partition(":")[2])
+
+        self.push_screen(ContextMenu(options, (x, y)), picked)
+        return True
 
     @property
     def clipboard(self) -> str:
@@ -1322,6 +1386,8 @@ class ExamShellApp(App[None]):
         self.push_screen(MenuScreen())
         if self.start == "exam":
             self.push_screen(ExamScreen())
+        elif self.start == "practice":
+            self.push_screen(PickerScreen())
         elif isinstance(self.start, tuple) and self.start[0] == "practice":
             self.push_screen(PracticeScreen(self.start[1]))
         if self.ask_exam:
@@ -1361,6 +1427,268 @@ class ExamShellApp(App[None]):
         if yes:
             self.open_feedback("bug", details=crashlog.report_text(log))
 
+    # ── settings: the settings screen and the palette share these ─────
+    SETTING_PROMPTS = {
+        "time_limit": "Exam time limit in minutes (0 = off):",
+        "timeout": "Seconds each test may run:",
+        "fuzz": "Random tests per exercise, on top of the fixed ones:",
+        "cc": "C compiler to use (cc, gcc, clang …):",
+    }
+
+    def setting_rows(self) -> List[Tuple[str, str, str]]:
+        """(key, label, current value) of every saved setting."""
+        from .. import sync
+
+        cfg = self.cfg
+        limit = getattr(cfg, "time_limit", None)
+        repo = sync.remote_url(settings.DATA_DIR)
+        rows = [
+            (
+                "time_limit",
+                "Exam time limit",
+                "%d min" % limit if limit else "off",
+            ),
+            ("timeout", "Time per test", "%d s" % cfg.timeout),
+            ("fuzz", "Random tests per exercise", str(cfg.fuzz)),
+        ]
+        if hasattr(cfg, "cc"):
+            rows.append(("cc", "C compiler", str(getattr(cfg, "cc"))))
+        rows += [
+            ("sync_repo", "Sync repo", repo or "not set up"),
+            (
+                "auto_sync",
+                "Auto-sync",
+                "on" if shell_common.auto_sync_enabled() else "off",
+            ),
+        ]
+        return rows
+
+    def change_setting(self, key: str) -> None:
+        """Change one saved setting: a toggle flips, the rest ask for the
+        new value (Esc keeps the old one)."""
+        if key == "auto_sync":
+            on = not shell_common.auto_sync_enabled()
+            self.save_setting("auto_sync", on)
+            if on:
+                self.notify(
+                    "Auto-sync on: every session pulls first and pushes "
+                    "when it ends (once a sync repo is set up)."
+                )
+            return
+        if key == "sync_repo":
+            self.push_screen(
+                PromptModal(
+                    "URL of your PRIVATE git repo for sync "
+                    "(see docs/sync.md) — Esc to cancel",
+                ),
+                self.setup_sync,
+            )
+            return
+        current = getattr(self.cfg, key, None)
+        default = str(current or 0) if key == "time_limit" else str(current)
+        self.push_screen(
+            PromptModal(self.SETTING_PROMPTS[key], default),
+            lambda value: self.apply_setting(key, value),
+        )
+
+    def apply_setting(self, key: str, value: Optional[str]) -> None:
+        if value is None:
+            return
+        if key == "cc":
+            if value and shutil.which(value) is None:
+                self.notify("%r is not on PATH" % value, severity="error")
+            elif value:
+                self.save_setting("cc", value)
+            return
+        try:
+            number = int(value)
+        except ValueError:
+            self.notify("%r is not a number" % value, severity="error")
+            return
+        if key == "time_limit":
+            self.save_setting("time_limit", number if number > 0 else None)
+        elif number < (1 if key == "timeout" else 0):
+            self.notify("that's too small", severity="error")
+        else:
+            self.save_setting(key, number)
+
+    def save_setting(self, key: str, value: Any) -> None:
+        """Save to config.json, apply to this session, and show it on an
+        open settings screen."""
+        if not settings.update_config(key, value):
+            self.notify(
+                "could not write %s" % settings.CONFIG_PATH, severity="error"
+            )
+            return
+        if key != "auto_sync":
+            setattr(self.cfg, key, value)
+        for screen in self.screen_stack:
+            if isinstance(screen, SettingsScreen):
+                screen.refresh_list()
+
+    # ── ctrl+p: the command palette ───────────────────────────────────
+    def exam_running(self) -> bool:
+        return any(
+            isinstance(screen, ExamScreen) and not screen.over
+            for screen in self.screen_stack
+        )
+
+    def get_system_commands(
+        self, screen: Screen[Any]
+    ) -> Iterable[SystemCommand]:
+        """Textual's own commands, then the settings, the options that are
+        otherwise flags, and the menu's keys. While an exam runs, nothing
+        that could change it: the exam stays like the real one."""
+        yield from super().get_system_commands(screen)
+        exam = self.exam_running()
+        for key, label, value in self.setting_rows():
+            if not exam or key in EXAM_SAFE_SETTINGS:
+                yield SystemCommand(
+                    label,
+                    "now %s · saved for every session" % value,
+                    partial(self.change_setting, key),
+                )
+        if not exam:
+            cfg = self.cfg
+            for attr, title, what in SESSION_TOGGLES:
+                if hasattr(cfg, attr):
+                    yield SystemCommand(
+                        title,
+                        "now %s · %s · this session"
+                        % ("on" if getattr(cfg, attr) else "off", what),
+                        partial(self.toggle_option, attr, title),
+                    )
+            yield SystemCommand(
+                "Seed",
+                "now %s · next exam: the same exercises and tests every "
+                "time · this session"
+                % ("random" if cfg.seed is None else cfg.seed),
+                self.ask_seed,
+            )
+            yield SystemCommand(
+                "Solutions folder",
+                "now %s · where your solutions are graded and stubs "
+                "written · this session" % cfg.rendu,
+                self.ask_rendu,
+            )
+            yield SystemCommand(
+                "Settings", "the saved settings (o)", self.open_settings
+            )
+            yield SystemCommand(
+                "Sync now",
+                "sync with your other device (s)",
+                self.start_sync,
+            )
+            yield SystemCommand(
+                "Switch exam",
+                "now %s · back to the menu" % self.label(),
+                self.ask_switch_exam,
+            )
+        yield SystemCommand(
+            "Feedback", "opens a GitHub form (f)", self.ask_feedback
+        )
+
+    def toggle_option(self, attr: str, title: str) -> None:
+        """Flip a session-only option, like starting with its flag."""
+        on = not getattr(self.cfg, attr)
+        setattr(self.cfg, attr, on)
+        # as the flags do: --strict-valgrind needs valgrind to run
+        if attr == "strict_valgrind" and on:
+            setattr(self.cfg, "valgrind", True)
+        if attr == "valgrind" and not on:
+            setattr(self.cfg, "strict_valgrind", False)
+        self.notify("%s: %s (this session)" % (title, "on" if on else "off"))
+        if on and "valgrind" in attr:
+            for note in self.sh.grading_notes(self.cfg):
+                self.notify(note, severity="warning", timeout=10)
+
+    def ask_seed(self) -> None:
+        seed = self.cfg.seed
+        self.push_screen(
+            PromptModal(
+                "Seed for the next exam — the same exercises and tests "
+                "every time (empty = random):",
+                "" if seed is None else str(seed),
+            ),
+            self.apply_seed,
+        )
+
+    def apply_seed(self, value: Optional[str]) -> None:
+        if value is None:
+            return
+        seed: Optional[int] = None
+        if value.strip():
+            try:
+                seed = int(value)
+            except ValueError:
+                self.notify("%r is not a number" % value, severity="error")
+                return
+        self.cfg.seed = seed
+        self.notify(
+            "Seed: %s (this session)" % ("random" if seed is None else seed)
+        )
+
+    def ask_rendu(self) -> None:
+        self.push_screen(
+            PromptModal("Folder with your solutions:", self.cfg.rendu),
+            self.apply_rendu,
+        )
+
+    def apply_rendu(self, value: Optional[str]) -> None:
+        """Like --rendu / `make RENDU=...`: grading, stubs, the editor and
+        sync use the new folder, and a switch of exam keeps it."""
+        if value is None:
+            return
+        folder = os.path.expanduser(value.strip())
+        if not folder:
+            self.notify("no folder given", severity="error")
+            return
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except OSError as exc:
+            self.notify("can't use %s: %s" % (folder, exc), severity="error")
+            return
+        self.cfg.rendu = folder
+        self.rendus[self.sh.SYNC_SLOT] = folder
+        self.notify("Solutions folder: %s (this session)" % folder)
+        for screen in self.screen_stack:  # its paths and hint point there
+            if isinstance(screen, PracticeScreen) and screen.ex_name:
+                screen.show_exercise(screen.ex_name)
+
+    def open_settings(self) -> None:
+        if not isinstance(self.screen, SettingsScreen):
+            self.push_screen(SettingsScreen())
+
+    def ask_feedback(self) -> None:
+        from .. import feedback
+
+        self.push_screen(
+            ChoiceModal(
+                "Give feedback — opens a GitHub form, nothing is "
+                "sent until you submit it",
+                list(feedback.KIND_LABELS),
+            ),
+            self.open_feedback,
+        )
+
+    def ask_switch_exam(self) -> None:
+        self.push_screen(
+            ChoiceModal("Switch exam", self.exam_choices()),
+            self.switch_from_anywhere,
+        )
+
+    def switch_from_anywhere(self, choice: Optional[str]) -> None:
+        """A switch from ctrl+p: back to the menu first — an open exercise,
+        list or progress view belongs to the exam you leave."""
+        if not choice:
+            return
+        while (
+            not isinstance(self.screen, MenuScreen)
+            and len(self.screen_stack) > 2
+        ):
+            self.pop_screen()
+        self.switch_exam(choice)
+
     # ── switching between the Python ranks and the C exam ─────────────
     def exam_choices(self) -> List[Tuple[str, str]]:
         from .. import ranks
@@ -1385,9 +1713,10 @@ class ExamShellApp(App[None]):
 
     def switch_exam(self, choice: Optional[str]) -> None:
         """Point the whole app at another tester (and rank). Exam-wide
-        choices made on the command line (--relaxed, --time-limit, --blind)
-        and each tester's own --rendu carry over; everything else comes
-        from that tester's own defaults and your saved settings."""
+        choices made on the command line or with ctrl+p (--relaxed,
+        --time-limit, --blind, --seed) and each tester's own --rendu carry
+        over; everything else comes from that tester's own defaults and
+        your saved settings."""
         if not choice:
             return
         new_sh: Tester
@@ -1403,7 +1732,13 @@ class ExamShellApp(App[None]):
         settings.remember_exam(choice)
         keep = {
             k: getattr(self.cfg, k, None)
-            for k in ("relaxed", "time_limit", "blind", "no_update_check")
+            for k in (
+                "relaxed",
+                "time_limit",
+                "blind",
+                "seed",
+                "no_update_check",
+            )
         }
         if new_sh.SYNC_SLOT in self.rendus:
             keep["rendu"] = self.rendus[new_sh.SYNC_SLOT]

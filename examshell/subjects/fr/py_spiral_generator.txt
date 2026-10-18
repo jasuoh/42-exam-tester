@@ -1,0 +1,14 @@
+Écrivez une fonction qui construit une matrice n x n remplie des
+nombres 1..n² en spirale dans le sens des aiguilles d'une montre.
+
+    def generate_spiral(n: int) -> list[list[int]]:
+
+La spirale commence à la case en haut à gauche (0, 0) en allant vers
+la droite, puis vers le bas, puis vers la gauche, puis vers le haut,
+en s'enroulant vers l'intérieur. Un n inférieur ou égal à 0 donne une
+liste vide.
+
+Exemples :
+    generate_spiral(3) -> [[1, 2, 3], [8, 9, 4], [7, 6, 5]]
+    generate_spiral(1) -> [[1]]
+    generate_spiral(0) -> []

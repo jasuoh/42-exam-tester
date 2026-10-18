@@ -1,0 +1,12 @@
+Escribe una función que cuente los pares válidos de dígitos
+consecutivos de una cadena. Un par válido son dos dígitos
+adyacentes en los que el segundo es exactamente uno mayor que el
+primero. Un 9 seguido de un 0 NO es válido.
+
+    def pattern_tracker(text: str) -> int:
+
+Ejemplos:
+    pattern_tracker("123")       -> 2
+    pattern_tracker("12a34")     -> 2
+    pattern_tracker("987654321") -> 0
+    pattern_tracker("90")        -> 0

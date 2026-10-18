@@ -1,0 +1,11 @@
+Escribe una función que compruebe si un entero es primo. Los
+números menores que 2 (0, 1 y todos los números negativos) no son
+primos.
+
+    def prime_finder(n: int) -> bool:
+
+Ejemplos:
+    prime_finder(2)   -> True
+    prime_finder(17)  -> True
+    prime_finder(1)   -> False
+    prime_finder(100) -> False

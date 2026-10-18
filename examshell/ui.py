@@ -397,6 +397,11 @@ def _looks_like_c_prototype(line: str) -> bool:
     )
 
 
+# "Examples:" in every language a subject is translated into
+# (examshell/subject_lang.py) — where the example block starts
+EXAMPLE_MARKERS = ("example", "exemple", "ejemplo", "пример")
+
+
 def _split_subject(subject: str) -> Tuple[List[str], str, str, str]:
     """Split a subject into (header rows, prose, signature, examples).
 
@@ -421,7 +426,7 @@ def _split_subject(subject: str) -> Tuple[List[str], str, str, str]:
             signatures.append(line.strip())
         elif not signatures and _looks_like_c_prototype(line.strip()):
             signatures.append(line.strip())
-        elif line.strip().lower().startswith("example"):
+        elif line.strip().lower().startswith(EXAMPLE_MARKERS):
             in_examples = True
         elif in_examples or "->" in line:
             examples.append(line)

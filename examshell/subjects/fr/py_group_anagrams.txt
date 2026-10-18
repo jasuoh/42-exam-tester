@@ -1,0 +1,14 @@
+Écrivez une fonction qui regroupe les mots qui sont des anagrammes
+les uns des autres. Deux mots sont des anagrammes s'ils contiennent
+exactement les mêmes lettres, en respectant la casse. Les groupes
+apparaissent dans l'ordre où leur premier mot est apparu pour la
+première fois dans l'entrée ; au sein d'un groupe, conservez les mots
+dans leur ordre relatif d'origine.
+
+    def group_anagrams(words: list[str]) -> list[list[str]]:
+
+Exemples :
+    group_anagrams(["eat","tea","tan","ate","nat","bat"])
+        -> [["eat","tea","ate"], ["tan","nat"], ["bat"]]
+    group_anagrams([""])   -> [[""]]
+    group_anagrams([])     -> []

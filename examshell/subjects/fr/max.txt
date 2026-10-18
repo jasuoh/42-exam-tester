@@ -1,0 +1,8 @@
+Écrivez une fonction qui renvoie le plus grand nombre d'un tableau de
+`len` entiers. Pour un tableau vide (len == 0), renvoyez 0.
+
+Exemples :
+    max([3,7,2,9,4], 5) -> 9
+    max([], 0)          -> 0
+
+    int max(int *tab, unsigned int len);

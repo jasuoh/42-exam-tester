@@ -1,0 +1,6 @@
+Écrivez une fonction qui inverse une chaîne SUR PLACE et la renvoie.
+
+Exemples :
+    ft_strrev("hello") -> "olleh" (str itself is modified)
+
+    char *ft_strrev(char *str);

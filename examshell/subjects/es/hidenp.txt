@@ -1,0 +1,12 @@
+Escribe un PROGRAMA llamado hidenp que reciba dos cadenas y muestre
+1 seguido de un salto de línea si la primera cadena está "oculta"
+en la segunda, y 0 en caso contrario. s1 está oculta en s2 si cada
+carácter de s1 se encuentra en s2, en el mismo orden (no
+necesariamente de forma consecutiva). La cadena vacía está oculta
+en cualquier cadena. Si argc != 3, solo un salto de línea.
+
+Ejemplos:
+    ./hidenp "abc" "2altrb53c.sse" -> 1
+    ./hidenp "abc" "btarc"          -> 0
+
+    int main(int argc, char **argv);

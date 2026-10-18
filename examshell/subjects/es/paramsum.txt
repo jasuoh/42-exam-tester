@@ -1,0 +1,8 @@
+Escribe un PROGRAMA que muestre el número de argumentos que se le
+pasan, seguido de un salto de línea. Sin argumentos, muestra 0.
+
+Ejemplos:
+    ./paramsum a b c -> 3
+    ./paramsum        -> 0
+
+    int main(int argc, char **argv);

@@ -1,0 +1,12 @@
+Écrivez une fonction qui compte les lettres majuscules et minuscules
+d'une chaîne. Les chiffres, espaces et signes de ponctuation ne
+comptent ni dans l'une ni dans l'autre catégorie.
+
+    def case_counter(text: str) -> list[int]:
+
+Renvoie une liste [uppercase_count, lowercase_count].
+
+Exemples :
+    case_counter("Hello World")  -> [2, 8]
+    case_counter("ALLCAPS")      -> [7, 0]
+    case_counter("123!?")        -> [0, 0]

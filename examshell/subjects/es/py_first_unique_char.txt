@@ -1,0 +1,11 @@
+Escribe una función que devuelva el índice del primer carácter de
+una cadena que no se repite en ninguna otra posición. Distingue
+mayúsculas de minúsculas. Si todos los caracteres se repiten (o la
+cadena está vacía), devuelve -1.
+
+    def first_unique_char(text: str) -> int:
+
+Ejemplos:
+    first_unique_char("leetcode")  -> 0
+    first_unique_char("aabb")      -> -1
+    first_unique_char("")          -> -1

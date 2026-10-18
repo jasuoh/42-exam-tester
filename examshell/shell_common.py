@@ -143,12 +143,6 @@ def percent(part: float, whole: float) -> int:
     return int(round(100.0 * part / whole)) if whole else 0
 
 
-def exam_grade_rng(seed: Optional[int]) -> random.Random:
-    """The exam's grading RNG — independent of the exercise-draw RNG, but
-    still deterministic under --seed (string seeds are hashed stably)."""
-    return random.Random(None if seed is None else "grade-%d" % seed)
-
-
 def time_left(session: Session, cfg: TesterConfig) -> Optional[float]:
     """Seconds left under --time-limit (negative once it ran out), or None
     when the exam has no limit."""
@@ -297,10 +291,11 @@ def exam_config(sh: Tester, cfg: _Config) -> _Config:
     """The config the exam actually grades with. Unless --relaxed, it is as
     strict as the real exam (the tester's STRICT_EXAM_FLAGS all on).
     Practice and training keep the lenient warn-only feedback — that is
-    where mistakes are supposed to be cheap."""
-    if cfg.relaxed:
-        return cfg
+    where mistakes are supposed to be cheap. Always a copy: an option
+    changed while the exam runs (the app's ctrl+p) can't reach it."""
     strict = copy.copy(cfg)
+    if cfg.relaxed:
+        return strict
     for flag in sh.STRICT_EXAM_FLAGS:
         setattr(strict, flag, True)
     return strict
@@ -312,6 +307,8 @@ def archive_exam_solutions(sh: Tester, cfg: TesterConfig) -> Optional[str]:
     stays together. Practice-only files are left alone. Returns the folder,
     or None if there was nothing to move. The archive is a subdirectory, so
     grading and sync (both top-level only) skip it."""
+    from . import sync
+
     exam_exercises = {n for pool in sh.STANDARD_LEVELS.values() for n in pool}
     paths = [
         path
@@ -332,6 +329,7 @@ def archive_exam_solutions(sh: Tester, cfg: TesterConfig) -> Optional[str]:
     os.makedirs(folder)
     for path in paths:
         os.replace(path, os.path.join(folder, os.path.basename(path)))
+    sync.mark_removed(cfg.rendu, [os.path.basename(path) for path in paths])
     return folder
 
 
@@ -341,16 +339,16 @@ class ExamRun(object):
     Levels are cleared in order, one exercise drawn per level from the
     Standard pool; you advance only by passing it. The exercise draw and
     the grading use separate RNGs, so `--seed N` reproduces the same
-    exercises however often the student grades. Each level keeps its own
-    attempt count and clock (restarted by redraw()), which is what ends
-    up in the session history / report.
+    exercises however often the student grades — and every grademe of a
+    level draws the same random tests (see grade_rng). Each level keeps
+    its own attempt count and clock (restarted by redraw()), which is what
+    ends up in the session history / report.
     """
 
     def __init__(self, sh: Tester, cfg: TesterConfig) -> None:
         self.sh = sh
         self.cfg = exam_config(sh, cfg)
         self.rng = random.Random(cfg.seed)
-        self.grade_rng = exam_grade_rng(cfg.seed)
         self.session: Session = sh.Session()
         self.level_attempts = 0
         self.level_started: Optional[float] = None
@@ -377,6 +375,9 @@ class ExamRun(object):
         quitting. A save from before `saved_at` existed resumes its clocks
         where they stopped, as it always did."""
         now = time.time()
+        for key, value in saved.get("rules", {}).items():
+            if key in session_store.EXAM_RULES and hasattr(self.cfg, key):
+                setattr(self.cfg, key, value)
         # never in the future: a save synced from a device whose clock is
         # ahead must not hand out extra time
         anchor = min(saved.get("saved_at") or now, now)
@@ -423,6 +424,21 @@ class ExamRun(object):
                 self.sh.TOOL, self.session.level, self.rng, pool, avoid
             )
         self.level_started, self.level_attempts = time.time(), 0
+
+    @property
+    def grade_rng(self) -> random.Random:
+        """A fresh grading RNG for the current level, the same on every
+        grademe: re-grading unchanged code must not draw new random tests
+        and flip FAILURE into SUCCESS. It is derived from the draw RNG's
+        state without advancing it — that state is what session_store
+        saves, so a resumed exam grades with the same tests too (and
+        --seed N reproduces them)."""
+        peek = random.Random()
+        peek.setstate(self.rng.getstate())
+        return random.Random(
+            "grade-%d-%d-%s"
+            % (peek.getrandbits(64), self.session.level, self.current_ex)
+        )
 
     def ensure_exercise(self) -> str:
         """The exercise for the current level, drawn if there isn't one yet
@@ -489,12 +505,27 @@ class ExamRun(object):
             self.session.current_ex,
             self.level_attempts,
             self.level_started,
+            self._saved_rules(),
         )
+
+    def _saved_rules(self) -> Dict[str, Any]:
+        return {
+            key: getattr(self.cfg, key)
+            for key in session_store.EXAM_RULES
+            if hasattr(self.cfg, key)
+        }
 
     def save_between_levels(self) -> None:
         """Save right after a level was cleared — the next one isn't drawn
         yet."""
-        session_store.save(self.sh.TOOL, self.session, self.rng, None, 0)
+        session_store.save(
+            self.sh.TOOL,
+            self.session,
+            self.rng,
+            None,
+            0,
+            rules=self._saved_rules(),
+        )
 
     def discard_save(self) -> None:
         session_store.clear(self.sh.TOOL)
@@ -704,7 +735,7 @@ def exam_mode(sh: Tester, cfg: TesterConfig) -> None:
     session = run.session
     _screen(sh)
 
-    saved = session_store.load(sh.TOOL)
+    saved = session_store.load(sh.TOOL, sh.STANDARD_LEVELS)
     if saved:
         try:
             resume = ui.confirm(
@@ -1284,11 +1315,14 @@ def run_tui(
     start: Union[None, str, Tuple[str, str]] = None
     if args.exam:
         start = "exam"
-    elif getattr(args, "practice", None):
-        name: Optional[str] = sh.resolve_exercise(args.practice)
-        if not name:
-            return 2
-        start = ("practice", name)
+    elif getattr(args, "practice", None) is not None:
+        if args.practice:
+            name: Optional[str] = sh.resolve_exercise(args.practice)
+            if not name:
+                return 2
+            start = ("practice", name)
+        else:
+            start = "practice"
     return tui.run(sh, cfg, start, rendus)
 
 

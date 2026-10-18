@@ -1,0 +1,9 @@
+Escribe una función que devuelva cuántos pares de índices (i, j),
+con i < j, cumplen arr[i] > arr[j]: cuánto le falta al array para
+estar ordenado.
+
+Ejemplos:
+    count_inversions([4,3,2,1], 4) -> 6   (every pair)
+    count_inversions([1,2,3,4], 4) -> 0   (already sorted)
+
+    int count_inversions(int *arr, unsigned int size);

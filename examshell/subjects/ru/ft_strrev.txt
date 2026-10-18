@@ -1,0 +1,7 @@
+Напишите функцию, которая переворачивает строку НА МЕСТЕ и возвращает
+её.
+
+Примеры:
+    ft_strrev("hello") -> "olleh" (str itself is modified)
+
+    char *ft_strrev(char *str);

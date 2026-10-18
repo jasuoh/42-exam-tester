@@ -1,0 +1,21 @@
+Escribe una función que represente una constelación de estrellas
+en una cuadrícula cuadrada y la devuelva como una lista de cadenas,
+una por fila.
+
+    def constellation_mapper(stars: list[tuple[int, int]], dim: int) -> list[str]:
+
+· stars es una lista de tuplas (row, col); dim es el tamaño de la
+  cuadrícula.
+· Una estrella es '*', un espacio vacío es '.'.
+· (0, 0) es la celda superior izquierda.
+· Las coordenadas fuera de la cuadrícula (incluidas las negativas)
+  se ignoran.
+· La misma coordenada repetida sigue siendo una sola estrella.
+· Un dim de 0 o menos da una lista vacía.
+
+Ejemplos:
+    constellation_mapper([(0,0), (1,1), (2,2)], 3) -> ['*..', '.*.', '..*']
+    constellation_mapper([(1,1), (0,1), (2,1), (1,0), (1,2)], 3)
+                                                   -> ['.*.', '***', '.*.']
+    constellation_mapper([], 2)                    -> ['..', '..']
+    constellation_mapper([(0,0), (5,5)], 3)        -> ['*..', '...', '...']

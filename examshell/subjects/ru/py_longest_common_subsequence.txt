@@ -1,0 +1,11 @@
+Напишите функцию, которая возвращает ДЛИНУ наибольшей общей
+подпоследовательности двух строк: самой длинной последовательности
+символов, которая встречается в обеих строках по порядку, но не
+обязательно подряд.
+
+    def longest_common_subsequence(s1: str, s2: str) -> int:
+
+Примеры:
+    longest_common_subsequence("abcde", "ace") -> 3
+    longest_common_subsequence("abc", "def")    -> 0
+    longest_common_subsequence("", "abc")       -> 0

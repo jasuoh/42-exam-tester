@@ -1,0 +1,13 @@
+Écrivez une fonction qui compresse une liste de caractères uniques :
+chaque suite maximale d'un même caractère devient ce caractère suivi
+de la longueur de la suite, mais UNIQUEMENT si la suite est plus
+longue que 1 (une suite de longueur 1 s'écrit avec le caractère seul,
+sans chiffre). Renvoyez le résultat sous forme d'une seule chaîne, pas
+d'une liste. Pour une liste vide, renvoyez "".
+
+    def string_compression(chars: list[str]) -> str:
+
+Exemples :
+    string_compression(["a","a","b","b","b"]) -> "a2b3"
+    string_compression(["a","b","c"])          -> "abc"
+    string_compression([])                      -> ""

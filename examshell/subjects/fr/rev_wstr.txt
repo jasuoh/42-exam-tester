@@ -1,0 +1,11 @@
+Écrivez un PROGRAMME qui prend une chaîne dont les mots sont séparés
+par des espaces simples (sans espaces au début ni à la fin) et
+affiche ses mots dans l'ordre INVERSE, séparés par un seul espace,
+suivis d'un retour à la ligne. Si argc != 2, affichez seulement un
+retour à la ligne.
+
+Exemples :
+    ./rev_wstr "one two three" -> three two one
+    ./rev_wstr "single"         -> single
+
+    int main(int argc, char **argv);

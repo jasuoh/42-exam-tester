@@ -1,0 +1,10 @@
+Escribe una función que devuelva el número de elementos de la lista
+enlazada que se le pasa. Debes usar el tipo t_list descrito en
+list.h (proporcionado): un nodo contiene un int `data` y un puntero
+`next` al nodo siguiente (NULL al final de la lista).
+
+Ejemplos:
+    ft_list_size([1,2,3]) -> 3
+    ft_list_size([])       -> 0
+
+    int ft_list_size(t_list *begin_list);

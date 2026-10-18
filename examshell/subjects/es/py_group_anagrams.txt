@@ -1,0 +1,14 @@
+Escribe una función que agrupe las palabras que son anagramas entre
+sí. Dos palabras son anagramas si contienen exactamente las mismas
+letras, distinguiendo mayúsculas de minúsculas. Los grupos aparecen
+en el orden en que apareció por primera vez su primera palabra en
+la entrada; dentro de un grupo, conserva las palabras en su orden
+relativo original.
+
+    def group_anagrams(words: list[str]) -> list[list[str]]:
+
+Ejemplos:
+    group_anagrams(["eat","tea","tan","ate","nat","bat"])
+        -> [["eat","tea","ate"], ["tan","nat"], ["bat"]]
+    group_anagrams([""])   -> [[""]]
+    group_anagrams([])     -> []

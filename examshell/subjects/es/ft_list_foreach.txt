@@ -1,0 +1,14 @@
+Escribe una función que recorra una lista enlazada y aplique un
+puntero a función `f` a los datos de cada elemento, llamándola como
+`(*f)(node->data)`. Debes usar el tipo t_list descrito en
+ft_list.h (proporcionado): un nodo contiene un `void *data` y un
+puntero `next`.
+
+El tester lo comprueba sumando el valor (int) de cada elemento a
+través de tu recorrido: un foreach correcto visita cada nodo
+exactamente una vez, en orden.
+
+Ejemplos:
+    ft_list_foreach([1,2,3], f) -> f is called with 1, then 2, then 3
+
+    void ft_list_foreach(t_list *begin_list, void (*f)(void *));

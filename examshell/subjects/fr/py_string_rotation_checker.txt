@@ -1,0 +1,12 @@
+Écrivez une fonction qui vérifie si s2 est une rotation de s1 —
+c'est-à-dire si s2 peut être obtenue en déplaçant un préfixe de s1 à
+sa fin (une rotation nulle, s2 == s1, compte aussi). Sensible à la
+casse ; deux chaînes de longueurs différentes ne sont jamais des
+rotations l'une de l'autre.
+
+    def string_rotation_checker(s1: str, s2: str) -> bool:
+
+Exemples :
+    string_rotation_checker("waterbottle", "erbottlewat") -> True
+    string_rotation_checker("abcd", "abdc")                -> False
+    string_rotation_checker("", "")                        -> True

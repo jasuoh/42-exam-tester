@@ -1,0 +1,10 @@
+Escribe un PROGRAMA que reciba una cadena y muestre su última
+palabra delimitada por espacios en blanco, seguida de un salto de
+línea. Si argc != 2, o si no hay ninguna palabra, solo un salto de
+línea.
+
+Ejemplos:
+    ./last_word "hello world" -> world
+    ./last_word "   "          -> (just a newline)
+
+    int main(int argc, char **argv);

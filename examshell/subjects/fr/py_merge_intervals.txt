@@ -1,0 +1,13 @@
+Écrivez une fonction qui fusionne toutes les paires d'intervalles qui
+se chevauchent. Chaque intervalle est [start, end] avec
+start <= end. Deux intervalles se chevauchent quand l'un commence au
+plus tard à la fin de l'autre. Renvoyez les intervalles fusionnés
+triés par start.
+
+    def merge_intervals(intervals: list[list[int]]) -> list[list[int]]:
+
+Exemples :
+    merge_intervals([[1,3],[2,6],[8,10],[15,18]])
+        -> [[1,6],[8,10],[15,18]]
+    merge_intervals([[1,4],[4,5]]) -> [[1,5]]
+    merge_intervals([])            -> []

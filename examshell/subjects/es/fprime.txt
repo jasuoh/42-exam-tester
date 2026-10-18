@@ -1,0 +1,12 @@
+Escribe un PROGRAMA que reciba un int positivo y muestre sus
+factores primos en la salida estándar, seguidos de un salto de
+línea. Los factores van en orden ascendente, separados por '*' (de
+modo que la expresión impresa sea igual a la entrada). Si
+argc != 2, solo un salto de línea.
+
+Ejemplos:
+    ./fprime 225225 -> 3*3*5*5*7*11*13
+    ./fprime 42     -> 2*3*7
+    ./fprime 1      -> 1
+
+    int main(int argc, char **argv);

@@ -1,0 +1,10 @@
+Écrivez un PROGRAMME qui prend une chaîne et affiche son dernier mot
+(délimité par des blancs), suivi d'un retour à la ligne. Si
+argc != 2, ou s'il n'y a aucun mot, affichez seulement un retour à
+la ligne.
+
+Exemples :
+    ./last_word "hello world" -> world
+    ./last_word "   "          -> (just a newline)
+
+    int main(int argc, char **argv);

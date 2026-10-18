@@ -1,0 +1,11 @@
+Escribe un PROGRAMA que reciba un entero positivo como argumento y
+muestre la suma de todos los números primos <= a él, seguida de un
+salto de línea. Si argc != 2, o si el argumento no es un número
+positivo, muestra solo 0 seguido de un salto de línea.
+
+Ejemplos:
+    ./add_prime_sum 5 -> 10   # 2 + 3 + 5
+    ./add_prime_sum 7 -> 17   # 2 + 3 + 5 + 7
+    ./add_prime_sum   -> 0
+
+    int main(int argc, char **argv);

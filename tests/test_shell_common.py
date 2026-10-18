@@ -153,6 +153,31 @@ class ExamRunTests(_TempDataDir):
         self.assertEqual(resumed.ensure_exercise(), first)
         self.assertEqual(resumed.level_attempts, 5)
 
+    def test_every_grademe_of_a_level_draws_the_same_tests(self) -> None:
+        # re-grading unchanged code must not draw new random tests and
+        # turn FAILURE into SUCCESS — not even across a resume
+        sh = py_shell
+        run = shell_common.ExamRun(sh, _cfg(sh, seed=None))
+        run.start("frank")
+        run.ensure_exercise()
+        first = [run.grade_rng.random() for _ in range(3)]
+        self.assertEqual(len(set(first)), 1)  # a fresh RNG each time
+        run.begin_attempt()
+        run.save()
+        resumed = shell_common.ExamRun(sh, _cfg(sh, seed=None))
+        saved = session_store.load(sh.TOOL)
+        assert saved is not None
+        resumed.resume(saved)
+        self.assertEqual(resumed.grade_rng.random(), first[0])
+        resumed.pass_level()
+        resumed.ensure_exercise()
+        self.assertNotEqual(resumed.grade_rng.random(), first[0])
+        # another exam grades with other tests
+        other = shell_common.ExamRun(sh, _cfg(sh, seed=None))
+        other.start()
+        other.session.current_ex = run.current_ex
+        self.assertNotEqual(other.grade_rng.random(), first[0])
+
     def test_redraw_only_when_relaxed(self) -> None:
         sh = py_shell
         strict = shell_common.ExamRun(sh, _cfg(sh))
@@ -215,6 +240,51 @@ class ExamRunTests(_TempDataDir):
             self.assertIn("00:00:10 left", resumed.countdown())
         with mock.patch.object(time, "time", return_value=1060.0):
             self.assertTrue(resumed.times_up())
+
+    def test_resume_restores_original_rules_not_current_defaults(self) -> None:
+        for sh in self.SHELLS:
+            with self.subTest(tester=sh.TOOL):
+                run = shell_common.ExamRun(
+                    sh, _cfg(sh, time_limit=1, fuzz=17, blind=True)
+                )
+                run.start()
+                run.ensure_exercise()
+                assert run.session.start_time is not None
+                run.session.start_time -= 120
+                run.save()
+                saved = session_store.load(sh.TOOL)
+                assert saved is not None
+                other = shell_common.ExamRun(
+                    sh, _cfg(sh, relaxed=True, time_limit=None, seed=None)
+                )
+                other.resume(saved)
+                self.assertTrue(other.times_up())
+                self.assertEqual(other.cfg.time_limit, 1)
+                self.assertEqual(other.cfg.fuzz, 17)
+                self.assertTrue(other.cfg.blind)
+                self.assertFalse(other.cfg.relaxed)
+                self.assertEqual(other.cfg.seed, run.cfg.seed)
+                for key in sh.STRICT_EXAM_FLAGS:
+                    self.assertEqual(
+                        getattr(other.cfg, key), getattr(run.cfg, key)
+                    )
+                other.pass_level()
+                other.save_between_levels()
+                between = session_store.load(sh.TOOL)
+                assert between is not None
+                self.assertEqual(between["rules"], saved["rules"])
+
+    def test_legacy_save_keeps_current_rules(self) -> None:
+        run = shell_common.ExamRun(py_shell, _cfg(py_shell))
+        run.start()
+        run.ensure_exercise()
+        run.save()
+        saved = session_store.load(py_shell.TOOL)
+        assert saved is not None
+        del saved["rules"]
+        other = shell_common.ExamRun(py_shell, _cfg(py_shell, time_limit=45))
+        other.resume(saved)
+        self.assertEqual(other.cfg.time_limit, 45)
 
     # issue #15: a new exam starts from an empty rendu/ — solutions to exam
     # exercises from earlier runs go to rendu/archive/<when>/; a resumed
@@ -410,9 +480,7 @@ class FinishAndBlindTests(_TempDataDir):
             ui, "spinner"
         ), mock.patch.object(ui, "_rich", False), mock.patch.object(
             ui, "_color", False
-        ), contextlib.redirect_stdout(
-            out
-        ):
+        ), contextlib.redirect_stdout(out):
             shell_common.grade_exercise(
                 sh,
                 "py_inter",
@@ -448,9 +516,7 @@ class FinishAndBlindTests(_TempDataDir):
             sh, "prepare_grading", return_value=job
         ), mock.patch.object(ui, "_rich", False), mock.patch.object(
             ui, "_color", False
-        ), contextlib.redirect_stdout(
-            out
-        ):
+        ), contextlib.redirect_stdout(out):
             shell_common.grade_exercise(
                 sh, "py_inter", random.Random(0), _cfg(sh), mode="exam"
             )
@@ -460,6 +526,26 @@ class FinishAndBlindTests(_TempDataDir):
         self.assertNotIn("'y'", text)
         self.assertNotIn("[KO]", text)
         self.assertNotIn("tests passed", text)
+
+
+class RunTuiTests(unittest.TestCase):
+    def test_practice_flag_without_exercise_starts_on_picker(self) -> None:
+        args = argparse.Namespace(exam=False, practice="")
+        with mock.patch(
+            "examshell.tui.available", return_value=True
+        ), mock.patch("examshell.tui.run", return_value=0) as run:
+            code = shell_common.run_tui(py_shell, _cfg(py_shell), args)
+            self.assertEqual(code, 0)
+            self.assertEqual(run.call_args[0][2], "practice")
+
+    def test_practice_flag_with_exercise_starts_on_exercise(self) -> None:
+        args = argparse.Namespace(exam=False, practice="py_inter")
+        with mock.patch(
+            "examshell.tui.available", return_value=True
+        ), mock.patch("examshell.tui.run", return_value=0) as run:
+            code = shell_common.run_tui(py_shell, _cfg(py_shell), args)
+            self.assertEqual(code, 0)
+            self.assertEqual(run.call_args[0][2], ("practice", "py_inter"))
 
 
 if __name__ == "__main__":

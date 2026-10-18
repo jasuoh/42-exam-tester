@@ -1,0 +1,11 @@
+Escribe una función que codifique una cadena por longitud de
+secuencias (run-length): cada secuencia máxima del mismo carácter
+se convierte en ese carácter seguido de su número de repeticiones.
+Una cadena vacía se codifica como "".
+
+    def run_length_encoder(text: str) -> str:
+
+Ejemplos:
+    run_length_encoder("aaabbc")  -> "a3b2c1"
+    run_length_encoder("abc")     -> "a1b1c1"
+    run_length_encoder("")        -> ""

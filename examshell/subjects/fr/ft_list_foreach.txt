@@ -1,0 +1,14 @@
+Écrivez une fonction qui parcourt une liste chaînée et applique un
+pointeur sur fonction `f` aux données de chaque élément, en
+l'appelant ainsi : `(*f)(node->data)`. Vous devez utiliser le type
+t_list décrit dans ft_list.h (fourni) : un nœud contient un
+`void *data` et un pointeur `next`.
+
+Le testeur le vérifie en additionnant la valeur (int) de chaque
+élément à travers votre parcours — un foreach correct visite chaque
+nœud exactement une fois, dans l'ordre.
+
+Exemples :
+    ft_list_foreach([1,2,3], f) -> f is called with 1, then 2, then 3
+
+    void ft_list_foreach(t_list *begin_list, void (*f)(void *));
